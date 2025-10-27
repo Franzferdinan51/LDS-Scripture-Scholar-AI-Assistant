@@ -58,7 +58,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         type="button" 
         onClick={() => setChatMode(chatMode === 'thinking' ? 'chat' : 'thinking')}
         disabled={isSpecialModeActive}
-        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap
+        className={`flex items-center gap-2 px-3 py-2 sm:py-3 rounded-full text-sm font-medium transition-colors whitespace-nowrap
           ${chatMode === 'thinking' 
             ? 'bg-purple-600 text-white' 
             : 'bg-slate-700/80 text-gray-300 hover:bg-slate-600/80'
@@ -70,24 +70,26 @@ const ChatInput: React.FC<ChatInputProps> = ({
         Thinking
       </button>
       
-      <form onSubmit={handleSubmit} className="flex-1 flex items-center">
+      <form id="chat-form" onSubmit={handleSubmit} className="flex-1">
         <input
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={getPlaceholder()}
-          className="w-full bg-transparent focus:outline-none text-gray-200 placeholder:text-gray-400 px-2"
+          className="w-full bg-transparent focus:outline-none text-gray-200 placeholder:text-gray-400 px-2 py-2 sm:py-3"
           disabled={isInputDisabled}
         />
-        <button
-          type="submit"
-          disabled={isSendDisabled}
-          className="bg-blue-600 text-white rounded-full p-2 sm:p-3 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 ml-2"
-          aria-label="Send message"
-        >
-          <SendIcon />
-        </button>
       </form>
+
+      <button
+        type="submit"
+        form="chat-form"
+        disabled={isSendDisabled}
+        className="bg-blue-600 text-white rounded-full p-2 sm:p-3 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 flex items-center justify-center"
+        aria-label="Send message"
+      >
+        <SendIcon />
+      </button>
 
       {isVoiceChatAvailable && (
         <VoiceButton
