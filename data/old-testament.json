@@ -1,0 +1,162 @@
+
+{
+    "title": "The Old Testament (KJV)",
+    "books": [
+        {
+            "book": "Genesis",
+            "chapters": []
+        },
+        {
+            "book": "Exodus",
+            "chapters": []
+        },
+        {
+            "book": "Leviticus",
+            "chapters": []
+        },
+        {
+            "book": "Numbers",
+            "chapters": []
+        },
+        {
+            "book": "Deuteronomy",
+            "chapters": []
+        },
+        {
+            "book": "Joshua",
+            "chapters": []
+        },
+        {
+            "book": "Judges",
+            "chapters": []
+        },
+        {
+            "book": "Ruth",
+            "chapters": []
+        },
+        {
+            "book": "1 Samuel",
+            "chapters": []
+        },
+        {
+            "book": "2 Samuel",
+            "chapters": []
+        },
+        {
+            "book": "1 Kings",
+            "chapters": []
+        },
+        {
+            "book": "2 Kings",
+            "chapters": []
+        },
+        {
+            "book": "1 Chronicles",
+            "chapters": []
+        },
+        {
+            "book": "2 Chronicles",
+            "chapters": []
+        },
+        {
+            "book": "Ezra",
+            "chapters": []
+        },
+        {
+            "book": "Nehemiah",
+            "chapters": []
+        },
+        {
+            "book": "Esther",
+            "chapters": []
+        },
+        {
+            "book": "Job",
+            "chapters": []
+        },
+        {
+            "book": "Psalms",
+            "chapters": []
+        },
+        {
+            "book": "Proverbs",
+            "chapters": []
+        },
+        {
+            "book": "Ecclesiastes",
+            "chapters": []
+        },
+        {
+            "book": "Song of Solomon",
+            "chapters": []
+        },
+        {
+            "book": "Isaiah",
+            "chapters": []
+        },
+        {
+            "book": "Jeremiah",
+            "chapters": []
+        },
+        {
+            "book": "Lamentations",
+            "chapters": []
+        },
+        {
+            "book": "Ezekiel",
+            "chapters": []
+        },
+        {
+            "book": "Daniel",
+            "chapters": []
+        },
+        {
+            "book": "Hosea",
+            "chapters": []
+        },
+        {
+            "book": "Joel",
+            "chapters": []
+        },
+        {
+            "book": "Amos",
+            "chapters": []
+        },
+        {
+            "book": "Obadiah",
+            "chapters": []
+        },
+        {
+            "book": "Jonah",
+            "chapters": []
+        },
+        {
+            "book": "Micah",
+            "chapters": []
+        },
+        {
+            "book": "Nahum",
+            "chapters": []
+        },
+        {
+            "book": "Habakkuk",
+            "chapters": []
+        },
+        {
+            "book": "Zephaniah",
+            "chapters": []
+        },
+        {
+            "book": "Haggai",
+            "chapters": []
+        },
+        {
+            "book": "Zechariah",
+            "chapters": []
+        },
+        {
+            "book": "Malachi",
+            "chapters": []
+        }
+    ]
+}

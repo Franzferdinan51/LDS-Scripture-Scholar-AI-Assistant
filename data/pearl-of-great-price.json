@@ -1,74 +1,20 @@
+
 {
     "title": "The Pearl of Great Price",
     "books": [
-        {
-            "book": "Moses",
-            "chapters": [
-                {
-                    "chapter": 1,
-                    "verses": [
-                        { "verse": 1, "text": "The words of God, which he spake unto Moses at a time when Moses was caught up into an exceedingly high mountain," },
-                        { "verse": 2, "text": "And he saw God face to face, and he talked with him, and the glory of God was upon Moses; therefore Moses could endure his presence." },
-                        { "verse": 39, "text": "For behold, this is my work and my glory—to bring to pass the immortality and eternal life of man." }
-                    ]
-                }
-            ]
+        { 
+            "book": "Moses", 
+            "chapters": []
         },
-        {
-            "book": "Abraham",
-            "chapters": [
-                {
-                    "chapter": 1,
-                    "verses": [
-                        { "verse": 1, "text": "In the land of the Chaldeans, at the residence of my fathers, I, Abraham, saw that it was needful for me to obtain another place of residence;" }
-                    ]
-                }
-            ]
-        },
-        {
-            "book": "Joseph Smith—Matthew",
-            "chapters": [
-                {
-                    "chapter": 1,
-                    "verses": [
-                        { "verse": 1, "text": "For I say unto you, that ye shall not see me henceforth and know that I am he of whom it is written by the prophets, until ye shall say: Blessed is he who cometh in the name of the Lord, in the clouds of heaven, and all the holy angels with him. Then understood his disciples that he should come again on the earth, after that he was glorified and crowned on the right hand of God." }
-                    ]
-                }
-            ]
-        },
-        {
-            "book": "Joseph Smith—History",
-            "chapters": [
-                {
-                    "chapter": 1,
-                    "verses": [
-                        { "verse": 1, "text": "Owing to the many reports which have been put in circulation by evil-disposed and designing persons, in relation to the rise and progress of The Church of Jesus Christ of Latter-day Saints, all of which have been designed by the authors thereof to militate against its character as a Church and its progress in the world—I have been induced to write this history, to disabuse the public mind, and put all inquirers after truth in possession of the facts, as they have transpired, in relation both to myself and the Church, so far as I have such facts in my possession." }
-                    ]
-                }
-            ]
-        },
-        {
-            "book": "Articles of Faith",
-            "chapters": [
-                {
-                    "chapter": 1,
-                    "verses": [
-                        { "verse": 1, "text": "We believe in God, the Eternal Father, and in His Son, Jesus Christ, and in the Holy Ghost." },
-                        { "verse": 2, "text": "We believe that men will be punished for their own sins, and not for Adam’s transgression." },
-                        { "verse": 3, "text": "We believe that through the Atonement of Christ, all mankind may be saved, by obedience to the laws and ordinances of the Gospel." },
-                        { "verse": 4, "text": "We believe that the first principles and ordinances of the Gospel are: first, Faith in the Lord Jesus Christ; second, Repentance; third, Baptism by immersion for the remission of sins; fourth, Laying on of hands for the gift of the Holy Ghost." },
-                        { "verse": 5, "text": "We believe that a man must be called of God, by prophecy, and by the laying on of hands by those who are in authority, to preach the Gospel and administer in the ordinances thereof." },
-                        { "verse": 6, "text": "We believe in the same organization that existed in the Primitive Church, namely, apostles, prophets, pastors, teachers, evangelists, and so forth." },
-                        { "verse": 7, "text": "We believe in the gift of tongues, prophecy, revelation, visions, healing, interpretation of tongues, and so forth." },
-                        { "verse": 8, "text": "We believe the Bible to be the word of God as far as it is translated correctly; we also believe the Book of Mormon to be the word of God." },
-                        { "verse": 9, "text": "We believe all that God has revealed, all that He does now reveal, and we believe that He will yet reveal many great and important things pertaining to the Kingdom of God." },
-                        { "verse": 10, "text": "We believe in the literal gathering of Israel and in the restoration of the Ten Tribes; that Zion (the New Jerusalem) will be built upon the American continent; that Christ will reign personally upon the earth; and, that the earth will be renewed and receive its paradisiacal glory." },
-                        { "verse": 11, "text": "We claim the privilege of worshiping Almighty God according to the dictates of our own conscience, and allow all men the same privilege, let them worship how, where, or what they may." },
-                        { "verse": 12, "text": "We believe in being subject to kings, presidents, rulers, and magistrates, in obeying, honoring, and sustaining the law." },
-                        { "verse": 13, "text": "We believe in being honest, true, chaste, benevolent, virtuous, and in doing good to all men; indeed, we may say that we follow the admonition of Paul—We believe all things, we hope all things, we have endured many things, and hope to be able to endure all things. If there is anything virtuous, lovely, or of good report or praiseworthy, we seek after these things." }
-                    ]
-                }
-            ]
+        { "book": "Abraham", "chapters": [] },
+        { "book": "Joseph Smith—Matthew", "chapters": [] },
+        { "book": "Joseph Smith—History", "chapters": [] },
+        { 
+            "book": "Articles of Faith", 
+            "chapters": [{ 
+                "chapter": 1, 
+                "verses": [] 
+            }] 
         }
     ]
 }

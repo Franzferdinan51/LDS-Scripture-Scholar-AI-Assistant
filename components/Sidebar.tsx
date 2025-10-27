@@ -25,13 +25,15 @@ interface SidebarProps {
   activeChatId: string | null;
   onNewChat: () => void;
   onSelectChat: (chatId: string) => void;
+  pinnedChatIds: string[];
+  onTogglePin: (chatId: string) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
   isOpen, activeView, setActiveView, onClose,
   chatMode, setChatMode, isLoading, isVoiceActive, isConnecting,
   onVerseOfTheDay, onOpenSettings, chatHistory, activeChatId,
-  onNewChat, onSelectChat
+  onNewChat, onSelectChat, pinnedChatIds, onTogglePin
 }) => {
   const handleItemClick = (view: ViewMode) => {
     setActiveView(view);
@@ -69,7 +71,24 @@ const Sidebar: React.FC<SidebarProps> = ({
     { action: onOpenSettings, label: 'Settings', icon: <SettingsIcon /> },
   ];
 
-  const chatHistoryItems = Object.keys(chatHistory).reverse(); // Show newest first
+  const chatHistoryItems = Object.keys(chatHistory).reverse();
+  const pinnedChats = chatHistoryItems.filter(id => pinnedChatIds.includes(id));
+  const recentChats = chatHistoryItems.filter(id => !pinnedChatIds.includes(id));
+  
+  const renderChatItem = (chatId: string) => (
+    <li key={chatId} className="group relative">
+      <button onClick={() => handleChatSelect(chatId)} className={`w-full text-left text-sm p-2 rounded truncate transition-colors pr-8 ${chatId === activeChatId && activeView === 'chat' ? 'bg-slate-700 text-white' : 'text-gray-400 hover:bg-slate-700/50'}`}>
+        {getChatTitle(chatHistory[chatId])}
+      </button>
+      <button
+        onClick={() => onTogglePin(chatId)}
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-yellow-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-colors"
+        title={pinnedChatIds.includes(chatId) ? "Unpin chat" : "Pin chat"}
+      >
+        <StarIcon isPinned={pinnedChatIds.includes(chatId)} className="w-4 h-4" />
+      </button>
+    </li>
+  );
 
   return (
     <>
@@ -110,26 +129,28 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </li>
               ))}
             </ul>
+
+            {pinnedChats.length > 0 && (
+              <>
+                <div className="px-3 mt-4 mb-1">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pinned</h3>
+                </div>
+                <ul className="space-y-1 px-2">
+                  {pinnedChats.map(renderChatItem)}
+                </ul>
+              </>
+            )}
             
             <div className="px-3 mt-4">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">History</h3>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent</h3>
                 <button onClick={() => handleActionClick(onNewChat)} className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded-full transition-colors" title="New Chat">
                     <PlusIcon />
                 </button>
               </div>
             </div>
             <ul className="mt-1 space-y-1 px-2 flex-1">
-               <button onClick={onNewChat} className="w-full text-left text-sm p-2 rounded truncate transition-colors text-blue-400 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 mb-2">
-                  New Chat
-               </button>
-              {chatHistoryItems.map(chatId => (
-                <li key={chatId}>
-                  <button onClick={() => handleChatSelect(chatId)} className={`w-full text-left text-sm p-2 rounded truncate transition-colors ${chatId === activeChatId && activeView === 'chat' ? 'bg-slate-700 text-white' : 'text-gray-400 hover:bg-slate-700/50'}`}>
-                    {getChatTitle(chatHistory[chatId])}
-                  </button>
-                </li>
-              ))}
+              {recentChats.map(renderChatItem)}
             </ul>
           </nav>
         </div>

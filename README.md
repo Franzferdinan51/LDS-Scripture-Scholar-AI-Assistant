@@ -15,7 +15,7 @@ This application was created by **Ryan**. All scripture data used in this applic
     *   **Lesson Prep Assistant:** An agentic tool that researches and outlines a complete lesson or talk, including an objective, discussion points, scriptures, and activities.
     *   **FHE Planner:** Quickly generate a full Family Home Evening plan with a song, scripture, lesson, activity, and treat idea, tailored to the ages of your children.
 *   **Comprehensive Study Suite:** A full set of tools to enhance your learning:
-    *   **Scripture Reader:** Browse the complete text of the Book of Mormon, Doctrine and Covenants, and Pearl of Great Price.
+    *   **Scripture Reader:** Browse the complete text of the Old Testament, New Testament, Book of Mormon, Doctrine and Covenants, and Pearl of Great Price.
     *   **Voice Journal:** Record your thoughts and impressions aloud. The app transcribes your entry and uses AI to provide a summary, identify key principles, and suggest a relevant scripture for further study.
     *   **Cross-Referencer:** Input any scripture and get a list of related verses with explanations of how they connect.
     *   **My Notes:** A simple, persistent notepad for jotting down quick thoughts.
@@ -37,6 +37,7 @@ This application was created by **Ryan**. All scripture data used in this applic
 
 The scripture text used in this application is from the public domain, provided by **Project Gutenberg**.
 
+*   **The Holy Bible, King James Version:** [Project Gutenberg eBook #10](https://www.gutenberg.org/ebooks/10)
 *   **The Book of Mormon:** [Project Gutenberg eBook #17](https://www.gutenberg.org/ebooks/17)
 *   **The Doctrine and Covenants:** [Project Gutenberg eBook #58999](https://www.gutenberg.org/ebooks/58999)
 *   **The Pearl of Great Price:** [Project Gutenberg eBook #19438](https://www.gutenberg.org/ebooks/19438)

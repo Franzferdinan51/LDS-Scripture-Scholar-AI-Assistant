@@ -39,6 +39,7 @@ const App: React.FC = () => {
   // -- State Management --
   const [chatHistory, setChatHistory] = useState<ChatHistory>({});
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [pinnedChatIds, setPinnedChatIds] = useState<string[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   
@@ -81,6 +82,7 @@ const App: React.FC = () => {
     try {
       const savedHistory = localStorage.getItem('chatHistory');
       const savedActiveId = localStorage.getItem('activeChatId');
+      const savedPinnedIds = localStorage.getItem('pinnedChatIds');
       const savedNotes = localStorage.getItem('notes');
       const savedJournals = localStorage.getItem('journalEntries');
       
@@ -92,6 +94,7 @@ const App: React.FC = () => {
         handleNewChat();
       }
 
+      if (savedPinnedIds) setPinnedChatIds(JSON.parse(savedPinnedIds));
       if (savedNotes) setNotes(JSON.parse(savedNotes));
       if (savedJournals) setJournalEntries(JSON.parse(savedJournals));
 
@@ -109,7 +112,8 @@ const App: React.FC = () => {
     if (activeChatId) {
       localStorage.setItem('activeChatId', activeChatId);
     }
-  }, [chatHistory, activeChatId]);
+    localStorage.setItem('pinnedChatIds', JSON.stringify(pinnedChatIds));
+  }, [chatHistory, activeChatId, pinnedChatIds]);
   
   useEffect(() => { localStorage.setItem('notes', JSON.stringify(notes)); }, [notes]);
   useEffect(() => { localStorage.setItem('journalEntries', JSON.stringify(journalEntries)); }, [journalEntries]);
@@ -156,8 +160,20 @@ const App: React.FC = () => {
     if (window.confirm("Are you sure you want to delete all chat history? This action cannot be undone.")) {
       localStorage.removeItem('chatHistory');
       localStorage.removeItem('activeChatId');
+      localStorage.removeItem('pinnedChatIds');
       window.location.reload(); // Force a full refresh to clear all state
     }
+  };
+
+  const handleTogglePinChat = (chatId: string) => {
+    setPinnedChatIds(prev => {
+      const isPinned = prev.includes(chatId);
+      if (isPinned) {
+        return prev.filter(id => id !== chatId);
+      } else {
+        return [chatId, ...prev];
+      }
+    });
   };
 
   const triggerProactiveSuggestion = useCallback(async () => {
@@ -501,6 +517,7 @@ const App: React.FC = () => {
                 onVerseOfTheDay={handleVerseOfTheDay} onOpenSettings={() => setIsSettingsOpen(true)}
                 chatHistory={chatHistory} activeChatId={activeChatId}
                 onNewChat={handleNewChat} onSelectChat={setActiveChatId}
+                pinnedChatIds={pinnedChatIds} onTogglePin={handleTogglePinChat}
             />
             <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out h-full ${isSidebarOpen ? 'md:ml-64' : ''}`}>
                 {error && <div className="bg-red-800/50 text-red-200 border-b border-red-500/30 p-3 text-center z-10 backdrop-blur-sm"><p>{error}</p></div>}
