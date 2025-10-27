@@ -82,7 +82,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       >
         <div className="p-2 border-b border-white/10 flex justify-between items-center flex-shrink-0">
           <h2 className="text-lg font-bold text-white px-2">Study Tools</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors md:hidden">
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>

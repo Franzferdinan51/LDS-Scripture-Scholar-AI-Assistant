@@ -306,9 +306,8 @@ const App: React.FC = () => {
   };
 
   const handleVerseOfTheDay = () => {
-    handleNewChat();
-    setTimeout(() => handleSendMessage("Give me an inspiring scripture and a short insight about its meaning."), 50);
-  }
+    handleSendMessage("Give me an inspiring scripture and a short insight about its meaning.");
+  };
 
   const handleExplainVerse = (verse: string) => {
     setActiveView('chat');
@@ -503,7 +502,7 @@ const App: React.FC = () => {
                 chatHistory={chatHistory} activeChatId={activeChatId}
                 onNewChat={handleNewChat} onSelectChat={setActiveChatId}
             />
-            <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out h-full ${isSidebarOpen ? 'ml-64 md:ml-0' : 'ml-0'}`}>
+            <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out h-full ${isSidebarOpen ? 'md:ml-64' : ''}`}>
                 {error && <div className="bg-red-800/50 text-red-200 border-b border-red-500/30 p-3 text-center z-10 backdrop-blur-sm"><p>{error}</p></div>}
                 
                 {activeView === 'scripture-reader' ? (

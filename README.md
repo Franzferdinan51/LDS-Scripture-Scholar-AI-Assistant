@@ -14,16 +14,17 @@ This application was created by **Ryan**. All scripture data used in this applic
     *   **Quiz Master:** Create multiple-choice quizzes to test your knowledge on scripture blocks or themes.
     *   **Lesson Prep Assistant:** An agentic tool that researches and outlines a complete lesson or talk, including an objective, discussion points, scriptures, and activities.
     *   **FHE Planner:** Quickly generate a full Family Home Evening plan with a song, scripture, lesson, activity, and treat idea, tailored to the ages of your children.
-*   **Interactive Study Suite:** A full set of tools to enhance your learning:
+*   **Comprehensive Study Suite:** A full set of tools to enhance your learning:
     *   **Scripture Reader:** Browse the complete text of the Book of Mormon, Doctrine and Covenants, and Pearl of Great Price.
     *   **Voice Journal:** Record your thoughts and impressions aloud. The app transcribes your entry and uses AI to provide a summary, identify key principles, and suggest a relevant scripture for further study.
     *   **Cross-Referencer:** Input any scripture and get a list of related verses with explanations of how they connect.
     *   **My Notes:** A simple, persistent notepad for jotting down quick thoughts.
-*   **Multimedia & Grounding:**
+*   **Rich Multimedia & Grounded Responses:**
     *   **Voice Chat:** Engage in real-time, spoken conversations with the AI (Google Gemini only).
     *   **Text-to-Speech:** Listen to the AI's responses.
     *   **Agentic Image Search:** Ask the AI to find relevant images (e.g., "Find a picture of the Salt Lake Temple"), and it will search Wikimedia Commons for official, church-related images.
     *   **Grounding:** Responses are grounded with sources from Google Search and Google Maps (model dependent) for enhanced accuracy.
+*   **Persistent & Personalized:** Your chat history, notes, and journal entries are automatically saved to your browser's local storage, so your work is always there when you return.
 *   **Modern UI/UX:** Features a sleek, responsive dark mode, a floating chat input, and an intuitive, sidebar-based navigation system.
 
 ## Technology Stack
@@ -37,6 +38,8 @@ This application was created by **Ryan**. All scripture data used in this applic
 The scripture text used in this application is from the public domain, provided by **Project Gutenberg**.
 
 *   **The Book of Mormon:** [Project Gutenberg eBook #17](https://www.gutenberg.org/ebooks/17)
+*   **The Doctrine and Covenants:** [Project Gutenberg eBook #58999](https://www.gutenberg.org/ebooks/58999)
+*   **The Pearl of Great Price:** [Project Gutenberg eBook #19438](https://www.gutenberg.org/ebooks/19438)
 
 ## Setup and Installation
 
@@ -46,13 +49,12 @@ The scripture text used in this application is from the public domain, provided 
     ```
 2.  **Install dependencies:**
     This project uses a modern web setup with `importmap`, so no `npm install` is required for the core libraries.
-3.  **API Keys:**
-    *   Create a `.env` file in the root of the project.
-    *   Add your Google Gemini API key: `API_KEY=your_google_api_key_here`
-    *   The key will be loaded automatically into the settings. You can also configure other providers like OpenRouter in the in-app settings menu.
+3.  **Configure API Keys:**
+    *   This app is designed to work out-of-the-box using the pre-configured `API_KEY` environment variable.
+    *   You can also configure other providers (like OpenRouter or a local LM Studio instance) and manage your Google API key in the in-app settings menu.
 4.  **Run the application:**
     Serve the project directory using a simple local web server. For example, using Python:
     ```bash
     python -m http.server
     ```
-    Or using a tool like `live-server`. Open the provided URL in your browser.
+    Or using a tool like `live-server` for automatic reloading. Open the provided URL in your browser.
