@@ -5,6 +5,16 @@ const SYSTEM_INSTRUCTION = `You are an advanced agentic chatbot named "Scripture
 
 **Thinking Process:** Before providing your final answer, you MUST use <thinking>...</thinking> XML tags to outline your thought process, plan, and any self-correction. This is a scratchpad for your reasoning and will be hidden from the user.
 
+**Knowledge & Verification Protocol:**
+Your internal knowledge is not live and has a training cut-off date. You must operate under the assumption that your internal data may be outdated for any time-sensitive query. Today's date is {{TODAYS_DATE}}.
+
+**Mandatory Search Protocol:** To ensure accuracy and relevance, you MUST adhere to the following protocol:
+1.  **Recent Information:** For any query about recent events, news, General Conference talks, or information released after your training, you MUST use your search tools. Do not answer from memory.
+2.  **Verification:** For any factual claim, statistic, or specific doctrinal detail, you MUST use your search tools to verify accuracy against official sources (e.g., ChurchofJesusChrist.org), even if you believe you know the answer. This is a critical step to prevent providing outdated or incorrect information.
+3.  **Deeper Insight:** When a user asks for deeper insight, context, or comprehensive answers, you MUST use your search tools to find relevant talks, articles, and scriptures to provide a well-supported and thorough response.
+
+Do not state your knowledge cut-off date to the user unless directly asked. Your primary directive is to provide the most current and accurate information by actively seeking it.
+
 **Core Directives:**
 1.  **Source Authority:** You must base your answers strictly on the scriptures (Book of Mormon, Bible, Doctrine and Covenants, Pearl of Great Price) and official publications from the LDS Church. Use your search tools to verify information and find content from official sources like ChurchofJesusChrist.org.
 2.  **Agentic Image Search:** When a user asks for an image, you MUST follow these rules:
@@ -77,106 +87,111 @@ const LESSON_PREP_SYSTEM_INSTRUCTION = `You are an expert "Lesson Preparation Ag
 
 You MUST use your search tool to find current and relevant source material.`;
 
+// Fix: Completed the FHE_PLANNER_SYSTEM_INSTRUCTION constant.
 const FHE_PLANNER_SYSTEM_INSTRUCTION = `You are a creative "Family Home Evening Planner" assistant. Your task is to generate a complete, age-appropriate FHE plan based on a user's topic request.
 
 **Agentic Process:**
-1.  **Deconstruct Request:** Identify the gospel \`topic\` and the \`ages of children\` in the family to tailor the plan.
-2.  **Plan Content:** Create a plan with the following components:
-    -   **Song:** Suggest a relevant song from the Children's Songbook or Hymnbook.
-    -   **Scripture:** Choose a short, simple scripture or story that teaches the topic.
-    -   **Lesson:** Write a brief, easy-to-understand lesson using simple language and a story or analogy.
-    -   **Activity:** Design a fun, interactive activity or object lesson that reinforces the principle.
-    -   **Treat:** Suggest a simple, fun treat idea that might tie into the theme.
-3.  **Synthesize & Present:** Format the response in clear, easy-to-follow Markdown sections (Song, Scripture, Lesson, Activity, Treat).`;
+1.  **Deconstruct Request:** Analyze the user's prompt for the core \`topic\` and \`ages of children\`.
+2.  **Plan & Research:** Formulate a plan.
+    -   Use your search tool to find a relevant story, scripture, or Church video.
+    -   Identify an age-appropriate song, activity, and treat idea.
+3.  **Synthesize & Structure:** Assemble the plan using Markdown:
+    -   **Topic:**
+    -   **Opening Song:**
+    -   **Scripture:**
+    -   **Lesson:** A short, simple story or principle.
+    -   **Activity:** A fun, interactive game or craft.
+    -   **Closing Song:**
+    -   **Prayer:**
+    -   **Treat:** A simple treat suggestion.
 
-const PROACTIVE_SUGGESTION_SYSTEM_INSTRUCTION = `You are a helpful study companion AI. Your task is to review the last few messages of a conversation and identify an opportunity to deepen the user's study.
-- Analyze the conversation to find the main topic.
-- Think of a logical next step, like comparing the current topic to another scripture, exploring a related principle, or asking a thought-provoking question.
-- If you can formulate a valuable suggestion, respond ONLY with that suggestion as a single, engaging question (under 25 words).
-- If you have no valuable suggestion, you MUST respond with the exact text: 'NO_SUGGESTION'.`;
+You MUST use your search tool to find current and relevant source material.`;
 
+// Fix: Added missing function implementations and exports.
+function getSystemInstruction(chatMode: ChatMode): string {
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const baseInstruction = SYSTEM_INSTRUCTION.replace('{{TODAYS_DATE}}', today);
+  
+  switch (chatMode) {
+    case 'study-plan': return STUDY_PLAN_SYSTEM_INSTRUCTION;
+    case 'multi-quiz': return MULTI_QUIZ_SYSTEM_INSTRUCTION;
+    case 'lesson-prep': return LESSON_PREP_SYSTEM_INSTRUCTION;
+    case 'fhe-planner': return FHE_PLANNER_SYSTEM_INSTRUCTION;
+    case 'chat':
+    case 'thinking':
+    default:
+      return baseInstruction;
+  }
+}
 
-// --- Google Gemini Specific ---
-let ai: GoogleGenAI | null = null;
-let currentApiKey: string | null = null;
-const getGoogleAi = (apiKey: string) => {
-    if (!ai || currentApiKey !== apiKey) {
-        ai = new GoogleGenAI({ apiKey });
-        currentApiKey = apiKey;
-    }
-    return ai;
+const toGeminiHistory = (history: Message[]): Content[] => {
+    const relevantMessages = history.filter(m => !m.isSuggestion && m.id !== 'initial-message');
+    return relevantMessages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+    })).filter(c => c.parts[0].text);
 };
 
-const createMockResponse = (text: string): GenerateContentResponse => ({
-    text: text,
-    candidates: [],
-    functionCalls: [],
-} as any);
 
-
-// --- OpenAI Compatible (LM Studio / OpenRouter / MCP) ---
-class OpenAIChatWrapper {
-    private settings: ApiProviderSettings;
-    private systemInstruction: string;
-    private history: Message[];
-
-    constructor(settings: ApiProviderSettings, systemInstruction: string, history: Message[]) {
-        this.settings = settings;
-        this.systemInstruction = systemInstruction;
-        this.history = history.filter(m => !m.isSuggestion);
-    }
-
-    async *sendMessageStream(message: string): AsyncGenerator<GenerateContentResponse> {
-        const { provider, openRouterApiKey, lmStudioBaseUrl, openRouterBaseUrl, model, mcpBaseUrl } = this.settings;
+export const createChatService = (settings: ApiProviderSettings, chatMode: ChatMode, history: Message[]) => {
+    if (settings.provider === 'google') {
+        if (!settings.googleApiKey) throw new Error("Google API Key is not set.");
+        const ai = new GoogleGenAI({ apiKey: settings.googleApiKey });
         
-        let baseURL: string;
-        const headers: HeadersInit = { 'Content-Type': 'application/json' };
-
-        switch(provider) {
-            case 'lmstudio':
-                baseURL = lmStudioBaseUrl;
+        const modelName = ['study-plan', 'multi-quiz', 'lesson-prep', 'fhe-planner'].includes(chatMode)
+            ? 'gemini-2.5-pro'
+            : settings.model || 'gemini-flash-lite-latest';
+            
+        const chat = ai.chats.create({
+            model: modelName,
+            history: toGeminiHistory(history),
+            config: {
+                systemInstruction: getSystemInstruction(chatMode),
+                tools: [{ googleSearch: {} }],
+            }
+        });
+        
+        return {
+            sendMessageStream: async ({ message }: { message: string }) => {
+                return chat.sendMessageStream({ message });
+            }
+        };
+    } else {
+        let baseUrl = '';
+        let apiKey = '';
+        switch(settings.provider) {
+            case 'lmstudio': baseUrl = settings.lmStudioBaseUrl; break;
+            case 'openrouter': 
+                baseUrl = settings.openRouterBaseUrl; 
+                apiKey = settings.openRouterApiKey;
                 break;
-            case 'openrouter':
-                baseURL = openRouterBaseUrl;
-                headers['Authorization'] = `Bearer ${openRouterApiKey}`;
-                break;
-            case 'mcp':
-                baseURL = mcpBaseUrl;
-                break;
-            default:
-                throw new Error(`Unsupported provider in OpenAIChatWrapper: ${provider}`);
+            case 'mcp': baseUrl = settings.mcpBaseUrl; break;
         }
-        
-        const messages = [
-            { role: 'system', content: this.systemInstruction },
-            ...this.history.map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: msg.text
-            })),
-            { role: 'user', content: message }
-        ];
 
-        try {
-            const response = await fetch(`${baseURL}/chat/completions`, {
+        const sendMessageStream = async function* ({ message }: { message: string }): AsyncGenerator<GenerateContentResponse> {
+            const systemInstruction = getSystemInstruction(chatMode);
+            const messages = [
+                { role: 'system', content: systemInstruction },
+                ...history.filter(m => m.id !== 'initial-message' && m.text).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
+                { role: 'user', content: message }
+            ];
+
+            const response = await fetch(`${baseUrl}/chat/completions`, {
                 method: 'POST',
-                headers,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
+                },
                 body: JSON.stringify({
-                    model: model,
+                    model: settings.model,
                     messages: messages,
                     stream: true
                 })
             });
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                throw new Error(`Request failed with status ${response.status}: ${errorBody}`);
-            }
+            if (!response.body) throw new Error("Response body is null");
 
-            const reader = response.body?.getReader();
-            if (!reader) {
-                throw new Error("Failed to get response reader");
-            }
-
+            const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let buffer = '';
 
@@ -191,274 +206,206 @@ class OpenAIChatWrapper {
                 for (const line of lines) {
                     if (line.startsWith('data: ')) {
                         const jsonStr = line.substring(6);
-                        if (jsonStr === '[DONE]') {
+                        if (jsonStr.trim() === '[DONE]') {
                             return;
                         }
                         try {
                             const chunk = JSON.parse(jsonStr);
                             const text = chunk.choices[0]?.delta?.content || '';
                             if (text) {
-                                yield createMockResponse(text);
+                                yield { text } as any; // Cast to fit the expected type
                             }
                         } catch (e) {
-                            console.error('Error parsing stream chunk:', e, 'line:', line);
+                            console.error('Error parsing stream chunk:', e, jsonStr);
                         }
                     }
                 }
             }
-        } catch (error) {
-            console.error(`${provider} API Error:`, error);
-            if (error instanceof Error) {
-                throw new Error(`Network or API error: ${error.message}`);
-            }
-            throw new Error("An unknown error occurred.");
-        }
-    }
-}
-
-
-// --- Main Service Creation and Functions ---
-
-const getSystemInstruction = (mode: ChatMode, provider: ApiProviderSettings['provider']) => {
-    switch(mode) {
-        case 'study-plan': return STUDY_PLAN_SYSTEM_INSTRUCTION;
-        case 'multi-quiz': return MULTI_QUIZ_SYSTEM_INSTRUCTION;
-        case 'lesson-prep': return LESSON_PREP_SYSTEM_INSTRUCTION;
-        case 'fhe-planner': return FHE_PLANNER_SYSTEM_INSTRUCTION;
-        case 'thinking': 
-        case 'chat':
-        default:
-           return SYSTEM_INSTRUCTION;
-    }
-}
-
-export const createChatService = (settings: ApiProviderSettings, chatMode: ChatMode, history: Message[]) => {
-    const systemInstruction = getSystemInstruction(chatMode, settings.provider);
-
-    const geminiSystemInstruction: Content = { role: 'system', parts: [{ text: systemInstruction }] };
-    let geminiHistory: Content[] = history.filter(m => !m.isSuggestion).map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-    }));
-
-    // Ensure history starts with a user message for Gemini
-    if (geminiHistory.length > 0 && geminiHistory[0].role === 'model') {
-        geminiHistory = geminiHistory.slice(1);
-    }
-
-    switch (settings.provider) {
-        case 'google':
-            if (!settings.googleApiKey) throw new Error("Google API Key is not set.");
-            const ai = getGoogleAi(settings.googleApiKey);
-            const modelName = (chatMode === 'thinking' || chatMode === 'lesson-prep' || chatMode === 'fhe-planner') ? 'gemini-2.5-pro' : settings.model;
-            
-            return ai.chats.create({
-                model: modelName,
-                config: { systemInstruction: geminiSystemInstruction },
-                history: geminiHistory,
-            });
-        case 'lmstudio':
-        case 'openrouter':
-        case 'mcp':
-            return new OpenAIChatWrapper(settings, systemInstruction, history);
-        default:
-            throw new Error(`Unsupported API provider: ${settings.provider}`);
-    }
-};
-
-export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {
-    const { provider, lmStudioBaseUrl, openRouterBaseUrl, openRouterApiKey, mcpBaseUrl } = settings;
-    
-    let url: string;
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
-
-    switch (provider) {
-        case 'lmstudio':
-            url = `${lmStudioBaseUrl}/models`;
-            break;
-        case 'openrouter':
-            url = `${openRouterBaseUrl}/models`;
-            headers['Authorization'] = `Bearer ${openRouterApiKey}`;
-            break;
-        case 'mcp':
-            url = `${mcpBaseUrl}/models`;
-            break;
-        default:
-            return []; // Not a provider that supports fetching models
-    }
-
-    try {
-        const response = await fetch(url, { headers });
-        if (!response.ok) {
-            throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
-        }
-        const data = await response.json();
-        const models = (data.data || data).map((model: any) => ({
-            id: model.id,
-            name: model.name || model.id,
-            isFree: model.pricing?.prompt === "0"
-        }));
+        };
         
-        models.sort((a: Model, b: Model) => (a.name || a.id).localeCompare(b.name || b.id));
-
-        return models;
-    } catch (err) {
-        console.error("Fetch models error:", err);
-        throw err;
+        return { sendMessageStream };
     }
 };
 
+export const connectLive = (apiKey: string, callbacks: any, systemInstruction?: string): Promise<Session> => {
+    if (!apiKey) throw new Error("Google API Key is not set for Live Connect.");
+    const ai = new GoogleGenAI({ apiKey });
 
-export const getCrossReferences = async (apiKey: string, scripture: string) => {
-    const ai = getGoogleAi(apiKey);
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: scripture,
-        config: {
-          systemInstruction: CROSS_REFERENCE_SYSTEM_INSTRUCTION,
-          responseMimeType: "application/json",
-          responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                  mainScripture: { type: Type.STRING },
-                  references: {
-                      type: Type.ARRAY,
-                      items: {
-                          type: Type.OBJECT,
-                          properties: {
-                              scripture: { type: Type.STRING },
-                              explanation: { type: Type.STRING }
-                          }
-                      }
-                  }
-              }
-          }
-        },
-    });
-    return JSON.parse(response.text.trim());
-};
+    if (systemInstruction && systemInstruction.includes('transcription assistant')) {
+         return ai.live.connect({
+            model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+            callbacks,
+            config: {
+                inputAudioTranscription: {},
+                systemInstruction: systemInstruction,
+            },
+        });
+    }
 
-export const getJournalInsights = async (apiKey: string, text: string) => {
-    const ai = getGoogleAi(apiKey);
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: `Here is the user's journal entry: "${text}"`,
-        config: {
-          systemInstruction: JOURNAL_SUMMARY_SYSTEM_INSTRUCTION,
-          responseMimeType: "application/json",
-          responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                  summary: { type: Type.STRING },
-                  principles: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  suggestedScripture: { type: Type.STRING }
-              }
-          }
-        },
-    });
-    return JSON.parse(response.text.trim());
-};
-
-
-export const connectLive = async (apiKey: string, callbacks: any, systemInstruction = SYSTEM_INSTRUCTION): Promise<Session> => {
-    const ai = getGoogleAi(apiKey);
-    const sessionPromise = await ai.live.connect({
+    return ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks,
         config: {
             responseModalities: [Modality.AUDIO],
-            speechConfig: {
-                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
-            },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
-            systemInstruction
         },
     });
-    return sessionPromise;
-}
+};
 
 export const generateSpeech = async (apiKey: string, text: string): Promise<string> => {
-    const ai = getGoogleAi(apiKey);
+    if (!apiKey) throw new Error("Google API Key is not set for TTS.");
+    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' },
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text }] }],
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: { voiceName: 'Kore' },
+                },
             },
         },
-      },
     });
-    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || '';
-}
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!base64Audio) {
+        throw new Error("No audio data received from API.");
+    }
+    return base64Audio;
+};
 
-export const getProactiveSuggestion = async (apiKey: string, history: Content[]) => {
-    const ai = getGoogleAi(apiKey);
+export const getJournalInsights = async (apiKey: string, text: string): Promise<any> => {
+    if (!apiKey) throw new Error("Google API Key is not set for Journal Insights.");
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: text,
+        config: {
+            systemInstruction: JOURNAL_SUMMARY_SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json'
+        },
+    });
+    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(jsonText);
+};
+
+export const getProactiveSuggestion = async (apiKey: string, history: Content[]): Promise<string | null> => {
+    if (!apiKey || history.length === 0) return null;
+    const ai = new GoogleGenAI({ apiKey });
     try {
         const response = await ai.models.generateContent({
-          model: "gemini-2.5-pro",
-          contents: { role: 'user', parts: [{ text: "Based on our conversation, suggest a next step." }]},
-          config: {
-            systemInstruction: PROACTIVE_SUGGESTION_SYSTEM_INSTRUCTION,
-            // Low temp to be more deterministic about suggestions
-            temperature: 0.3,
-          },
-          history: history,
+            model: 'gemini-2.5-flash',
+            contents: history,
+            config: {
+                systemInstruction: `You are a helpful assistant. Based on this short conversation history, suggest ONE concise and relevant follow-up question the user might be interested in asking. The suggestion should be a question. Do not add any preamble. Respond with only the question text.`,
+                stopSequences: ['\n'],
+                temperature: 0.8,
+            },
         });
-        const text = response.text.trim();
-        if (text === 'NO_SUGGESTION') return null;
-        return text;
+        let suggestion = response.text.trim();
+        if (suggestion.startsWith('"') && suggestion.endsWith('"')) {
+            suggestion = suggestion.substring(1, suggestion.length - 1);
+        }
+        return suggestion;
     } catch (e) {
-        console.warn("Proactive suggestion failed:", e);
-        return null; // Fail silently
+        console.error("Failed to get proactive suggestion:", e);
+        return null;
     }
-}
+};
 
 export const getWikimediaImageUrl = async (filename: string): Promise<string> => {
-    const url = `https://api.wikimedia.org/core/v1/commons/file/${encodeURIComponent(filename)}`;
-    const response = await fetch(url);
+    const WIKIMEDIA_API_ENDPOINT = "https://commons.wikimedia.org/w/api.php";
+    const params = new URLSearchParams({
+        action: "query",
+        prop: "imageinfo",
+        titles: filename,
+        iiprop: "url",
+        format: "json",
+        origin: "*"
+    });
+    const response = await fetch(`${WIKIMEDIA_API_ENDPOINT}?${params.toString()}`);
     if (!response.ok) throw new Error(`Wikimedia API error: ${response.statusText}`);
     const data = await response.json();
-    // Prefer a scaled-down version if available, otherwise use original
-    return data.preferred?.url || data.original.url;
+    const pages = data.query.pages;
+    const pageId = Object.keys(pages)[0];
+    if (pageId === "-1" || !pages[pageId].imageinfo) {
+        throw new Error("Image not found on Wikimedia Commons.");
+    }
+    return pages[pageId].imageinfo[0].url;
+};
+
+export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {
+    let url: string;
+    let headers: Record<string, string> = {};
+
+    switch (settings.provider) {
+        case 'lmstudio':
+        case 'mcp':
+            url = settings.provider === 'lmstudio' ? `${settings.lmStudioBaseUrl}/models` : `${settings.mcpBaseUrl}/models`;
+            break;
+        case 'openrouter':
+            url = `${settings.openRouterBaseUrl}/models`;
+            headers['Authorization'] = `Bearer ${settings.openRouterApiKey}`;
+            break;
+        default:
+            return [];
+    }
+    
+    const response = await fetch(url, { headers });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch models: ${response.status} ${errorText}`);
+    }
+    const data = await response.json();
+
+    if (settings.provider === 'openrouter') {
+        return data.data.map((model: any) => ({
+            id: model.id,
+            name: model.name || model.id,
+            isFree: model.pricing?.prompt === "0" && model.pricing?.completion === "0"
+        })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
+    } else {
+        return data.data.map((model: any) => ({
+            id: model.id,
+            name: model.id,
+            isFree: true
+        })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
+    }
 };
 
 export const testMCPConnection = async (baseUrl: string): Promise<{ success: boolean; message: string }> => {
-    // Docker MCP's gateway is OpenAI compatible, so it should have a /models endpoint.
-    const url = `${baseUrl}/models`;
     try {
-        const response = await fetch(url);
-        
+        const response = await fetch(`${baseUrl}/models`);
         if (!response.ok) {
-            const errorBody = await response.text().catch(() => 'Could not read error body.');
-            return {
-                success: false,
-                message: `Connection failed. Server responded with status ${response.status} ${response.statusText}.\n\nDetails:\n${errorBody}`
-            };
+            const errorText = await response.text().catch(() => 'Could not read error body.');
+            return { success: false, message: `Connection failed with status ${response.status}: ${errorText}` };
         }
-        
         const data = await response.json();
-        const modelCount = data?.data?.length || data?.length || 0;
-        
-        return {
-            success: true,
-            message: `Connection successful! Found ${modelCount} model(s).`
-        };
-
-    } catch (error) {
-        let errorMessage = 'An unknown error occurred.';
-        if (error instanceof TypeError) {
-            // This often indicates a network error (CORS, failed to fetch, etc.)
-            errorMessage = `Network error. Could not connect to the URL.\n\n- Check if the URL is correct (e.g., http://localhost:8080/v1).\n- Ensure your MCP server is running.\n- Check for CORS issues if running from a different domain.`;
-        } else if (error instanceof Error) {
-            errorMessage = error.message;
+        const modelCount = data.data?.length || 0;
+        return { success: true, message: `Connection successful! Found ${modelCount} models.` };
+    } catch (e) {
+        if (e instanceof TypeError && e.message === 'Failed to fetch') {
+            return { success: false, message: `Connection failed: Could not reach the server at ${baseUrl}. Is it running and is CORS configured correctly?` };
         }
-        return {
-            success: false,
-            message: `Connection failed.\n\nDetails:\n${errorMessage}`
-        };
+        if (e instanceof Error) {
+            return { success: false, message: `Connection failed: ${e.message}` };
+        }
+        return { success: false, message: "An unknown error occurred during connection test." };
     }
+};
+
+export const getCrossReferences = async (apiKey: string, scripture: string): Promise<any> => {
+    if (!apiKey) throw new Error("Google API Key is not set for Cross-References.");
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: scripture,
+        config: {
+            systemInstruction: CROSS_REFERENCE_SYSTEM_INSTRUCTION,
+            responseMimeType: 'application/json'
+        },
+    });
+    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    return JSON.parse(jsonText);
 };
