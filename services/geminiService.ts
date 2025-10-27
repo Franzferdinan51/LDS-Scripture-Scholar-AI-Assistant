@@ -1,9 +1,9 @@
-
-// Fix: Replaced 'LiveSession' with 'Session' as it is not an exported member.
 import { GoogleGenAI, Chat, Session, LiveServerMessage, Modality, Type, GenerateContentResponse, Content } from "@google/genai";
 import { ApiProviderSettings, ChatMode, Model, Message } from "../types";
 
-const SYSTEM_INSTRUCTION = `You are an advanced agentic chatbot named "Scripture Scholar". Your role is to act as an expert research assistant on the Book of Mormon and The Church of Jesus Christ of Latter-day Saints (LDS Church).
+const SYSTEM_INSTRUCTION = `You are an advanced agentic chatbot named "Scripture Scholar", created by Ryan Smith. You are an open-source project, and your code can be found at https://github.com/Franzferdinan51/LDS-Scripture-Scholar-AI-Assistant/tree/main. Your role is to act as an expert research assistant on the Book of Mormon and The Church of Jesus Christ of Latter-day Saints (LDS Church).
+
+**Thinking Process:** Before providing your final answer, you MUST use <thinking>...</thinking> XML tags to outline your thought process, plan, and any self-correction. This is a scratchpad for your reasoning and will be hidden from the user.
 
 **Core Directives:**
 1.  **Source Authority:** You must base your answers strictly on the scriptures (Book of Mormon, Bible, Doctrine and Covenants, Pearl of Great Price) and official publications from the LDS Church. Use your search tools to verify information and find content from official sources like ChurchofJesusChrist.org.
@@ -98,7 +98,6 @@ const PROACTIVE_SUGGESTION_SYSTEM_INSTRUCTION = `You are a helpful study compani
 
 // --- Google Gemini Specific ---
 let ai: GoogleGenAI | null = null;
-// Fix: The 'apiKey' property is private. Store the key in a local variable to check for changes.
 let currentApiKey: string | null = null;
 const getGoogleAi = (apiKey: string) => {
     if (!ai || currentApiKey !== apiKey) {
@@ -108,422 +107,354 @@ const getGoogleAi = (apiKey: string) => {
     return ai;
 };
 
-// This is a mock response object to make the OpenAI stream compatible with the Google stream.
-// Fix: The mock object did not match the 'GenerateContentResponse' type. Using 'as any' to cast it, as it's a mock for a different API stream.
 const createMockResponse = (text: string): GenerateContentResponse => ({
     text: text,
     candidates: [],
     functionCalls: [],
-    // Add any other properties your app might access to avoid null pointer errors
 } as any);
 
 
-// --- OpenAI-Compatible API (LM Studio, OpenRouter) ---
-
-async function* streamOpenAIResponse(settings: ApiProviderSettings, messages: { role: string; content: string }[]): AsyncGenerator<GenerateContentResponse> {
-    const isLmStudio = settings.provider === 'lmstudio';
-    const baseUrl = isLmStudio ? settings.lmStudioBaseUrl : settings.openRouterBaseUrl;
-    const apiKey = isLmStudio ? 'lm-studio' : settings.openRouterApiKey;
-    
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-            model: settings.model,
-            messages: [
-                { role: "system", content: SYSTEM_INSTRUCTION },
-                ...messages
-            ],
-            stream: true,
-        }),
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("OpenAI API Error:", errorText);
-        throw new Error(`Failed to fetch from ${settings.provider}: ${response.status} ${response.statusText}`);
-    }
-
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep the last partial line in the buffer
-
-        for (const line of lines) {
-            if (line.startsWith('data: ')) {
-                const jsonStr = line.substring(6);
-                if (jsonStr === '[DONE]') {
-                    return;
-                }
-                try {
-                    const chunk = JSON.parse(jsonStr);
-                    const content = chunk.choices[0]?.delta?.content;
-                    if (content) {
-                        yield createMockResponse(content);
-                    }
-                } catch (e) {
-                    console.error('Error parsing stream chunk:', e);
-                }
-            }
-        }
-    }
-}
-
-
-// --- Generic Chat Interface ---
-interface GenericChat {
-    sendMessageStream(text: string): Promise<AsyncGenerator<GenerateContentResponse>>;
-}
-
-class GoogleChatWrapper implements GenericChat {
-    private chat: Chat;
-    constructor(apiKey: string, model: string, mode: ChatMode, history: Content[]) {
-        const genAI = getGoogleAi(apiKey);
-        
-        const isThinkingMode = mode === 'thinking';
-        const isStudyPlanMode = mode === 'study-plan';
-        const isMultiQuizMode = mode === 'multi-quiz';
-        const isLessonPrepMode = mode === 'lesson-prep';
-        const isFhePlannerMode = mode === 'fhe-planner';
-        
-        const systemInstruction = 
-            isStudyPlanMode ? STUDY_PLAN_SYSTEM_INSTRUCTION :
-            isMultiQuizMode ? MULTI_QUIZ_SYSTEM_INSTRUCTION :
-            isLessonPrepMode ? LESSON_PREP_SYSTEM_INSTRUCTION :
-            isFhePlannerMode ? FHE_PLANNER_SYSTEM_INSTRUCTION :
-            SYSTEM_INSTRUCTION;
-
-        const modelName = (isThinkingMode || isStudyPlanMode || isMultiQuizMode || isLessonPrepMode || isFhePlannerMode) ? 'gemini-2.5-pro' : model;
-        
-        const isJsonMode = isStudyPlanMode || isMultiQuizMode;
-        // Conditionally include googleMaps tool based on model compatibility
-        // Fix: Explicitly type `supportedTools` to allow both `googleSearch` and `googleMaps` objects.
-        const supportedTools: ({googleSearch: {}} | {googleMaps: {}})[] = [{googleSearch: {}}];
-        if (modelName !== 'gemini-flash-lite-latest') {
-            supportedTools.push({googleMaps: {}});
-        }
-        const tools = isJsonMode ? undefined : supportedTools;
-
-        this.chat = genAI.chats.create({
-            model: modelName,
-            history: history,
-            config: {
-                systemInstruction: systemInstruction,
-                temperature: 0.5,
-                tools: tools,
-                ...(isThinkingMode && { thinkingConfig: { thinkingBudget: 32768 } }),
-                ...(isStudyPlanMode && { 
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            days: { 
-                                type: Type.ARRAY,
-                                items: { 
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        day: { type: Type.INTEGER },
-                                        topic: { type: Type.STRING },
-                                        scriptures: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                        reflection_question: { type: Type.STRING }
-                                    },
-                                    required: ["day", "topic", "scriptures", "reflection_question"]
-                                }
-                            }
-                        },
-                        required: ["title", "days"]
-                    }
-                }),
-                 ...(isMultiQuizMode && { 
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            title: { type: Type.STRING },
-                            questions: {
-                                type: Type.ARRAY,
-                                items: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        question: { type: Type.STRING },
-                                        options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                        correctAnswerIndex: { type: Type.INTEGER }
-                                    },
-                                    required: ["question", "options", "correctAnswerIndex"]
-                                }
-                            }
-                        },
-                        required: ["title", "questions"]
-                    }
-                }),
-            },
-        });
-    }
-
-    async sendMessageStream(text: string): Promise<AsyncGenerator<GenerateContentResponse>> {
-        return this.chat.sendMessageStream({ message: text });
-    }
-}
-
-class OpenAIChatWrapper implements GenericChat {
+// --- OpenAI Compatible (LM Studio / OpenRouter) ---
+class OpenAIChatWrapper {
     private settings: ApiProviderSettings;
-    private history: { role: 'user' | 'assistant', content: string }[] = [];
+    private systemInstruction: string;
+    private history: Message[];
 
-    constructor(settings: ApiProviderSettings, history: { role: 'user' | 'assistant', content: string }[]) {
+    constructor(settings: ApiProviderSettings, systemInstruction: string, history: Message[]) {
         this.settings = settings;
-        this.history = history;
+        this.systemInstruction = systemInstruction;
+        this.history = history.filter(m => !m.isSuggestion);
     }
 
-    async sendMessageStream(text: string): Promise<AsyncGenerator<GenerateContentResponse>> {
-        this.history.push({ role: 'user', content: text });
-        // The API provider maintains state, so we just send the new user message
-        const messagesToSend = this.history;
-
-        const stream = streamOpenAIResponse(this.settings, messagesToSend);
+    async *sendMessageStream(message: string): AsyncGenerator<GenerateContentResponse> {
+        const { provider, openRouterApiKey, lmStudioBaseUrl, openRouterBaseUrl, model, mcpBaseUrl, lmStudioConnectionTarget } = this.settings;
         
-        // We need a reference to this.history that won't be stale inside the generator
-        const historyRef = this.history;
+        let baseURL;
+        if (provider === 'lmstudio') {
+            baseURL = lmStudioConnectionTarget === 'mcp' ? mcpBaseUrl : lmStudioBaseUrl;
+        } else if (provider === 'openrouter') {
+            baseURL = openRouterBaseUrl;
+        } else {
+            throw new Error(`Unsupported provider in OpenAIChatWrapper: ${provider}`);
+        }
+        
+        const apiKey = provider === 'openrouter' ? openRouterApiKey : 'not-needed';
+        
+        const messages = [
+            { role: 'system', content: this.systemInstruction },
+            ...this.history.map(msg => ({
+                role: msg.sender === 'user' ? 'user' : 'assistant',
+                content: msg.text
+            })),
+            { role: 'user', content: message }
+        ];
 
-        async function* generator(): AsyncGenerator<GenerateContentResponse> {
-            let fullResponse = "";
-            for await (const chunk of stream) {
-                const chunkText = chunk.text;
-                if (chunkText) {
-                    fullResponse += chunkText;
-                    yield chunk;
+        try {
+            const response = await fetch(`${baseURL}/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: model,
+                    messages: messages,
+                    stream: true
+                })
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`Request failed with status ${response.status}: ${errorBody}`);
+            }
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error("Failed to get response reader");
+            }
+
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const jsonStr = line.substring(6);
+                        if (jsonStr === '[DONE]') {
+                            return;
+                        }
+                        try {
+                            const chunk = JSON.parse(jsonStr);
+                            const text = chunk.choices[0]?.delta?.content || '';
+                            if (text) {
+                                yield createMockResponse(text);
+                            }
+                        } catch (e) {
+                            console.error('Error parsing stream chunk:', e, 'line:', line);
+                        }
+                    }
                 }
             }
-            historyRef.push({ role: 'assistant', content: fullResponse });
+        } catch (error) {
+            console.error(`${provider} API Error:`, error);
+            if (error instanceof Error) {
+                throw new Error(`Network or API error: ${error.message}`);
+            }
+            throw new Error("An unknown error occurred.");
         }
-
-        return generator();
     }
 }
 
 
-// --- Factory and Service Functions ---
+// --- Main Service Creation and Functions ---
 
-export const createChatService = (
-    settings: ApiProviderSettings, 
-    mode: ChatMode, 
-    history: Message[]
-): GenericChat => {
-    // Filter out suggestions and initial messages from history before sending to API
-    const apiHistory = history
-        .filter(m => !m.isSuggestion && m.id !== 'initial-message' && m.text);
+const getSystemInstruction = (mode: ChatMode, provider: ApiProviderSettings['provider']) => {
+    switch(mode) {
+        case 'study-plan': return STUDY_PLAN_SYSTEM_INSTRUCTION;
+        case 'multi-quiz': return MULTI_QUIZ_SYSTEM_INSTRUCTION;
+        case 'lesson-prep': return LESSON_PREP_SYSTEM_INSTRUCTION;
+        case 'fhe-planner': return FHE_PLANNER_SYSTEM_INSTRUCTION;
+        case 'thinking': 
+        case 'chat':
+        default:
+           return SYSTEM_INSTRUCTION;
+    }
+}
+
+export const createChatService = (settings: ApiProviderSettings, chatMode: ChatMode, history: Message[]) => {
+    const systemInstruction = getSystemInstruction(chatMode, settings.provider);
+
+    const geminiSystemInstruction: Content = { role: 'system', parts: [{ text: systemInstruction }] };
+    let geminiHistory: Content[] = history.filter(m => !m.isSuggestion).map(msg => ({
+        role: msg.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.text }]
+    }));
+
+    // Ensure history starts with a user message for Gemini
+    if (geminiHistory.length > 0 && geminiHistory[0].role === 'model') {
+        geminiHistory = geminiHistory.slice(1);
+    }
 
     switch (settings.provider) {
         case 'google':
-            if (!settings.googleApiKey) throw new Error("Google API Key is missing.");
+            if (!settings.googleApiKey) throw new Error("Google API Key is not set.");
+            const ai = getGoogleAi(settings.googleApiKey);
+            const modelName = (chatMode === 'thinking' || chatMode === 'lesson-prep' || chatMode === 'fhe-planner') ? 'gemini-2.5-pro' : settings.model;
             
-            const googleHistory: Content[] = apiHistory.map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.text }]
-            }));
-            return new GoogleChatWrapper(settings.googleApiKey, settings.model, mode, googleHistory);
-        
+            return ai.chats.create({
+                model: modelName,
+                config: { systemInstruction: geminiSystemInstruction },
+                history: geminiHistory,
+            });
         case 'lmstudio':
         case 'openrouter':
-            if (!settings.model) throw new Error(`Model for ${settings.provider} is not selected.`);
-            
-            const openAIHistory: { role: 'user' | 'assistant', content: string }[] = apiHistory.map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: msg.text
-            }));
-            return new OpenAIChatWrapper(settings, openAIHistory);
-        
+            return new OpenAIChatWrapper(settings, systemInstruction, history);
         default:
-            throw new Error("Invalid API provider selected.");
+            throw new Error(`Unsupported API provider: ${settings.provider}`);
     }
 };
 
-export const generateSpeech = async (apiKey: string, text: string): Promise<string> => {
-    const genAI = getGoogleAi(apiKey);
-    const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text }] }],
+export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {
+    const { provider, lmStudioBaseUrl, openRouterBaseUrl, openRouterApiKey, mcpBaseUrl, lmStudioConnectionTarget } = settings;
+    
+    if (provider !== 'lmstudio' && provider !== 'openrouter') {
+        return [];
+    }
+
+    let url;
+    if (provider === 'lmstudio') {
+        const baseUrl = lmStudioConnectionTarget === 'mcp' ? mcpBaseUrl : lmStudioBaseUrl;
+        url = `${baseUrl}/models`;
+    } else { // openrouter
+        url = `${openRouterBaseUrl}/models`;
+    }
+
+    const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    };
+    if (provider === 'openrouter') {
+        headers['Authorization'] = `Bearer ${openRouterApiKey}`;
+    }
+
+    try {
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        const models = (data.data || data).map((model: any) => ({
+            id: model.id,
+            name: model.name || model.id,
+            isFree: model.pricing?.prompt === "0"
+        }));
+        
+        models.sort((a: Model, b: Model) => (a.name || a.id).localeCompare(b.name || b.id));
+
+        return models;
+    } catch (err) {
+        console.error("Fetch models error:", err);
+        throw err;
+    }
+};
+
+
+export const getCrossReferences = async (apiKey: string, scripture: string) => {
+    const ai = getGoogleAi(apiKey);
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: scripture,
         config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: {
-                voiceConfig: {
-                    prebuiltVoiceConfig: { voiceName: 'Kore' },
-                },
-            },
+          systemInstruction: CROSS_REFERENCE_SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                  mainScripture: { type: Type.STRING },
+                  references: {
+                      type: Type.ARRAY,
+                      items: {
+                          type: Type.OBJECT,
+                          properties: {
+                              scripture: { type: Type.STRING },
+                              explanation: { type: Type.STRING }
+                          }
+                      }
+                  }
+              }
+          }
         },
     });
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64Audio) {
-        throw new Error("No audio data received from API.");
-    }
-    return base64Audio;
-}
+    return JSON.parse(response.text.trim());
+};
+
+export const getJournalInsights = async (apiKey: string, text: string) => {
+    const ai = getGoogleAi(apiKey);
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        contents: `Here is the user's journal entry: "${text}"`,
+        config: {
+          systemInstruction: JOURNAL_SUMMARY_SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                  summary: { type: Type.STRING },
+                  principles: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  suggestedScripture: { type: Type.STRING }
+              }
+          }
+        },
+    });
+    return JSON.parse(response.text.trim());
+};
 
 
-export const connectLive = (
-    apiKey: string,
-    callbacks: {
-        onopen: () => void;
-        onmessage: (message: LiveServerMessage) => void;
-        onerror: (e: ErrorEvent) => void;
-        onclose: (e: CloseEvent) => void;
-    },
-    systemInstruction: string = SYSTEM_INSTRUCTION
-// Fix: Replaced 'LiveSession' with 'Session' in the return type.
-): Promise<Session> => {
-    const genAI = getGoogleAi(apiKey);
-    return genAI.live.connect({
+export const connectLive = async (apiKey: string, callbacks: any, systemInstruction = SYSTEM_INSTRUCTION): Promise<Session> => {
+    const ai = getGoogleAi(apiKey);
+    const sessionPromise = await ai.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         callbacks,
         config: {
             responseModalities: [Modality.AUDIO],
-            inputAudioTranscription: {},
-            outputAudioTranscription: {},
-            systemInstruction: systemInstruction,
             speechConfig: {
                 voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
             },
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
+            systemInstruction
         },
     });
-};
+    return sessionPromise;
+}
 
-export const fetchModels = async (settings: Pick<ApiProviderSettings, 'provider' | 'lmStudioBaseUrl' | 'openRouterBaseUrl' | 'openRouterApiKey'>): Promise<Model[]> => {
-    const isLmStudio = settings.provider === 'lmstudio';
-    const baseUrl = isLmStudio ? settings.lmStudioBaseUrl : settings.openRouterBaseUrl;
-    const apiKey = isLmStudio ? 'lm-studio' : settings.openRouterApiKey;
-
-    if (!baseUrl) {
-        throw new Error("Base URL is not set.");
-    }
-
-    const response = await fetch(`${baseUrl}/models`, {
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
+export const generateSpeech = async (apiKey: string, text: string): Promise<string> => {
+    const ai = getGoogleAi(apiKey);
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
         },
+      },
     });
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
-    }
-
-    const json = await response.json();
-    return json.data.map((model: any) => ({
-        id: model.id,
-        name: model.name || model.id,
-        isFree: model.pricing ? (parseFloat(model.pricing.prompt) === 0 && parseFloat(model.pricing.completion) === 0) : false
-    }));
-};
-
-// --- New Standalone Service Functions ---
-
-export const getCrossReferences = async (apiKey: string, scripture: string) => {
-    const genAI = getGoogleAi(apiKey);
-    const response = await genAI.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: `Find cross-references for ${scripture}`,
-        config: {
-            systemInstruction: CROSS_REFERENCE_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    mainScripture: { type: Type.STRING },
-                    references: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                scripture: { type: Type.STRING },
-                                explanation: { type: Type.STRING }
-                            },
-                            required: ["scripture", "explanation"]
-                        }
-                    }
-                },
-                required: ["mainScripture", "references"]
-            }
-        }
-    });
-    return JSON.parse(response.text);
-};
-
-
-export const getJournalInsights = async (apiKey: string, journalText: string) => {
-    const genAI = getGoogleAi(apiKey);
-    const response = await genAI.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: journalText,
-        config: {
-            systemInstruction: JOURNAL_SUMMARY_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    summary: { type: Type.STRING },
-                    principles: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    suggestedScripture: { type: Type.STRING }
-                },
-                required: ["summary", "principles", "suggestedScripture"]
-            }
-        }
-    });
-    return JSON.parse(response.text);
-};
+    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || '';
+}
 
 export const getProactiveSuggestion = async (apiKey: string, history: Content[]) => {
-    const genAI = getGoogleAi(apiKey);
+    const ai = getGoogleAi(apiKey);
     try {
-        const response = await genAI.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: history,
-            config: {
-                systemInstruction: PROACTIVE_SUGGESTION_SYSTEM_INSTRUCTION,
-                temperature: 0.7,
-            },
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-pro",
+          contents: { role: 'user', parts: [{ text: "Based on our conversation, suggest a next step." }]},
+          config: {
+            systemInstruction: PROACTIVE_SUGGESTION_SYSTEM_INSTRUCTION,
+            // Low temp to be more deterministic about suggestions
+            temperature: 0.3,
+          },
+          history: history,
         });
-
-        const suggestion = response.text.trim();
-        if (suggestion && suggestion !== 'NO_SUGGESTION' && !suggestion.includes('NO_SUGGESTION')) {
-            return suggestion;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error fetching proactive suggestion:", error);
-        return null; // Don't block the UI for this
+        const text = response.text.trim();
+        if (text === 'NO_SUGGESTION') return null;
+        return text;
+    } catch (e) {
+        console.warn("Proactive suggestion failed:", e);
+        return null; // Fail silently
     }
-};
+}
 
 export const getWikimediaImageUrl = async (filename: string): Promise<string> => {
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(filename)}&prop=imageinfo&iiprop=url&format=json&origin=*`;
-    
+    const url = `https://api.wikimedia.org/core/v1/commons/file/${encodeURIComponent(filename)}`;
     const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Wikimedia API request failed with status ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`Wikimedia API error: ${response.statusText}`);
     const data = await response.json();
-    
-    const pages = data.query.pages;
-    const pageId = Object.keys(pages)[0];
-    
-    if (pageId === '-1') {
-        throw new Error(`File not found on Wikimedia Commons: ${filename}`);
+    // Prefer a scaled-down version if available, otherwise use original
+    return data.preferred?.url || data.original.url;
+};
+
+export const testMCPConnection = async (baseUrl: string): Promise<{ success: boolean; message: string }> => {
+    // Docker MCP's gateway is OpenAI compatible, so it should have a /models endpoint.
+    const url = `${baseUrl}/models`;
+    try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            const errorBody = await response.text().catch(() => 'Could not read error body.');
+            return {
+                success: false,
+                message: `Connection failed. Server responded with status ${response.status} ${response.statusText}.\n\nDetails:\n${errorBody}`
+            };
+        }
+        
+        const data = await response.json();
+        const modelCount = data?.data?.length || data?.length || 0;
+        
+        return {
+            success: true,
+            message: `Connection successful! Found ${modelCount} model(s).`
+        };
+
+    } catch (error) {
+        let errorMessage = 'An unknown error occurred.';
+        if (error instanceof TypeError) {
+            // This often indicates a network error (CORS, failed to fetch, etc.)
+            errorMessage = `Network error. Could not connect to the URL.\n\n- Check if the URL is correct (e.g., http://localhost:8080/v1).\n- Ensure your MCP server is running.\n- Check for CORS issues if running from a different domain.`;
+        } else if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+        return {
+            success: false,
+            message: `Connection failed.\n\nDetails:\n${errorMessage}`
+        };
     }
-    
-    const imageUrl = pages[pageId]?.imageinfo?.[0]?.url;
-    
-    if (!imageUrl) {
-        throw new Error(`Could not extract image URL from Wikimedia API response for ${filename}`);
-    }
-    
-    return imageUrl;
 };

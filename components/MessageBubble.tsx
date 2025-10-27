@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useState, useRef, useEffect } from 'react';
 import type { Message } from '../types';
 import LoadingDots from './LoadingDots';
 import ImageWithFallback from './ImageWithFallback';
@@ -21,6 +21,7 @@ interface AudioPlaybackState {
 
 interface MessageBubbleProps {
   message: Message;
+  isStreaming?: boolean;
   onToggleAudio: (messageId: string, text: string) => Promise<void>;
   audioPlaybackState: AudioPlaybackState;
   onAnswerQuiz: (messageId: string, questionIndex: number, answerIndex: number) => void;
@@ -28,9 +29,16 @@ interface MessageBubbleProps {
   onRetry: (messageId: string) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onToggleAudio, audioPlaybackState, onAnswerQuiz, onExplainVerse, onRetry }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = false, onToggleAudio, audioPlaybackState, onAnswerQuiz, onExplainVerse, onRetry }) => {
   const isUser = message.sender === 'user';
   const [copied, setCopied] = useState(false);
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    if (isStreaming && message.thinking && detailsRef.current && !detailsRef.current.open) {
+      detailsRef.current.open = true;
+    }
+  }, [isStreaming, message.thinking]);
 
   const handleAudioToggle = async () => {
     // Collect all text content for TTS, excluding structured data like quizzes
@@ -170,6 +178,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onToggleAudio, a
             {message.studyPlan && <StudyPlanView studyPlan={message.studyPlan} />}
             {message.multiQuiz && <MultiQuizView quiz={message.multiQuiz} messageId={message.id} onAnswer={onAnswerQuiz} />}
           </>
+        )}
+        {message.thinking && (
+          <details ref={detailsRef} className="mt-3 pt-3 border-t border-white/20 text-xs">
+            <summary className="cursor-pointer text-gray-400 font-semibold select-none list-none flex items-center gap-1">
+              Show Thought Process
+              <svg className="w-4 h-4 transition-transform transform details-arrow" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="mt-2 p-2 bg-slate-900/50 rounded border border-slate-700">
+              <pre className="whitespace-pre-wrap font-mono text-gray-300 break-words">{message.thinking}</pre>
+            </div>
+            <style>{`
+                details > summary::-webkit-details-marker { display: none; }
+                details[open] > summary .details-arrow { transform: rotate(180deg); }
+            `}</style>
+          </details>
         )}
         {message.groundingChunks && message.groundingChunks.length > 0 && (
           <div className="mt-3 pt-3 border-t border-white/20">

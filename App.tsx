@@ -13,6 +13,7 @@ import { createBlob, decode, decodeAudioData } from './utils/audio';
 import { useSettings } from './contexts/SettingsContext';
 import SettingsModal from './components/SettingsModal';
 import HamburgerIcon from './components/HamburgerIcon';
+import DisclaimerModal from './components/DisclaimerModal';
 
 type ChatService = ReturnType<typeof createChatService>;
 type ChatHistory = Record<string, Message[]>;
@@ -47,6 +48,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState<boolean>(false);
   
   // Feature State
   const [chatMode, setChatMode] = useState<ChatMode>('chat');
@@ -80,6 +82,11 @@ const App: React.FC = () => {
   // --- Data Persistence and Initialization ---
   useEffect(() => {
     try {
+      const hasSeenDisclaimer = localStorage.getItem('hasSeenDisclaimer');
+      if (!hasSeenDisclaimer) {
+        setShowDisclaimer(true);
+      }
+
       const savedHistory = localStorage.getItem('chatHistory');
       const savedActiveId = localStorage.getItem('activeChatId');
       const savedPinnedIds = localStorage.getItem('pinnedChatIds');
@@ -147,6 +154,13 @@ const App: React.FC = () => {
       stopVoiceSession();
     }
   }, [settings.provider, settings.googleApiKey, settings.model, chatMode, activeChatId, initializeChat, isVoiceChatAvailable, isVoiceActive]);
+
+  const handleDisclaimerClose = (dontShowAgain: boolean) => {
+    if (dontShowAgain) {
+      localStorage.setItem('hasSeenDisclaimer', 'true');
+    }
+    setShowDisclaimer(false);
+  };
 
   const handleNewChat = () => {
     const newId = `chat-${Date.now()}`;
@@ -236,30 +250,61 @@ const App: React.FC = () => {
         const newGrounding = fullResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (newGrounding) groundingChunks = newGrounding;
 
+        let visibleText = accumulatedText;
+        let thinkingText: string | undefined = undefined;
+
+        // Live-parse the thinking tags during the stream
+        const thinkingStartTag = '<thinking>';
+        const thinkingEndTag = '</thinking>';
+        const startIdx = accumulatedText.indexOf(thinkingStartTag);
+
+        if (startIdx !== -1) {
+            const endIdx = accumulatedText.indexOf(thinkingEndTag);
+            visibleText = accumulatedText.substring(0, startIdx);
+            
+            if (endIdx !== -1 && endIdx > startIdx) {
+                // Tag is complete
+                thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length, endIdx);
+                visibleText += accumulatedText.substring(endIdx + thinkingEndTag.length);
+            } else {
+                // Tag is not yet closed, so everything after it is thinking
+                thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length);
+            }
+        }
+
         setChatHistory(prev => ({
             ...prev,
             [activeChatId]: prev[activeChatId]?.map(msg => 
-                msg.id === botMessageId ? { ...msg, text: accumulatedText, groundingChunks } : msg
+                msg.id === botMessageId ? { ...msg, text: visibleText.trim(), thinking: thinkingText?.trim(), groundingChunks } : msg
             )
         }));
       }
       
-      let finalAccumulatedText = accumulatedText;
-      const wikimediaRegex = /WIKIMEDIA_SEARCH\[(.*?)\]/;
-      const match = accumulatedText.match(wikimediaRegex);
+      let finalVisibleText = accumulatedText;
+      let finalThinkingText: string | undefined = undefined;
 
-      if (match) {
-        const filename = match[1];
+      const thinkingRegex = /<thinking>([\s\S]*)<\/thinking>/;
+      const matchFinal = accumulatedText.match(thinkingRegex);
+      if (matchFinal) {
+          finalThinkingText = matchFinal[1].trim();
+          finalVisibleText = accumulatedText.replace(thinkingRegex, '').trim();
+      }
+
+      const wikimediaRegex = /WIKIMEDIA_SEARCH\[(.*?)\]/;
+      const matchImage = finalVisibleText.match(wikimediaRegex);
+
+      if (matchImage) {
+        const filename = matchImage[1];
         try {
-            const loadingText = accumulatedText.replace(match[0], "Searching for the image...");
-            setChatHistory(prev => ({ ...prev, [activeChatId]: prev[activeChatId]?.map(msg => msg.id === botMessageId ? { ...msg, text: loadingText } : msg)}));
+            const loadingText = finalVisibleText.replace(matchImage[0], "Searching for the image...");
+            setChatHistory(prev => ({ ...prev, [activeChatId]: prev[activeChatId]?.map(msg => msg.id === botMessageId ? { ...msg, text: loadingText, thinking: finalThinkingText } : msg)}));
             
             const imageUrl = await getWikimediaImageUrl(filename);
             const altText = filename.replace('File:', '').replace(/_/g, ' ').replace(/\.[^/.]+$/, "");
-            finalAccumulatedText = accumulatedText.replace(match[0], `![${altText}](${imageUrl})`);
+            finalVisibleText = finalVisibleText.replace(matchImage[0], `![${altText}](${imageUrl})`);
         } catch(e) {
             console.error("Wikimedia fetch failed:", e);
-            finalAccumulatedText = accumulatedText.replace(match[0], `I was unable to find an image for "${filename.replace('File:', '').replace(/_/g, ' ')}".`);
+            finalVisibleText = finalVisibleText.replace(matchImage[0], `I was unable to find an image for "${filename.replace('File:', '').replace(/_/g, ' ')}".`);
         }
       }
 
@@ -268,14 +313,14 @@ const App: React.FC = () => {
           [activeChatId]: prev[activeChatId]?.map(msg => {
             if (msg.id !== botMessageId) return msg;
             
-            let finalMsg = { ...msg, text: finalAccumulatedText, groundingChunks };
+            let finalMsg = { ...msg, text: finalVisibleText, thinking: finalThinkingText, groundingChunks };
             if (chatMode === 'study-plan' || chatMode === 'multi-quiz') {
                 try {
-                    const parsedJson = JSON.parse(finalAccumulatedText);
-                    if (chatMode === 'study-plan') return { ...msg, text: '', studyPlan: parsedJson as StudyPlan };
-                    if (chatMode === 'multi-quiz') return { ...msg, text: '', multiQuiz: parsedJson as MultiQuiz };
+                    const parsedJson = JSON.parse(finalVisibleText);
+                    if (chatMode === 'study-plan') return { ...msg, text: '', thinking: finalThinkingText, studyPlan: parsedJson as StudyPlan };
+                    if (chatMode === 'multi-quiz') return { ...msg, text: '', thinking: finalThinkingText, multiQuiz: parsedJson as MultiQuiz };
                 } catch (e) {
-                    return { ...msg, text: `Sorry, I couldn't create a ${chatMode}. Please try again.` };
+                    return { ...msg, text: `Sorry, I couldn't create a ${chatMode}. Please try again.`, thinking: finalThinkingText };
                 }
             }
             return finalMsg;
@@ -534,6 +579,7 @@ const App: React.FC = () => {
         </div>
       </main>
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onClearHistory={handleClearHistory} />
+      <DisclaimerModal isOpen={showDisclaimer} onClose={handleDisclaimerClose} />
     </>
   );
 };

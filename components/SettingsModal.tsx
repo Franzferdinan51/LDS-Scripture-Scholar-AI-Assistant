@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { ApiProvider, Model } from '../types';
-import { fetchModels } from '../services/geminiService';
+import { fetchModels, testMCPConnection } from '../services/geminiService';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [modelSearch, setModelSearch] = useState('');
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-
+  const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>({ status: 'idle', message: null });
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -29,7 +29,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       setFetchError(null);
       setModelSearch('');
       setShowFreeOnly(false);
-  }, [localSettings.provider]);
+      setMcpTestStatus({ status: 'idle', message: null });
+  }, [localSettings.provider, isOpen]);
 
   const handleFetchModels = async () => {
     setIsFetchingModels(true);
@@ -46,6 +47,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     }
   };
 
+  const handleTestMCPConnection = async () => {
+    setMcpTestStatus({ status: 'testing', message: 'Testing connection...' });
+    const result = await testMCPConnection(localSettings.mcpBaseUrl);
+    if (result.success) {
+        setMcpTestStatus({ status: 'success', message: result.message });
+    } else {
+        setMcpTestStatus({ status: 'error', message: result.message });
+    }
+  };
 
   const handleSave = () => {
     setSettings(localSettings);
@@ -55,7 +65,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const provider = e.target.value as ApiProvider;
-    setLocalSettings(prev => ({ ...prev, provider, model: provider === 'google' ? 'gemini-flash-lite-latest' : '' }));
+    let newModel = '';
+    if (provider === 'google') newModel = 'gemini-flash-lite-latest';
+    
+    setLocalSettings(prev => ({ ...prev, provider, model: newModel }));
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -145,17 +158,85 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
           )}
 
           {localSettings.provider === 'lmstudio' && (
-             <div>
-              <label htmlFor="lmStudioBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
-              <input
-                type="text"
-                id="lmStudioBaseUrl"
-                name="lmStudioBaseUrl"
-                value={localSettings.lmStudioBaseUrl}
-                onChange={handleInputChange}
-                className={inputBaseClasses}
-              />
-            </div>
+             <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300">Connection Target</label>
+                  <div className="mt-2 flex space-x-4 p-1 bg-slate-700/50 rounded-lg">
+                    <label className="flex-1 text-center">
+                      <input
+                        type="radio"
+                        name="lmStudioConnectionTarget"
+                        value="standard"
+                        checked={localSettings.lmStudioConnectionTarget === 'standard'}
+                        onChange={handleInputChange}
+                        className="sr-only peer"
+                      />
+                      <span className="block w-full py-1.5 px-3 rounded-md text-sm cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white transition-colors">Standard Server</span>
+                    </label>
+                    <label className="flex-1 text-center">
+                      <input
+                        type="radio"
+                        name="lmStudioConnectionTarget"
+                        value="mcp"
+                        checked={localSettings.lmStudioConnectionTarget === 'mcp'}
+                        onChange={handleInputChange}
+                        className="sr-only peer"
+                      />
+                       <span className="block w-full py-1.5 px-3 rounded-md text-sm cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white transition-colors">Docker MCP</span>
+                    </label>
+                  </div>
+                </div>
+
+                {localSettings.lmStudioConnectionTarget === 'standard' ? (
+                  <div>
+                    <label htmlFor="lmStudioBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
+                    <input
+                      type="text"
+                      id="lmStudioBaseUrl"
+                      name="lmStudioBaseUrl"
+                      value={localSettings.lmStudioBaseUrl}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label htmlFor="mcpBaseUrl" className="block text-sm font-medium text-gray-300">Docker MCP URL</label>
+                    <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          id="mcpBaseUrl"
+                          name="mcpBaseUrl"
+                          value={localSettings.mcpBaseUrl}
+                          onChange={handleInputChange}
+                          className={inputBaseClasses + ' flex-1'}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleTestMCPConnection}
+                            disabled={mcpTestStatus.status === 'testing'}
+                            className="mt-1 px-4 py-2 text-sm bg-slate-600 text-white rounded-md hover:bg-slate-500 disabled:opacity-50 transition-colors"
+                        >
+                            {mcpTestStatus.status === 'testing' ? 'Testing...' : 'Test'}
+                        </button>
+                    </div>
+                     <p className="mt-1 text-xs text-gray-400">Default for Docker MCP is http://localhost:8080/v1</p>
+                      {mcpTestStatus.message && (
+                        <div className="mt-2 p-3 rounded-md bg-slate-900/70 border border-slate-700">
+                            <pre className={`whitespace-pre-wrap font-mono text-xs 
+                                ${mcpTestStatus.status === 'success' ? 'text-green-400' : ''}
+                                ${mcpTestStatus.status === 'error' ? 'text-red-400' : ''}
+                                ${mcpTestStatus.status === 'testing' ? 'text-yellow-400' : ''}
+                            `}>
+                                <code>
+                                    {mcpTestStatus.message}
+                                </code>
+                            </pre>
+                        </div>
+                    )}
+                  </div>
+                )}
+             </>
           )}
 
           {localSettings.provider === 'openrouter' && (

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LoadingDots from './LoadingDots';
 
@@ -56,13 +57,10 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
         setIsLoading(true);
         setError(null);
         try {
-            // This is a placeholder for fetching the full data.
-            // In a real app, you would fetch and parse the entire scripture text here.
-            // For now, we'll simulate a fetch and then load a placeholder.
-            const response = await new Promise<any>((resolve) => setTimeout(() => resolve({
-                 json: () => import(`/data/${volume}.json`).then(module => module.default)
-            }), 500));
-            
+            const response = await fetch(`/data/${volume}.json`);
+            if (!response.ok) {
+                throw new Error(`Failed to load scripture data: ${response.status} ${response.statusText}`);
+            }
             const data: ScriptureData = await response.json();
 
             scriptureCache.set(volume, data);

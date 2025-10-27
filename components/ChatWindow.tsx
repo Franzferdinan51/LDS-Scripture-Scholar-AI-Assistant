@@ -56,10 +56,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
-        {messages.map((msg) => (
+        {messages.map((msg, index) => (
           <MessageBubble 
             key={msg.id} 
-            message={msg} 
+            message={msg}
+            isStreaming={isLoading && msg.sender === 'bot' && index === messages.length - 1}
             onToggleAudio={onToggleAudio} 
             audioPlaybackState={audioPlaybackState}
             onAnswerQuiz={onAnswerQuiz}

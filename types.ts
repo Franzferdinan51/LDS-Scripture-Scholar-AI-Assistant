@@ -34,6 +34,7 @@ export interface Message {
   id: string;
   text: string;
   sender: Sender;
+  thinking?: string; // For model's thought process
   quiz?: QuizQuestion; // For single-question quizzes
   multiQuiz?: MultiQuiz; // For multi-question quizzes
   studyPlan?: StudyPlan; // For interactive study plans
@@ -75,6 +76,7 @@ export interface JournalEntry {
 
 
 export type ApiProvider = 'google' | 'lmstudio' | 'openrouter';
+export type LmStudioConnectionTarget = 'standard' | 'mcp';
 export type ChatMode = 'chat' | 'thinking' | 'study-plan' | 'multi-quiz' | 'lesson-prep' | 'fhe-planner';
 export type ViewMode = 'chat' | 'notes' | 'journal' | 'cross-reference' | 'scripture-reader';
 
@@ -84,6 +86,8 @@ export interface ApiProviderSettings {
   openRouterApiKey: string;
   lmStudioBaseUrl: string;
   openRouterBaseUrl: string;
+  mcpBaseUrl: string;
+  lmStudioConnectionTarget: LmStudioConnectionTarget;
   model: string;
 }
 
