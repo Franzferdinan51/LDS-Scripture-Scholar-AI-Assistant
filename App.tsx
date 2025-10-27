@@ -156,9 +156,7 @@ const App: React.FC = () => {
     if (window.confirm("Are you sure you want to delete all chat history? This action cannot be undone.")) {
       localStorage.removeItem('chatHistory');
       localStorage.removeItem('activeChatId');
-      setChatHistory({});
-      handleNewChat();
-      setIsSettingsOpen(false); // Close modal after action
+      window.location.reload(); // Force a full refresh to clear all state
     }
   };
 
@@ -245,7 +243,7 @@ const App: React.FC = () => {
             finalAccumulatedText = accumulatedText.replace(match[0], `![${altText}](${imageUrl})`);
         } catch(e) {
             console.error("Wikimedia fetch failed:", e);
-            finalAccumulatedText = accumulatedText.replace(match[0], "I found a potential image but couldn't load it.");
+            finalAccumulatedText = accumulatedText.replace(match[0], `I was unable to find an image for "${filename.replace('File:', '').replace(/_/g, ' ')}".`);
         }
       }
 
@@ -300,7 +298,7 @@ const App: React.FC = () => {
     }
 
     if (userMessageToRetry) {
-        setChatHistory(prev => ({...prev, [activeChatId]: currentMessages.slice(0, userMessageIndex)}));
+        setChatHistory(prev => ({...prev, [activeChatId]: currentMessages.slice(0, userMessageIndex + 1)}));
         setTimeout(() => handleSendMessage(userMessageToRetry!.text), 50);
     } else {
         setError("Could not find the original prompt to retry.");
@@ -478,7 +476,7 @@ const App: React.FC = () => {
   const renderActiveView = () => {
     switch (activeView) {
       case 'chat':
-        return <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} isVoiceChatActive={isVoiceActive} isConnecting={isConnecting} onToggleVoiceChat={handleToggleVoiceChat} isVoiceChatAvailable={isVoiceChatAvailable} modelName={settings.model} chatMode={chatMode} onToggleAudio={handleToggleAudio} audioPlaybackState={audioPlayback} onAnswerQuiz={handleAnswerQuiz} onExplainVerse={handleExplainVerse} onRetry={handleRetry} />;
+        return <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} isVoiceChatActive={isVoiceActive} isConnecting={isConnecting} onToggleVoiceChat={handleToggleVoiceChat} isVoiceChatAvailable={isVoiceChatAvailable} modelName={settings.model} chatMode={chatMode} setChatMode={setChatMode} onToggleAudio={handleToggleAudio} audioPlaybackState={audioPlayback} onAnswerQuiz={handleAnswerQuiz} onExplainVerse={handleExplainVerse} onRetry={handleRetry} />;
       case 'notes': return <NotesPanel notes={notes} setNotes={setNotes} />;
       case 'journal': return <JournalPanel entries={journalEntries} setEntries={setJournalEntries} isVoiceActive={isVoiceActive} setIsVoiceActive={setIsVoiceActive} isConnecting={isConnecting} setIsConnecting={setIsConnecting} isApiConfigured={!!settings.googleApiKey} googleApiKey={settings.googleApiKey} setError={setError} stopVoiceSession={stopVoiceSession} getJournalInsights={(text) => getJournalInsights(settings.googleApiKey, text)} />;
       case 'cross-reference': return <CrossReferencePanel onExplainVerse={handleExplainVerse} />;
@@ -489,7 +487,7 @@ const App: React.FC = () => {
 
   return (
     <>
-      <main className="h-screen w-screen flex flex-col font-sans bg-slate-900/50">
+      <main className="h-screen w-screen flex flex-col font-sans bg-transparent">
         <header className="bg-slate-900/60 backdrop-blur-md border-b border-white/10 shadow-lg p-2 sm:p-4 grid grid-cols-3 items-center w-full gap-2 sm:gap-4 z-20 flex-shrink-0">
           <div className="flex justify-start items-center"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-300 hover:text-white transition-colors p-1" aria-label="Toggle Menu"><HamburgerIcon /></button></div>
           <h1 className="text-lg sm:text-2xl font-bold text-center text-gray-100/90 truncate">Scripture Scholar</h1>
@@ -501,7 +499,6 @@ const App: React.FC = () => {
                 isOpen={isSidebarOpen} activeView={activeView} setActiveView={setActiveView}
                 onClose={() => setIsSidebarOpen(false)} chatMode={chatMode} setChatMode={setChatMode}
                 isLoading={isLoading} isVoiceActive={isVoiceActive} isConnecting={isConnecting}
-                // Fix: Pass the 'handleVerseOfTheDay' function instead of an undefined variable.
                 onVerseOfTheDay={handleVerseOfTheDay} onOpenSettings={() => setIsSettingsOpen(true)}
                 chatHistory={chatHistory} activeChatId={activeChatId}
                 onNewChat={handleNewChat} onSelectChat={setActiveChatId}
@@ -513,7 +510,7 @@ const App: React.FC = () => {
                    <div className="flex-1 flex overflow-hidden">
                       <div className="w-full md:w-3/5 lg:w-2/3 h-full overflow-y-auto"><ScripturePanel setReadingContext={setReadingContext} onAskAboutVerse={handleAskAboutVerse} /></div>
                       <div className="hidden md:flex flex-col w-2/5 lg:w-1/3 h-full border-l border-white/10 bg-slate-900/20">
-                          <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} isVoiceChatActive={isVoiceActive} isConnecting={isConnecting} onToggleVoiceChat={handleToggleVoiceChat} isVoiceChatAvailable={isVoiceChatAvailable} modelName={settings.model} chatMode={chatMode} onToggleAudio={handleToggleAudio} audioPlaybackState={audioPlayback} onAnswerQuiz={handleAnswerQuiz} onExplainVerse={handleExplainVerse} onRetry={handleRetry} />
+                          <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} isVoiceChatActive={isVoiceActive} isConnecting={isConnecting} onToggleVoiceChat={handleToggleVoiceChat} isVoiceChatAvailable={isVoiceChatAvailable} modelName={settings.model} chatMode={chatMode} setChatMode={setChatMode} onToggleAudio={handleToggleAudio} audioPlaybackState={audioPlayback} onAnswerQuiz={handleAnswerQuiz} onExplainVerse={handleExplainVerse} onRetry={handleRetry} />
                       </div>
                    </div>
                 ) : ( <div className="flex-1 overflow-hidden">{renderActiveView()}</div> )}

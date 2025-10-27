@@ -50,6 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   }
   
   const getChatTitle = (messages: Message[]): string => {
+    if (messages.length <= 1) return "New Chat";
     const userMessage = messages.find(m => m.sender === 'user');
     if (!userMessage || !userMessage.text) return "New Chat";
     return userMessage.text.substring(0, 30) + (userMessage.text.length > 30 ? '...' : '');
@@ -77,18 +78,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         onClick={onClose}
       ></div>
       <aside 
-        className={`fixed top-0 left-0 h-full bg-slate-800/80 backdrop-blur-lg border-r border-white/10 w-64 z-40 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 h-full bg-slate-900/90 backdrop-blur-lg border-r border-white/10 w-64 z-40 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="p-2 border-b border-white/10 flex justify-between items-center flex-shrink-0">
           <h2 className="text-lg font-bold text-white px-2">Study Tools</h2>
-          <div className="flex items-center">
-            <button onClick={() => handleActionClick(onNewChat)} className="p-2 text-gray-300 hover:text-white hover:bg-slate-700/50 rounded-md transition-colors" title="New Chat">
-                <PlusIcon />
-            </button>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors md:hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
         
         <div className="flex-1 flex flex-col overflow-y-auto">
@@ -102,7 +98,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                   {item.view === 'chat' && activeView === 'chat' && (
                     <div className="pl-12 pr-2 py-2">
                       <select value={chatMode} onChange={(e) => setChatMode(e.target.value as ChatMode)} className="w-full rounded-md border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-700 text-gray-200 py-1.5 px-2 text-sm transition-colors" disabled={isLoading || isVoiceActive || isConnecting} aria-label="Select chat mode">
-                          <option value="chat">Chat</option><option value="thinking">Complex Q&A</option><option value="study-plan">Study Plan</option><option value="multi-quiz">Quiz Me</option><option value="lesson-prep">Lesson Prep</option><option value="fhe-planner">FHE Planner</option>
+                          <option value="chat">Chat</option>
+                          <option value="thinking">Thinking</option>
+                          <option value="study-plan">Study Plan</option>
+                          <option value="multi-quiz">Quiz Me</option>
+                          <option value="lesson-prep">Lesson Prep</option>
+                          <option value="fhe-planner">FHE Planner</option>
                       </select>
                     </div>
                   )}
@@ -111,9 +112,17 @@ const Sidebar: React.FC<SidebarProps> = ({
             </ul>
             
             <div className="px-3 mt-4">
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">History</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">History</h3>
+                <button onClick={() => handleActionClick(onNewChat)} className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded-full transition-colors" title="New Chat">
+                    <PlusIcon />
+                </button>
+              </div>
             </div>
-            <ul className="mt-2 space-y-1 px-2 flex-1">
+            <ul className="mt-1 space-y-1 px-2 flex-1">
+               <button onClick={onNewChat} className="w-full text-left text-sm p-2 rounded truncate transition-colors text-blue-400 hover:bg-slate-700/50 border border-slate-700 hover:border-slate-600 mb-2">
+                  New Chat
+               </button>
               {chatHistoryItems.map(chatId => (
                 <li key={chatId}>
                   <button onClick={() => handleChatSelect(chatId)} className={`w-full text-left text-sm p-2 rounded truncate transition-colors ${chatId === activeChatId && activeView === 'chat' ? 'bg-slate-700 text-white' : 'text-gray-400 hover:bg-slate-700/50'}`}>
@@ -142,8 +151,3 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
-const PlusIcon: React.FC = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-    </svg>
-  );

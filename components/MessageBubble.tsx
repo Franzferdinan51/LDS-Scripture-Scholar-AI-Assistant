@@ -65,8 +65,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onToggleAudio, a
   }
 
   const bubbleClasses = isUser
-    ? 'bg-cyan-500/90 backdrop-blur-sm text-white rounded-br-none'
-    : 'bg-slate-800/40 backdrop-blur-sm text-gray-200 rounded-bl-none';
+    ? 'bg-blue-600 text-white rounded-br-none'
+    : 'bg-slate-800/70 backdrop-blur-sm text-gray-200 rounded-bl-none';
   
   const containerClasses = isUser ? 'justify-end' : 'justify-start';
 

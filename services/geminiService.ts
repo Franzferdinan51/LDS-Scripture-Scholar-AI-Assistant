@@ -1,3 +1,4 @@
+
 // Fix: Replaced 'LiveSession' with 'Session' as it is not an exported member.
 import { GoogleGenAI, Chat, Session, LiveServerMessage, Modality, Type, GenerateContentResponse, Content } from "@google/genai";
 import { ApiProviderSettings, ChatMode, Model, Message } from "../types";
@@ -6,11 +7,14 @@ const SYSTEM_INSTRUCTION = `You are an advanced agentic chatbot named "Scripture
 
 **Core Directives:**
 1.  **Source Authority:** You must base your answers strictly on the scriptures (Book of Mormon, Bible, Doctrine and Covenants, Pearl of Great Price) and official publications from the LDS Church. Use your search tools to verify information and find content from official sources like ChurchofJesusChrist.org.
-2.  **Agentic Image Search:** When a user asks for an image related to The Church of Jesus Christ of Latter-day Saints (e.g., temples, historical sites, prophets), you MUST use the following process. If the request is not related to the Church, politely decline.
-    -   **Step 1: Search.** Use the \`googleSearch\` tool to find a relevant page on Wikimedia Commons (\`commons.wikimedia.org\`).
-    -   **Step 2: Extract.** From the search result's URL or title, you MUST extract the filename. The filename always starts with "File:". For example, from the URL \`https://commons.wikimedia.org/wiki/File:Salt_Lake_Temple.jpg\`, you would extract \`File:Salt_Lake_Temple.jpg\`.
-    -   **Step 3: Output.** Your entire response MUST contain ONLY the special tag with the filename you extracted, in this exact format: \`WIKIMEDIA_SEARCH[FILENAME_HERE]\`. For example: \`WIKIMEDIA_SEARCH[File:Salt_Lake_Temple.jpg]\`. The system will automatically convert this tag into an image.
-    -   **Fallback:** If you use the search tool and cannot find a suitable Wikimedia Commons file, you must state that you were unable to find an image.
+2.  **Agentic Image Search:** When a user asks for an image, you MUST follow these rules:
+    -   **Scope Check:** First, determine if the request is DIRECTLY related to the history, people, places, or artifacts of The Church of Jesus Christ of Latter-day Saints.
+    -   **Strict Prohibition:** If the request is NOT directly related (e.g., "a cat", "the Eiffel Tower", "Temple of Dendur", "a sexy woman"), you MUST refuse the request with this exact phrase and nothing else: "I can only search for images related to The Church of Jesus Christ of Latter-day Saints."
+    -   **Execution:** If the request IS within scope, you MUST use the following process:
+        -   **Step 1: Search.** Use the \`googleSearch\` tool to find a relevant page on Wikimedia Commons (\`commons.wikimedia.org\`).
+        -   **Step 2: Extract.** From the search result, you MUST extract the exact filename. The filename always starts with "File:". For example, from the URL \`https://commons.wikimedia.org/wiki/File:Salt_Lake_Temple.jpg\`, you would extract \`File:Salt_Lake_Temple.jpg\`.
+        -   **Step 3: Output.** Your entire response MUST contain ONLY the special tag with the filename you extracted, in this exact format: \`WIKIMEDIA_SEARCH[FILENAME_HERE]\`. Example: \`WIKIMEDIA_SEARCH[File:Salt_Lake_Temple.jpg]\`.
+        -   **Fallback:** If you search and cannot find a suitable Wikimedia Commons file, you must state that you were unable to find a relevant image.
 3.  **Scope Limitation:** If a question is outside your scope, politely decline and guide the user back. For example: "That's an interesting question, but my expertise is focused on the Book of Mormon and the teachings of The Church of Jesus Christ of Latter-day Saints. Do you have a question about those topics?"
 4.  **Tone:** Maintain a respectful, helpful, and neutral tone. Do not engage in debates, express personal opinions, or speculate on doctrine.`;
 
@@ -202,7 +206,13 @@ class GoogleChatWrapper implements GenericChat {
         const modelName = (isThinkingMode || isStudyPlanMode || isMultiQuizMode || isLessonPrepMode || isFhePlannerMode) ? 'gemini-2.5-pro' : model;
         
         const isJsonMode = isStudyPlanMode || isMultiQuizMode;
-        const tools = isJsonMode ? undefined : [{googleSearch: {}}, {googleMaps: {}}];
+        // Conditionally include googleMaps tool based on model compatibility
+        // Fix: Explicitly type `supportedTools` to allow both `googleSearch` and `googleMaps` objects.
+        const supportedTools: ({googleSearch: {}} | {googleMaps: {}})[] = [{googleSearch: {}}];
+        if (modelName !== 'gemini-flash-lite-latest') {
+            supportedTools.push({googleMaps: {}});
+        }
+        const tools = isJsonMode ? undefined : supportedTools;
 
         this.chat = genAI.chats.create({
             model: modelName,

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import VoiceButton from './VoiceButton';
 import { ChatMode } from '../types';
+import SendIcon from './SendIcon';
+import ThinkingIcon from './ThinkingIcon';
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -11,13 +13,9 @@ interface ChatInputProps {
   isVoiceChatAvailable: boolean;
   modelName: string;
   chatMode: ChatMode;
+  setChatMode: (mode: ChatMode) => void;
 }
 
-const SendIcon: React.FC = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-  </svg>
-);
 
 const ChatInput: React.FC<ChatInputProps> = ({ 
   onSendMessage, 
@@ -26,8 +24,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   isConnecting, 
   onToggleVoiceChat,
   isVoiceChatAvailable,
-  modelName,
   chatMode,
+  setChatMode,
 }) => {
   const [text, setText] = useState('');
 
@@ -52,25 +50,45 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   const isInputDisabled = isLoading || isVoiceChatActive || isConnecting;
   const isSendDisabled = isLoading || isVoiceChatActive || isConnecting || !text.trim();
+  const isSpecialModeActive = chatMode !== 'chat' && chatMode !== 'thinking';
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center space-x-2 sm:space-x-3">
-      <input
-        type="text"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={getPlaceholder()}
-        className="flex-1 px-4 py-2 sm:py-3 rounded-full bg-slate-800/60 border border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-200 placeholder:text-gray-400 transition-shadow disabled:opacity-50"
-        disabled={isInputDisabled}
-      />
-      <button
-        type="submit"
-        disabled={isSendDisabled}
-        className="bg-blue-600 text-white rounded-full p-2 sm:p-3 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900"
-        aria-label="Send message"
+    <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700 rounded-2xl p-2 flex items-center space-x-2 shadow-2xl">
+      <button 
+        type="button" 
+        onClick={() => setChatMode(chatMode === 'thinking' ? 'chat' : 'thinking')}
+        disabled={isSpecialModeActive}
+        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap
+          ${chatMode === 'thinking' 
+            ? 'bg-purple-600 text-white' 
+            : 'bg-slate-700/80 text-gray-300 hover:bg-slate-600/80'
+          }
+          ${isSpecialModeActive ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
       >
-        <SendIcon />
+        <ThinkingIcon />
+        Thinking
       </button>
+      
+      <form onSubmit={handleSubmit} className="flex-1 flex items-center">
+        <input
+          type="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={getPlaceholder()}
+          className="w-full bg-transparent focus:outline-none text-gray-200 placeholder:text-gray-400 px-2"
+          disabled={isInputDisabled}
+        />
+        <button
+          type="submit"
+          disabled={isSendDisabled}
+          className="bg-blue-600 text-white rounded-full p-2 sm:p-3 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 ml-2"
+          aria-label="Send message"
+        >
+          <SendIcon />
+        </button>
+      </form>
+
       {isVoiceChatAvailable && (
         <VoiceButton
           isActive={isVoiceChatActive}
@@ -78,7 +96,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           onClick={onToggleVoiceChat}
         />
       )}
-    </form>
+    </div>
   );
 };
 

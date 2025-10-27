@@ -18,6 +18,7 @@ interface ChatWindowProps {
   isVoiceChatAvailable: boolean;
   modelName: string;
   chatMode: ChatMode;
+  setChatMode: (mode: ChatMode) => void; // Added this prop
   onToggleAudio: (messageId: string, text: string) => Promise<void>;
   audioPlaybackState: AudioPlaybackState;
   onAnswerQuiz: (messageId: string, questionIndex: number, answerIndex: number) => void;
@@ -35,6 +36,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   isVoiceChatAvailable,
   modelName,
   chatMode,
+  setChatMode, // Destructure the new prop
   onToggleAudio,
   audioPlaybackState,
   onAnswerQuiz,
@@ -53,7 +55,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
         {messages.map((msg) => (
           <MessageBubble 
             key={msg.id} 
@@ -77,17 +79,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         )}
         <div ref={messagesEndRef} />
       </div>
-      <div className="p-4">
-        <ChatInput 
-          onSendMessage={onSendMessage} 
-          isLoading={isLoading}
-          isVoiceChatActive={isVoiceChatActive}
-          isConnecting={isConnecting}
-          onToggleVoiceChat={onToggleVoiceChat}
-          isVoiceChatAvailable={isVoiceChatAvailable}
-          modelName={modelName}
-          chatMode={chatMode}
-        />
+      <div className="fixed bottom-0 left-0 right-0 p-4 flex justify-center z-10 pointer-events-none">
+        <div className="w-full max-w-4xl pointer-events-auto">
+            <ChatInput 
+            onSendMessage={onSendMessage} 
+            isLoading={isLoading}
+            isVoiceChatActive={isVoiceChatActive}
+            isConnecting={isConnecting}
+            onToggleVoiceChat={onToggleVoiceChat}
+            isVoiceChatAvailable={isVoiceChatAvailable}
+            modelName={modelName}
+            chatMode={chatMode}
+            setChatMode={setChatMode} // Pass it down
+            />
+        </div>
       </div>
     </div>
   );
