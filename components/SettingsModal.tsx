@@ -66,8 +66,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const provider = e.target.value as ApiProvider;
     let newModel = '';
-    if (provider === 'google') newModel = 'gemini-flash-lite-latest';
-    
+    if (provider === 'google') {
+        newModel = 'gemini-flash-lite-latest';
+    } else {
+        // Clear model for all other providers until fetched
+        newModel = '';
+    }
     setLocalSettings(prev => ({ ...prev, provider, model: newModel }));
   };
   
@@ -87,7 +91,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   if (!isOpen) return null;
   
-  const isFetchVisible = localSettings.provider === 'lmstudio' || localSettings.provider === 'openrouter';
+  const isFetchVisible = ['lmstudio', 'openrouter', 'mcp'].includes(localSettings.provider);
   
   const inputBaseClasses = "mt-1 block w-full shadow-sm sm:text-sm rounded-md p-2 bg-slate-700 border border-slate-600 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const selectBaseClasses = "mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md bg-slate-700 border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm";
@@ -122,6 +126,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
               <option value="google">Google Gemini</option>
               <option value="lmstudio">LM Studio</option>
               <option value="openrouter">OpenRouter</option>
+              <option value="mcp">Docker MCP Toolkit</option>
             </select>
           </div>
           
@@ -160,47 +165,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
           {localSettings.provider === 'lmstudio' && (
              <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300">Connection Target</label>
-                  <div className="mt-2 flex space-x-4 p-1 bg-slate-700/50 rounded-lg">
-                    <label className="flex-1 text-center">
-                      <input
-                        type="radio"
-                        name="lmStudioConnectionTarget"
-                        value="standard"
-                        checked={localSettings.lmStudioConnectionTarget === 'standard'}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                      <span className="block w-full py-1.5 px-3 rounded-md text-sm cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white transition-colors">Standard Server</span>
-                    </label>
-                    <label className="flex-1 text-center">
-                      <input
-                        type="radio"
-                        name="lmStudioConnectionTarget"
-                        value="mcp"
-                        checked={localSettings.lmStudioConnectionTarget === 'mcp'}
-                        onChange={handleInputChange}
-                        className="sr-only peer"
-                      />
-                       <span className="block w-full py-1.5 px-3 rounded-md text-sm cursor-pointer peer-checked:bg-blue-600 peer-checked:text-white transition-colors">Docker MCP</span>
-                    </label>
-                  </div>
+                  <label htmlFor="lmStudioBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
+                  <input
+                    type="text"
+                    id="lmStudioBaseUrl"
+                    name="lmStudioBaseUrl"
+                    value={localSettings.lmStudioBaseUrl}
+                    onChange={handleInputChange}
+                    className={inputBaseClasses}
+                  />
                 </div>
-
-                {localSettings.lmStudioConnectionTarget === 'standard' ? (
-                  <div>
-                    <label htmlFor="lmStudioBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
-                    <input
-                      type="text"
-                      id="lmStudioBaseUrl"
-                      name="lmStudioBaseUrl"
-                      value={localSettings.lmStudioBaseUrl}
-                      onChange={handleInputChange}
-                      className={inputBaseClasses}
-                    />
-                  </div>
-                ) : (
-                  <div>
+             </>
+          )}
+          
+          {localSettings.provider === 'mcp' && (
+             <>
+                <div>
                     <label htmlFor="mcpBaseUrl" className="block text-sm font-medium text-gray-300">Docker MCP URL</label>
                     <div className="flex items-center space-x-2">
                         <input
@@ -235,9 +215,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                         </div>
                     )}
                   </div>
-                )}
              </>
           )}
+
 
           {localSettings.provider === 'openrouter' && (
             <>

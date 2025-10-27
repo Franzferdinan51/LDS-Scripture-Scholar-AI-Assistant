@@ -75,8 +75,7 @@ export interface JournalEntry {
 }
 
 
-export type ApiProvider = 'google' | 'lmstudio' | 'openrouter';
-export type LmStudioConnectionTarget = 'standard' | 'mcp';
+export type ApiProvider = 'google' | 'lmstudio' | 'openrouter' | 'mcp';
 export type ChatMode = 'chat' | 'thinking' | 'study-plan' | 'multi-quiz' | 'lesson-prep' | 'fhe-planner';
 export type ViewMode = 'chat' | 'notes' | 'journal' | 'cross-reference' | 'scripture-reader';
 
@@ -87,7 +86,6 @@ export interface ApiProviderSettings {
   lmStudioBaseUrl: string;
   openRouterBaseUrl: string;
   mcpBaseUrl: string;
-  lmStudioConnectionTarget: LmStudioConnectionTarget;
   model: string;
 }
 

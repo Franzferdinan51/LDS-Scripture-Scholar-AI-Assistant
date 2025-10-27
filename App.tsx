@@ -241,7 +241,7 @@ const App: React.FC = () => {
     let requestError = null;
     let accumulatedText = "";
     try {
-      const responseStream = await chat.sendMessageStream(messageToSend);
+      const responseStream = await chat.sendMessageStream({ message: messageToSend });
       let groundingChunks: GroundingChunk[] | undefined = undefined;
       
       for await (const chunk of responseStream) {

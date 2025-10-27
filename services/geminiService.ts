@@ -114,7 +114,7 @@ const createMockResponse = (text: string): GenerateContentResponse => ({
 } as any);
 
 
-// --- OpenAI Compatible (LM Studio / OpenRouter) ---
+// --- OpenAI Compatible (LM Studio / OpenRouter / MCP) ---
 class OpenAIChatWrapper {
     private settings: ApiProviderSettings;
     private systemInstruction: string;
@@ -127,18 +127,25 @@ class OpenAIChatWrapper {
     }
 
     async *sendMessageStream(message: string): AsyncGenerator<GenerateContentResponse> {
-        const { provider, openRouterApiKey, lmStudioBaseUrl, openRouterBaseUrl, model, mcpBaseUrl, lmStudioConnectionTarget } = this.settings;
+        const { provider, openRouterApiKey, lmStudioBaseUrl, openRouterBaseUrl, model, mcpBaseUrl } = this.settings;
         
-        let baseURL;
-        if (provider === 'lmstudio') {
-            baseURL = lmStudioConnectionTarget === 'mcp' ? mcpBaseUrl : lmStudioBaseUrl;
-        } else if (provider === 'openrouter') {
-            baseURL = openRouterBaseUrl;
-        } else {
-            throw new Error(`Unsupported provider in OpenAIChatWrapper: ${provider}`);
+        let baseURL: string;
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+
+        switch(provider) {
+            case 'lmstudio':
+                baseURL = lmStudioBaseUrl;
+                break;
+            case 'openrouter':
+                baseURL = openRouterBaseUrl;
+                headers['Authorization'] = `Bearer ${openRouterApiKey}`;
+                break;
+            case 'mcp':
+                baseURL = mcpBaseUrl;
+                break;
+            default:
+                throw new Error(`Unsupported provider in OpenAIChatWrapper: ${provider}`);
         }
-        
-        const apiKey = provider === 'openrouter' ? openRouterApiKey : 'not-needed';
         
         const messages = [
             { role: 'system', content: this.systemInstruction },
@@ -152,10 +159,7 @@ class OpenAIChatWrapper {
         try {
             const response = await fetch(`${baseURL}/chat/completions`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
+                headers,
                 body: JSON.stringify({
                     model: model,
                     messages: messages,
@@ -255,6 +259,7 @@ export const createChatService = (settings: ApiProviderSettings, chatMode: ChatM
             });
         case 'lmstudio':
         case 'openrouter':
+        case 'mcp':
             return new OpenAIChatWrapper(settings, systemInstruction, history);
         default:
             throw new Error(`Unsupported API provider: ${settings.provider}`);
@@ -262,25 +267,24 @@ export const createChatService = (settings: ApiProviderSettings, chatMode: ChatM
 };
 
 export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {
-    const { provider, lmStudioBaseUrl, openRouterBaseUrl, openRouterApiKey, mcpBaseUrl, lmStudioConnectionTarget } = settings;
+    const { provider, lmStudioBaseUrl, openRouterBaseUrl, openRouterApiKey, mcpBaseUrl } = settings;
     
-    if (provider !== 'lmstudio' && provider !== 'openrouter') {
-        return [];
-    }
+    let url: string;
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
 
-    let url;
-    if (provider === 'lmstudio') {
-        const baseUrl = lmStudioConnectionTarget === 'mcp' ? mcpBaseUrl : lmStudioBaseUrl;
-        url = `${baseUrl}/models`;
-    } else { // openrouter
-        url = `${openRouterBaseUrl}/models`;
-    }
-
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-    };
-    if (provider === 'openrouter') {
-        headers['Authorization'] = `Bearer ${openRouterApiKey}`;
+    switch (provider) {
+        case 'lmstudio':
+            url = `${lmStudioBaseUrl}/models`;
+            break;
+        case 'openrouter':
+            url = `${openRouterBaseUrl}/models`;
+            headers['Authorization'] = `Bearer ${openRouterApiKey}`;
+            break;
+        case 'mcp':
+            url = `${mcpBaseUrl}/models`;
+            break;
+        default:
+            return []; // Not a provider that supports fetching models
     }
 
     try {

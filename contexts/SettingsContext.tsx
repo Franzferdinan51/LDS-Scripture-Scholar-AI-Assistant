@@ -8,7 +8,6 @@ const DEFAULT_SETTINGS: ApiProviderSettings = {
   lmStudioBaseUrl: 'http://localhost:1234/v1',
   openRouterBaseUrl: 'https://openrouter.ai/api/v1',
   mcpBaseUrl: 'http://localhost:8080/v1',
-  lmStudioConnectionTarget: 'standard',
   model: 'gemini-flash-lite-latest',
 };
 
