@@ -1,0 +1,22 @@
+{
+    "title": "The Doctrine and Covenants",
+    "books": [
+        {
+            "book": "Doctrine and Covenants",
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "reference": "Section 1",
+                    "verses": [
+                        { "verse": 1, "text": "Hearken, O ye people of my church, saith the voice of him who dwells on high, and whose eyes are upon all men; yea, verily I say: Hearken ye people from afar; and ye that are upon the islands of the sea, listen together." },
+                        { "verse": 2, "text": "For verily the voice of the Lord is unto all men, and there is none to escape; and there is no eye that shall not see, neither ear that shall not hear, neither heart that shall not be penetrated." },
+                        { "verse": 3, "text": "And the rebellious shall be pierced with much sorrow; for their iniquities shall be spoken upon the housetops, and their secret acts shall be revealed." },
+                        { "verse": 4, "text": "And the voice of warning shall be unto all people, by the mouths of my disciples, whom I have chosen in these last days." },
+                        { "verse": 5, "text": "And they shall go forth and none shall stay them, for I the Lord have commanded them." },
+                        { "verse": 38, "text": "What I the Lord have spoken, I have spoken, and I excuse not myself; and though the heavens and the earth pass away, my word shall not pass away, but shall all be fulfilled, whether by mine own voice or by the voice of my servants, it is the same." }
+                    ]
+                }
+            ]
+        }
+    ]
+}
