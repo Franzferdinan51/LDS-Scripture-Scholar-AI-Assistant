@@ -215,9 +215,23 @@ const App: React.FC = () => {
   }, [chatHistory, settings.googleApiKey, isSuggesting, chatMode, activeChatId]);
 
 
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = async (text: string, overrideMode?: ChatMode) => {
     if (isLoading || (isVoiceChatAvailable && isVoiceActive) || !activeChatId) return;
-    if (!chat) {
+
+    let chatService = chat;
+    // Create a temporary service if an override is requested and it's different from the current mode
+    if (overrideMode && overrideMode !== chatMode) {
+        try {
+            const currentHistory = chatHistory[activeChatId] || [];
+            chatService = createChatService(settings, overrideMode, currentHistory);
+        } catch (err: any) {
+            console.error("Temporary chat service initialization error:", err);
+            setError(`Could not initialize the chat for this request: ${err.message}`);
+            return;
+        }
+    }
+
+    if (!chatService) {
        setError("Chat is not initialized. Please check settings.");
        return;
     }
@@ -241,7 +255,7 @@ const App: React.FC = () => {
     let requestError = null;
     let accumulatedText = "";
     try {
-      const responseStream = await chat.sendMessageStream({ message: messageToSend });
+      const responseStream = await chatService.sendMessageStream({ message: messageToSend });
       let groundingChunks: GroundingChunk[] | undefined = undefined;
       
       for await (const chunk of responseStream) {
@@ -314,13 +328,14 @@ const App: React.FC = () => {
             if (msg.id !== botMessageId) return msg;
             
             let finalMsg = { ...msg, text: finalVisibleText, thinking: finalThinkingText, groundingChunks };
-            if (chatMode === 'study-plan' || chatMode === 'multi-quiz') {
+            const currentMode = overrideMode || chatMode; // Use override if it exists
+            if (currentMode === 'study-plan' || currentMode === 'multi-quiz') {
                 try {
                     const parsedJson = JSON.parse(finalVisibleText);
-                    if (chatMode === 'study-plan') return { ...msg, text: '', thinking: finalThinkingText, studyPlan: parsedJson as StudyPlan };
-                    if (chatMode === 'multi-quiz') return { ...msg, text: '', thinking: finalThinkingText, multiQuiz: parsedJson as MultiQuiz };
+                    if (currentMode === 'study-plan') return { ...msg, text: '', thinking: finalThinkingText, studyPlan: parsedJson as StudyPlan };
+                    if (currentMode === 'multi-quiz') return { ...msg, text: '', thinking: finalThinkingText, multiQuiz: parsedJson as MultiQuiz };
                 } catch (e) {
-                    return { ...msg, text: `Sorry, I couldn't create a ${chatMode}. Please try again.`, thinking: finalThinkingText };
+                    return { ...msg, text: `Sorry, I couldn't create a ${currentMode}. Please try again.`, thinking: finalThinkingText };
                 }
             }
             return finalMsg;
@@ -367,7 +382,7 @@ const App: React.FC = () => {
   };
 
   const handleVerseOfTheDay = () => {
-    handleSendMessage("Give me an inspiring scripture and a short insight about its meaning.");
+    handleSendMessage("Give me an inspiring scripture and a short insight about its meaning.", 'chat');
   };
 
   const handleExplainVerse = (verse: string) => {

@@ -53,7 +53,48 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
             }
             return;
         }
+        
+        // Use API for Book of Mormon Manifest
+        if (volume === 'book-of-mormon') {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await fetch('https://braydentw.github.io/book-of-mormon-api/v2/books');
+                if (!response.ok) throw new Error('Failed to load Book of Mormon book list from API.');
+                const booksList: { book: string, chapters: number }[] = await response.json();
 
+                const data: ScriptureData = {
+                    title: "The Book of Mormon",
+                    books: booksList.map(b => ({
+                        book: b.book,
+                        chapters: Array.from({ length: b.chapters }, (_, i) => ({
+                            chapter: i + 1,
+                            verses: [] // Empty for manifest, verses fetched on demand
+                        }))
+                    }))
+                };
+
+                scriptureCache.set(volume, data);
+                setScriptureData(data);
+                if (data.books.length > 0) {
+                    setSelectedBook(data.books[0].book);
+                    setSelectedChapter(1);
+                }
+            } catch (err) {
+                console.error(err);
+                let errorMessage = "An unknown error occurred loading the scriptures.";
+                if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                    errorMessage = "Network Error: Could not connect to the scripture API. Please check your internet connection and try again.";
+                } else if (err instanceof Error) {
+                    errorMessage = err.message;
+                }
+                setError(errorMessage);
+                setScriptureData(null);
+            }
+            return;
+        }
+
+        // Use local files for other volumes
         setIsLoading(true);
         setError(null);
         try {
@@ -72,10 +113,14 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
             }
         } catch (err) {
             console.error(err);
-            setError(err instanceof Error ? err.message : "An unknown error occurred loading the scriptures.");
+            let errorMessage = "An unknown error occurred loading the scriptures.";
+            if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                errorMessage = "Network Error: Could not load local scripture data. The file might be missing or corrupted.";
+            } else if (err instanceof Error) {
+                errorMessage = err.message;
+            }
+            setError(errorMessage);
             setScriptureData(null);
-        } finally {
-            // Loading is turned off by the content fetcher
         }
     }, [selectedBook]);
 
@@ -95,7 +140,26 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
             setActiveChapter(null);
 
             try {
-                if (selectedVolume === 'old-testament' || selectedVolume === 'new-testament') {
+                if (selectedVolume === 'book-of-mormon') {
+                    const bookSlug = selectedBook.toLowerCase().replace(/\s/g, '-');
+                    const response = await fetch(`https://braydentw.github.io/book-of-mormon-api/v2/${bookSlug}/${selectedChapter}`);
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => null);
+                        throw new Error(errorData?.error || `Could not find ${selectedBook} ${selectedChapter}.`);
+                    }
+                    const data = await response.json();
+                    
+                    const newChapter: Chapter = {
+                        chapter: data.chapter,
+                        reference: data.reference,
+                        verses: data.verses.map((v: any) => ({
+                            verse: v.verse,
+                            text: v.text.replace(/\n/g, ' ').trim()
+                        }))
+                    };
+                    setActiveChapter(newChapter);
+
+                } else if (selectedVolume === 'old-testament' || selectedVolume === 'new-testament') {
                     const bookQuery = selectedBook.replace(/\s/g, '+');
                     const response = await fetch(`https://bible-api.com/${bookQuery}+${selectedChapter}`);
                     if (!response.ok) {
@@ -117,15 +181,21 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
                     setActiveChapter(newChapter);
 
                 } else {
-                    // Logic for other volumes (BoM, D&C, PGP) which are fully local
+                    // Logic for other volumes (D&C, PGP) which are fully local
                     const bookData = scriptureData?.books.find(b => b.book === selectedBook);
                     const chapterData = bookData?.chapters.find(c => c.chapter === selectedChapter);
                     setActiveChapter(chapterData || null);
                 }
             } catch (err) {
                  console.error(err);
-                 setError(err instanceof Error ? err.message : "An unknown error occurred.");
-                 setActiveChapter(null);
+                let errorMessage = "An unknown error occurred fetching the chapter.";
+                if (err instanceof TypeError && err.message === 'Failed to fetch') {
+                    errorMessage = "Network Error: Could not load chapter content. Please check your internet connection and try again.";
+                } else if (err instanceof Error) {
+                    errorMessage = err.message;
+                }
+                setError(errorMessage);
+                setActiveChapter(null);
             } finally {
                 setIsLoading(false);
             }
@@ -171,7 +241,7 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
         if (error) return <div className="p-4 text-center text-red-400">{error}</div>;
         if (!activeChapter) return (
              <div className="p-4 text-center text-gray-400">
-                Scripture text is not available. The data file might be empty or missing.
+                Select a book and chapter to begin reading.
              </div>
         );
 
