@@ -4,159 +4,159 @@
     "books": [
         {
             "book": "Genesis",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}, {"chapter": 41, "verses": []}, {"chapter": 42, "verses": []}, {"chapter": 43, "verses": []}, {"chapter": 44, "verses": []}, {"chapter": 45, "verses": []}, {"chapter": 46, "verses": []}, {"chapter": 47, "verses": []}, {"chapter": 48, "verses": []}, {"chapter": 49, "verses": []}, {"chapter": 50, "verses": []}]
         },
         {
             "book": "Exodus",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}]
         },
         {
             "book": "Leviticus",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}]
         },
         {
             "book": "Numbers",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}]
         },
         {
             "book": "Deuteronomy",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}]
         },
         {
             "book": "Joshua",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}]
         },
         {
             "book": "Judges",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}]
         },
         {
             "book": "Ruth",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}]
         },
         {
             "book": "1 Samuel",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}]
         },
         {
             "book": "2 Samuel",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}]
         },
         {
             "book": "1 Kings",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}]
         },
         {
             "book": "2 Kings",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}]
         },
         {
             "book": "1 Chronicles",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}]
         },
         {
             "book": "2 Chronicles",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}]
         },
         {
             "book": "Ezra",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}]
         },
         {
             "book": "Nehemiah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}]
         },
         {
             "book": "Esther",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}]
         },
         {
             "book": "Job",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}, {"chapter": 41, "verses": []}, {"chapter": 42, "verses": []}]
         },
         {
             "book": "Psalms",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}, {"chapter": 41, "verses": []}, {"chapter": 42, "verses": []}, {"chapter": 43, "verses": []}, {"chapter": 44, "verses": []}, {"chapter": 45, "verses": []}, {"chapter": 46, "verses": []}, {"chapter": 47, "verses": []}, {"chapter": 48, "verses": []}, {"chapter": 49, "verses": []}, {"chapter": 50, "verses": []}, {"chapter": 51, "verses": []}, {"chapter": 52, "verses": []}, {"chapter": 53, "verses": []}, {"chapter": 54, "verses": []}, {"chapter": 55, "verses": []}, {"chapter": 56, "verses": []}, {"chapter": 57, "verses": []}, {"chapter": 58, "verses": []}, {"chapter": 59, "verses": []}, {"chapter": 60, "verses": []}, {"chapter": 61, "verses": []}, {"chapter": 62, "verses": []}, {"chapter": 63, "verses": []}, {"chapter": 64, "verses": []}, {"chapter": 65, "verses": []}, {"chapter": 66, "verses": []}, {"chapter": 67, "verses": []}, {"chapter": 68, "verses": []}, {"chapter": 69, "verses": []}, {"chapter": 70, "verses": []}, {"chapter": 71, "verses": []}, {"chapter": 72, "verses": []}, {"chapter": 73, "verses": []}, {"chapter": 74, "verses": []}, {"chapter": 75, "verses": []}, {"chapter": 76, "verses": []}, {"chapter": 77, "verses": []}, {"chapter": 78, "verses": []}, {"chapter": 79, "verses": []}, {"chapter": 80, "verses": []}, {"chapter": 81, "verses": []}, {"chapter": 82, "verses": []}, {"chapter": 83, "verses": []}, {"chapter": 84, "verses": []}, {"chapter": 85, "verses": []}, {"chapter": 86, "verses": []}, {"chapter": 87, "verses": []}, {"chapter": 88, "verses": []}, {"chapter": 89, "verses": []}, {"chapter": 90, "verses": []}, {"chapter": 91, "verses": []}, {"chapter": 92, "verses": []}, {"chapter": 93, "verses": []}, {"chapter": 94, "verses": []}, {"chapter": 95, "verses": []}, {"chapter": 96, "verses": []}, {"chapter": 97, "verses": []}, {"chapter": 98, "verses": []}, {"chapter": 99, "verses": []}, {"chapter": 100, "verses": []}, {"chapter": 101, "verses": []}, {"chapter": 102, "verses": []}, {"chapter": 103, "verses": []}, {"chapter": 104, "verses": []}, {"chapter": 105, "verses": []}, {"chapter": 106, "verses": []}, {"chapter": 107, "verses": []}, {"chapter": 108, "verses": []}, {"chapter": 109, "verses": []}, {"chapter": 110, "verses": []}, {"chapter": 111, "verses": []}, {"chapter": 112, "verses": []}, {"chapter": 113, "verses": []}, {"chapter": 114, "verses": []}, {"chapter": 115, "verses": []}, {"chapter": 116, "verses": []}, {"chapter": 117, "verses": []}, {"chapter": 118, "verses": []}, {"chapter": 119, "verses": []}, {"chapter": 120, "verses": []}, {"chapter": 121, "verses": []}, {"chapter": 122, "verses": []}, {"chapter": 123, "verses": []}, {"chapter": 124, "verses": []}, {"chapter": 125, "verses": []}, {"chapter": 126, "verses": []}, {"chapter": 127, "verses": []}, {"chapter": 128, "verses": []}, {"chapter": 129, "verses": []}, {"chapter": 130, "verses": []}, {"chapter": 131, "verses": []}, {"chapter": 132, "verses": []}, {"chapter": 133, "verses": []}, {"chapter": 134, "verses": []}, {"chapter": 135, "verses": []}, {"chapter": 136, "verses": []}, {"chapter": 137, "verses": []}, {"chapter": 138, "verses": []}, {"chapter": 139, "verses": []}, {"chapter": 140, "verses": []}, {"chapter": 141, "verses": []}, {"chapter": 142, "verses": []}, {"chapter": 143, "verses": []}, {"chapter": 144, "verses": []}, {"chapter": 145, "verses": []}, {"chapter": 146, "verses": []}, {"chapter": 147, "verses": []}, {"chapter": 148, "verses": []}, {"chapter": 149, "verses": []}, {"chapter": 150, "verses": []}]
         },
         {
             "book": "Proverbs",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}]
         },
         {
             "book": "Ecclesiastes",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}]
         },
         {
             "book": "Song of Solomon",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}]
         },
         {
             "book": "Isaiah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}, {"chapter": 41, "verses": []}, {"chapter": 42, "verses": []}, {"chapter": 43, "verses": []}, {"chapter": 44, "verses": []}, {"chapter": 45, "verses": []}, {"chapter": 46, "verses": []}, {"chapter": 47, "verses": []}, {"chapter": 48, "verses": []}, {"chapter": 49, "verses": []}, {"chapter": 50, "verses": []}, {"chapter": 51, "verses": []}, {"chapter": 52, "verses": []}, {"chapter": 53, "verses": []}, {"chapter": 54, "verses": []}, {"chapter": 55, "verses": []}, {"chapter": 56, "verses": []}, {"chapter": 57, "verses": []}, {"chapter": 58, "verses": []}, {"chapter": 59, "verses": []}, {"chapter": 60, "verses": []}, {"chapter": 61, "verses": []}, {"chapter": 62, "verses": []}, {"chapter": 63, "verses": []}, {"chapter": 64, "verses": []}, {"chapter": 65, "verses": []}, {"chapter": 66, "verses": []}]
         },
         {
             "book": "Jeremiah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}, {"chapter": 41, "verses": []}, {"chapter": 42, "verses": []}, {"chapter": 43, "verses": []}, {"chapter": 44, "verses": []}, {"chapter": 45, "verses": []}, {"chapter": 46, "verses": []}, {"chapter": 47, "verses": []}, {"chapter": 48, "verses": []}, {"chapter": 49, "verses": []}, {"chapter": 50, "verses": []}, {"chapter": 51, "verses": []}, {"chapter": 52, "verses": []}]
         },
         {
             "book": "Lamentations",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}]
         },
         {
             "book": "Ezekiel",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}, {"chapter": 29, "verses": []}, {"chapter": 30, "verses": []}, {"chapter": 31, "verses": []}, {"chapter": 32, "verses": []}, {"chapter": 33, "verses": []}, {"chapter": 34, "verses": []}, {"chapter": 35, "verses": []}, {"chapter": 36, "verses": []}, {"chapter": 37, "verses": []}, {"chapter": 38, "verses": []}, {"chapter": 39, "verses": []}, {"chapter": 40, "verses": []}, {"chapter": 41, "verses": []}, {"chapter": 42, "verses": []}, {"chapter": 43, "verses": []}, {"chapter": 44, "verses": []}, {"chapter": 45, "verses": []}, {"chapter": 46, "verses": []}, {"chapter": 47, "verses": []}, {"chapter": 48, "verses": []}]
         },
         {
             "book": "Daniel",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}]
         },
         {
             "book": "Hosea",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}]
         },
         {
             "book": "Joel",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
         },
         {
             "book": "Amos",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}]
         },
         {
             "book": "Obadiah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}]
         },
         {
             "book": "Jonah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}]
         },
         {
             "book": "Micah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}]
         },
         {
             "book": "Nahum",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
         },
         {
             "book": "Habakkuk",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
         },
         {
             "book": "Zephaniah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
         },
         {
             "book": "Haggai",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}]
         },
         {
             "book": "Zechariah",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}]
         },
         {
             "book": "Malachi",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}]
         }
     ]
 }

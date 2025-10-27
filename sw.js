@@ -49,8 +49,9 @@ const urlsToCache = [
   '/data/pearl-of-great-price.json',
   '/data/old-testament.json',
   '/data/new-testament.json',
-  'https://i.imgur.com/AdUgfiQ.jpeg',
-  'https://i.imgur.com/g236m0c.png'
+  '/app-icon-192.png',
+  '/app-icon-512.png',
+  'https://i.imgur.com/AdUgfiQ.jpeg'
 ];
 
 self.addEventListener('install', event => {

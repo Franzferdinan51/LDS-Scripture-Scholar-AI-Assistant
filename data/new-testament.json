@@ -4,33 +4,111 @@
     "books": [
         {
             "book": "Matthew",
-            "chapters": []
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}]
         },
-        { "book": "Mark", "chapters": [] },
-        { "book": "Luke", "chapters": [] },
-        { "book": "John", "chapters": [] },
-        { "book": "Acts", "chapters": [] },
-        { "book": "Romans", "chapters": [] },
-        { "book": "1 Corinthians", "chapters": [] },
-        { "book": "2 Corinthians", "chapters": [] },
-        { "book": "Galatians", "chapters": [] },
-        { "book": "Ephesians", "chapters": [] },
-        { "book": "Philippians", "chapters": [] },
-        { "book": "Colossians", "chapters": [] },
-        { "book": "1 Thessalonians", "chapters": [] },
-        { "book": "2 Thessalonians", "chapters": [] },
-        { "book": "1 Timothy", "chapters": [] },
-        { "book": "2 Timothy", "chapters": [] },
-        { "book": "Titus", "chapters": [] },
-        { "book": "Philemon", "chapters": [] },
-        { "book": "Hebrews", "chapters": [] },
-        { "book": "James", "chapters": [] },
-        { "book": "1 Peter", "chapters": [] },
-        { "book": "2 Peter", "chapters": [] },
-        { "book": "1 John", "chapters": [] },
-        { "book": "2 John", "chapters": [] },
-        { "book": "3 John", "chapters": [] },
-        { "book": "Jude", "chapters": [] },
-        { "book": "Revelation", "chapters": [] }
+        {
+            "book": "Mark",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}]
+        },
+        {
+            "book": "Luke",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}]
+        },
+        {
+            "book": "John",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}]
+        },
+        {
+            "book": "Acts",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}, {"chapter": 23, "verses": []}, {"chapter": 24, "verses": []}, {"chapter": 25, "verses": []}, {"chapter": 26, "verses": []}, {"chapter": 27, "verses": []}, {"chapter": 28, "verses": []}]
+        },
+        {
+            "book": "Romans",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}]
+        },
+        {
+            "book": "1 Corinthians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}]
+        },
+        {
+            "book": "2 Corinthians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}]
+        },
+        {
+            "book": "Galatians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}]
+        },
+        {
+            "book": "Ephesians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}]
+        },
+        {
+            "book": "Philippians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}]
+        },
+        {
+            "book": "Colossians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}]
+        },
+        {
+            "book": "1 Thessalonians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}]
+        },
+        {
+            "book": "2 Thessalonians",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
+        },
+        {
+            "book": "1 Timothy",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}]
+        },
+        {
+            "book": "2 Timothy",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}]
+        },
+        {
+            "book": "Titus",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
+        },
+        {
+            "book": "Philemon",
+            "chapters": [{"chapter": 1, "verses": []}]
+        },
+        {
+            "book": "Hebrews",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}]
+        },
+        {
+            "book": "James",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}]
+        },
+        {
+            "book": "1 Peter",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}]
+        },
+        {
+            "book": "2 Peter",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}]
+        },
+        {
+            "book": "1 John",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}]
+        },
+        {
+            "book": "2 John",
+            "chapters": [{"chapter": 1, "verses": []}]
+        },
+        {
+            "book": "3 John",
+            "chapters": [{"chapter": 1, "verses": []}]
+        },
+        {
+            "book": "Jude",
+            "chapters": [{"chapter": 1, "verses": []}]
+        },
+        {
+            "book": "Revelation",
+            "chapters": [{"chapter": 1, "verses": []}, {"chapter": 2, "verses": []}, {"chapter": 3, "verses": []}, {"chapter": 4, "verses": []}, {"chapter": 5, "verses": []}, {"chapter": 6, "verses": []}, {"chapter": 7, "verses": []}, {"chapter": 8, "verses": []}, {"chapter": 9, "verses": []}, {"chapter": 10, "verses": []}, {"chapter": 11, "verses": []}, {"chapter": 12, "verses": []}, {"chapter": 13, "verses": []}, {"chapter": 14, "verses": []}, {"chapter": 15, "verses": []}, {"chapter": 16, "verses": []}, {"chapter": 17, "verses": []}, {"chapter": 18, "verses": []}, {"chapter": 19, "verses": []}, {"chapter": 20, "verses": []}, {"chapter": 21, "verses": []}, {"chapter": 22, "verses": []}]
+        }
     ]
 }
