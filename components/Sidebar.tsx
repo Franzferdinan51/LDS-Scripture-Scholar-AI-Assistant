@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import type { ViewMode, ChatMode, Message } from '../types';
 import ChatIcon from './ChatIcon';
 import NoteIcon from './NoteIcon';
@@ -8,6 +8,10 @@ import BookOpenIcon from './BookOpenIcon';
 import SettingsIcon from './SettingsIcon';
 import StarIcon from './StarIcon';
 import PlusIcon from './PlusIcon';
+import StudyPlanIcon from './StudyPlanIcon';
+import QuizIcon from './QuizIcon';
+import LessonPrepIcon from './LessonPrepIcon';
+import FHEPlannerIcon from './FHEPlannerIcon';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,6 +33,22 @@ interface SidebarProps {
   onTogglePin: (chatId: string) => void;
 }
 
+const mainTools = [
+  { view: 'chat', label: 'General Chat', icon: <ChatIcon /> },
+  { view: 'scripture-reader', label: 'Scripture Reader', icon: <BookOpenIcon /> },
+  { view: 'notes', label: 'My Notes', icon: <NoteIcon /> },
+  { view: 'journal', label: 'Voice Journal', icon: <JournalIcon /> },
+  { view: 'cross-reference', label: 'Cross-Reference', icon: <CrossReferenceIcon /> },
+];
+
+// Fix: Replaced JSX.Element with ReactElement to resolve "Cannot find namespace 'JSX'" error.
+const assistantModes: { mode: ChatMode; label: string; icon: ReactElement }[] = [
+  { mode: 'study-plan', label: 'Study Plan Creator', icon: <StudyPlanIcon /> },
+  { mode: 'multi-quiz', label: 'Quiz Master', icon: <QuizIcon /> },
+  { mode: 'lesson-prep', label: 'Lesson Prep', icon: <LessonPrepIcon /> },
+  { mode: 'fhe-planner', label: 'FHE Planner', icon: <FHEPlannerIcon /> },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ 
   isOpen, activeView, setActiveView, onClose,
   chatMode, setChatMode, isLoading, isVoiceActive, isConnecting,
@@ -37,8 +57,18 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const handleItemClick = (view: ViewMode) => {
     setActiveView(view);
+    if (view === 'chat') {
+        // When clicking the main chat tool, ensure we are in a basic chat mode.
+        setChatMode('chat');
+    }
     if (window.innerWidth < 768) onClose();
   };
+  
+  const handleAssistantClick = (mode: ChatMode) => {
+    setChatMode(mode);
+    setActiveView('chat');
+    if (window.innerWidth < 768) onClose();
+  }
 
   const handleActionClick = (action: () => void) => {
     action();
@@ -57,14 +87,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!userMessage || !userMessage.text) return "New Chat";
     return userMessage.text.substring(0, 30) + (userMessage.text.length > 30 ? '...' : '');
   };
-
-  const navItems = [
-    { view: 'chat', label: 'Scripture Chat', icon: <ChatIcon /> },
-    { view: 'scripture-reader', label: 'Scripture Reader', icon: <BookOpenIcon /> },
-    { view: 'notes', label: 'My Notes', icon: <NoteIcon /> },
-    { view: 'journal', label: 'Voice Journal', icon: <JournalIcon /> },
-    { view: 'cross-reference', label: 'Cross-Reference', icon: <CrossReferenceIcon /> },
-  ];
   
   const actionItems = [
     { action: onVerseOfTheDay, label: 'Verse of the Day', icon: <StarIcon /> },
@@ -100,7 +122,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         className={`fixed top-0 left-0 h-full bg-slate-900/90 backdrop-blur-lg border-r border-white/10 w-64 z-40 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         <div className="p-2 border-b border-white/10 flex justify-between items-center flex-shrink-0">
-          <h2 className="text-lg font-bold text-white px-2">Study Tools</h2>
+          <h2 className="text-lg font-bold text-white px-2">Scripture Scholar</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -108,27 +130,39 @@ const Sidebar: React.FC<SidebarProps> = ({
         
         <div className="flex-1 flex flex-col overflow-y-auto">
           <nav className="p-2">
+            <div className="px-3 mt-2 mb-1">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Study Tools</h3>
+            </div>
             <ul>
-              {navItems.map(item => (
-                <li key={item.view}>
-                  <button onClick={() => handleItemClick(item.view as ViewMode)} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${activeView === item.view ? 'bg-blue-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
+              {mainTools.map(item => {
+                const isChatTool = item.view === 'chat';
+                const isGeneralChatActive = isChatTool && activeView === 'chat' && (chatMode === 'chat' || chatMode === 'thinking');
+                const isOtherToolActive = !isChatTool && activeView === item.view;
+                const isActive = isGeneralChatActive || isOtherToolActive;
+                
+                return (
+                    <li key={item.view}>
+                    <button onClick={() => handleItemClick(item.view as ViewMode)} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${isActive ? 'bg-blue-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
+                        {item.icon}<span>{item.label}</span>
+                    </button>
+                    </li>
+                );
+              })}
+            </ul>
+            
+            <div className="px-3 mt-4 mb-1">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Assistants</h3>
+            </div>
+             <ul>
+              {assistantModes.map(item => (
+                <li key={item.mode}>
+                  <button onClick={() => handleAssistantClick(item.mode)} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${activeView === 'chat' && chatMode === item.mode ? 'bg-blue-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
                     {item.icon}<span>{item.label}</span>
                   </button>
-                  {item.view === 'chat' && activeView === 'chat' && (
-                    <div className="pl-12 pr-2 py-2">
-                      <select value={chatMode} onChange={(e) => setChatMode(e.target.value as ChatMode)} className="w-full rounded-md border border-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-700 text-gray-200 py-1.5 px-2 text-sm transition-colors" disabled={isLoading || isVoiceActive || isConnecting} aria-label="Select chat mode">
-                          <option value="chat">Chat</option>
-                          <option value="thinking">Thinking</option>
-                          <option value="study-plan">Study Plan</option>
-                          <option value="multi-quiz">Quiz Me</option>
-                          <option value="lesson-prep">Lesson Prep</option>
-                          <option value="fhe-planner">FHE Planner</option>
-                      </select>
-                    </div>
-                  )}
                 </li>
               ))}
             </ul>
+
 
             {pinnedChats.length > 0 && (
               <>

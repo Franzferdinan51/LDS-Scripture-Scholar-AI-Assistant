@@ -24,7 +24,7 @@ export interface QuizOption {
 // Represents a single question in a quiz
 export interface QuizQuestion {
   question: string;
-  options: QuizOption[];
+  options: (QuizOption | string)[];
   correctAnswerIndex: number;
   userAnswerIndex?: number;
 }

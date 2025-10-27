@@ -2,19 +2,271 @@
 {
     "title": "The Pearl of Great Price",
     "books": [
-        { 
-            "book": "Moses", 
-            "chapters": []
+        {
+            "book": "Moses",
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "reference": "Moses 1",
+                    "verses": [
+                        {
+                            "verse": 1,
+                            "text": "The words of God, which he spake unto Moses at a time when Moses was caught up into an exceedingly high mountain,"
+                        },
+                        {
+                            "verse": 2,
+                            "text": "And he saw God face to face, and he talked with him, and the glory of God was upon Moses; therefore Moses could endure his presence."
+                        },
+                        {
+                            "verse": 3,
+                            "text": "And God spake unto Moses, saying: Behold, I am the Lord God Almighty, and Endless is my name; for I am without beginning of days or end of years; and is not this endless?"
+                        },
+                        {
+                            "verse": 4,
+                            "text": "And, behold, thou art my son; wherefore look, and I will show thee the workmanship of mine hands; but not all, for my works are without end, and also my words, for they never cease."
+                        },
+                        {
+                            "verse": 5,
+                            "text": "Wherefore, no man can behold all my works, except he behold all my glory; and no man can behold all my glory, and afterwards remain in the flesh on the earth."
+                        },
+                        {
+                            "verse": 6,
+                            "text": "And I have a work for thee, Moses, my son; and thou art in the similitude of mine Only Begotten; and mine Only Begotten is and shall be the Savior, for he is full of grace and truth; but there is no God beside me, and all things are present with me, for I know them all."
+                        },
+                        {
+                            "verse": 7,
+                            "text": "And now, behold, this one thing I show unto thee, Moses, my son, for thou art in the world, and now I show it unto thee."
+                        },
+                        {
+                            "verse": 8,
+                            "text": "And it came to pass that Moses looked, and beheld the world upon which he was created; and Moses beheld the world and the ends thereof, and all the children of men which are, and which were created; of the same he greatly marveled and wondered."
+                        },
+                        {
+                            "verse": 9,
+                            "text": "And the presence of God withdrew from Moses, that his glory was not upon Moses; and Moses was left unto himself. And as he was left unto himself, he fell unto the earth."
+                        },
+                        {
+                            "verse": 10,
+                            "text": "And it came to pass that it was for the space of many hours before Moses did again receive his natural strength like unto man; and he said unto himself: Now, for this cause I know that man is nothing, which thing I never had supposed."
+                        },
+                        {
+                            "verse": 11,
+                            "text": "But now mine own eyes have beheld God; but not my natural, but my spiritual eyes, for my natural eyes could not have beheld; for I should have withered and died in his presence; but his glory was upon me; and I beheld his face, for I was transfigured before him."
+                        },
+                        {
+                            "verse": 12,
+                            "text": "And it came to pass that when Moses had said these words, behold, Satan came tempting him, saying: Moses, son of man, worship me."
+                        },
+                        {
+                            "verse": 13,
+                            "text": "And it came to pass that Moses looked upon Satan and said: Who art thou? For behold, I am a son of God, in the similitude of his Only Begotten; and where is thy glory, that I should worship thee?"
+                        },
+                        {
+                            "verse": 14,
+                            "text": "For behold, I could not look upon God, except his glory should come upon me, and I were transfigured before him. But I can look upon thee in the natural man. Is it not so, surely?"
+                        },
+                        {
+                            "verse": 15,
+                            "text": "Blessed be the name of my God, for his Spirit hath not altogether withdrawn from me, or else where is thy glory, for it is darkness unto me? And I can judge between thee and God; for God said unto me: Worship God, for him only shalt thou serve."
+                        },
+                        {
+                            "verse": 16,
+                            "text": "Get thee hence, Satan; deceive me not; for God said unto me: Thou art after the similitude of mine Only Begotten."
+                        },
+                        {
+                            "verse": 17,
+                            "text": "And he also gave me commandments when he called unto me out of the burning bush, saying: Call upon God in the name of mine Only Begotten, and worship me."
+                        },
+                        {
+                            "verse": 18,
+                            "text": "And again Moses said: I will not cease to call upon God, I have other things to inquire of him: for his glory has been upon me, wherefore I can judge between him and thee. Depart hence, Satan."
+                        },
+                        {
+                            "verse": 19,
+                            "text": "And now, when Moses had said these words, Satan cried with a loud voice, and ranted upon the earth, and commanded, saying: I am the Only Begotten, worship me."
+                        },
+                        {
+                            "verse": 20,
+                            "text": "And it came to pass that Moses began to fear exceedingly; and as he began to fear, he saw the bitterness of hell. Nevertheless, calling upon God, he received strength, and he commanded, saying: Depart from me, Satan, for this one God only will I worship, which is the God of glory."
+                        },
+                        {
+                            "verse": 21,
+                            "text": "And now Satan began to tremble, and the earth shook; and Moses received strength, and called upon God, saying: In the name of the Only Begotten, depart hence, Satan."
+                        },
+                        {
+                            "verse": 22,
+                            "text": "And it came to pass that Satan cried with a loud voice, with weeping, and wailing, and gnashing of teeth; and he departed hence, even from the presence of Moses, that he beheld him not."
+                        },
+                        {
+                            "verse": 23,
+                            "text": "And now of this thing Moses bore record; but because of wickedness it is not had among the children of men."
+                        },
+                        {
+                            "verse": 24,
+                            "text": "And it came to pass that when Satan had departed from the presence of Moses, that Moses lifted up his eyes unto heaven, being filled with the Holy Ghost, which beareth record of the Father and the Son;"
+                        },
+                        {
+                            "verse": 25,
+                            "text": "And calling upon the name of God, he beheld his glory again, for it was upon him; and he heard a voice, saying: Blessed art thou, Moses, for I, the Almighty, have chosen thee, and thou shalt be made stronger than many waters; for they shall obey thy command as if thou wert God."
+                        },
+                        {
+                            "verse": 26,
+                            "text": "And lo, I am with thee, even unto the end of thy days; for thou shalt deliver my people from bondage, even Israel my chosen."
+                        },
+                        {
+                            "verse": 27,
+                            "text": "And it came to pass, as the voice was still speaking, Moses cast his eyes and beheld the earth, yea, even all of it; and there was not a particle of it which he did not behold, discerning it by the Spirit of God."
+                        },
+                        {
+                            "verse": 28,
+                            "text": "And he beheld also the inhabitants thereof, and there was not a soul which he beheld not; and he discerned them by the Spirit of God; and their numbers were great, even numberless as the sand upon the sea shore."
+                        },
+                        {
+                            "verse": 29,
+                            "text": "And he beheld many lands; and each land was called earth, and there were inhabitants on the face thereof."
+                        },
+                        {
+                            "verse": 30,
+                            "text": "And it came to pass that Moses called upon God, saying: Tell me, I pray thee, why these things are so, and by what thou madest them?"
+                        },
+                        {
+                            "verse": 31,
+                            "text": "And behold, the glory of the Lord was upon Moses, so that Moses stood in the presence of God, and talked with him face to face. And the Lord God said unto Moses: For mine own purpose have I made these things. Here is wisdom and it remaineth in me."
+                        },
+                        {
+                            "verse": 32,
+                            "text": "And by the word of my power, have I created them, which is mine Only Begotten Son, who is full of grace and truth."
+                        },
+                        {
+                            "verse": 33,
+                            "text": "And worlds without number have I created; and I also created them for mine own purpose; and by the Son I created them, which is mine Only Begotten."
+                        },
+                        {
+                            "verse": 34,
+                            "text": "And the first man of all men have I called Adam, which is many."
+                        },
+                        {
+                            "verse": 35,
+                            "text": "But only an account of this earth, and the inhabitants thereof, give I unto you. For behold, there are many worlds that have passed away by the word of my power. And there are many that now stand, and innumerable are they unto man; but all things are numbered unto me, for they are mine and I know them."
+                        },
+                        {
+                            "verse": 36,
+                            "text": "And it came to pass that Moses spake unto the Lord, saying: Be merciful unto thy servant, O God, and tell me concerning this earth, and the inhabitants thereof, and also the heavens, and then thy servant will be content."
+                        },
+                        {
+                            "verse": 37,
+                            "text": "And the Lord God spake unto Moses, saying: The heavens, they are many, and they cannot be numbered unto man; but they are numbered unto me, for they are mine."
+                        },
+                        {
+                            "verse": 38,
+                            "text": "And as one earth shall pass away, and the heavens thereof even so shall another come; and there is no end to my works, neither to my words."
+                        },
+                        {
+                            "verse": 39,
+                            "text": "For behold, this is my work and my glory—to bring to pass the immortality and eternal life of man."
+                        },
+                        {
+                            "verse": 40,
+                            "text": "And now, Moses, my son, I will speak unto thee concerning this earth upon which thou standest; and thou shalt write the things which I shall speak."
+                        },
+                        {
+                            "verse": 41,
+                            "text": "And in a day when the children of men shall esteem my words as naught and take many of them from the book which thou shalt write, behold, I will raise up another like unto thee; and they shall be had again among the children of men—among as many as shall believe."
+                        },
+                        {
+                            "verse": 42,
+                            "text": "(These words were spoken unto Moses in the mount, the name of which shall not be known among the children of men. And now they are spoken unto you. Show them not unto any except them that believe. Even so. Amen.)"
+                        }
+                    ]
+                }
+            ]
         },
-        { "book": "Abraham", "chapters": [] },
-        { "book": "Joseph Smith—Matthew", "chapters": [] },
-        { "book": "Joseph Smith—History", "chapters": [] },
-        { 
-            "book": "Articles of Faith", 
-            "chapters": [{ 
-                "chapter": 1, 
-                "verses": [] 
-            }] 
+        {
+            "book": "Abraham",
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "reference": "Abraham 1",
+                    "verses": [
+                        {
+                            "verse": 1,
+                            "text": "In the land of the Chaldeans, at the residence of my fathers, I, Abraham, saw that it was needful for me to obtain another place of residence;"
+                        },
+                        {
+                            "verse": 2,
+                            "text": "And, finding there was greater happiness and peace and rest for me, I sought for the blessings of the fathers, and the right whereunto I should be ordained to administer the same; having been myself a follower of righteousness, desiring also to be one who possessed great knowledge, and to be a greater follower of righteousness, and to possess a greater knowledge, and to be a father of many nations, a prince of peace, and desiring to receive instructions, and to keep the commandments of God, I became a rightful heir, a High Priest, holding the right belonging to the fathers."
+                        },
+                        {
+                            "verse": 3,
+                            "text": "It was conferred upon me from the fathers; it came down from the fathers, from the beginning of time, yea, even from the beginning, or before the foundation of the earth, down to the present time, even the right of the firstborn, or the first man, who is Adam, or first father, through the fathers unto me."
+                        },
+                        {
+                            "verse": 4,
+                            "text": "I sought for mine appointment unto the Priesthood according to the appointment of God unto the fathers concerning the seed."
+                        },
+                        {
+                            "verse": 5,
+                            "text": "My fathers, having turned from their righteousness, and from the holy commandments which the Lord their God had given unto them, unto the worshiping of the gods of the heathen, utterly refused to hearken to my voice;"
+                        },
+                        {
+                            "verse": 6,
+                            "text": "For their hearts were set to do evil, and were wholly turned to the god of Elkenah, and the god of Libnah, and the god of Mahmackrah, and the god of Korash, and the god of Pharaoh, king of Egypt;"
+                        },
+                        {
+                            "verse": 7,
+                            "text": "Therefore they turned their hearts to the sacrifice of the heathen in offering up their children unto these dumb idols, and hearkened not unto my voice, but endeavored to take away my life by the hand of the priest of Elkenah. The priest of Elkenah was also the priest of Pharaoh."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "book": "Joseph Smith—Matthew",
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "reference": "Joseph Smith—Matthew 1",
+                    "verses": [
+                        { "verse": 1, "text": "For I say unto you, that ye shall not see me henceforth and know that I am he of whom it is written by the prophets, until ye shall say: Blessed is he who cometh in the name of the Lord, in the clouds of heaven, and all the holy angels with him. Then understood his disciples that he should come again on the earth, after that he was glorified and crowned on the right hand of God." }
+                    ]
+                }
+            ]
+        },
+        {
+            "book": "Joseph Smith—History",
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "reference": "Joseph Smith—History 1",
+                    "verses": [
+                        { "verse": 1, "text": "Owing to the many reports which have been put in circulation by evil-disposed and designing persons, in relation to the rise and progress of The Church of Jesus Christ of Latter-day Saints, all of which have been designed by the authors thereof to militate against its character as a Church and its progress in the world—I have been induced to write this history, to disabuse the public mind, and put all inquirers after truth in possession of the facts, as they have transpired, in relation both to myself and the Church, so far as I have such facts in my possession." }
+                    ]
+                }
+            ]
+        },
+        {
+            "book": "Articles of Faith",
+            "chapters": [
+                {
+                    "chapter": 1,
+                    "reference": "Articles of Faith 1",
+                    "verses": [
+                        { "verse": 1, "text": "We believe in God, the Eternal Father, and in His Son, Jesus Christ, and in the Holy Ghost." },
+                        { "verse": 2, "text": "We believe that men will be punished for their own sins, and not for Adam’s transgression." },
+                        { "verse": 3, "text": "We believe that through the Atonement of Christ, all mankind may be saved, by obedience to the laws and ordinances of the Gospel." },
+                        { "verse": 4, "text": "We believe that the first principles and ordinances of the Gospel are: first, Faith in the Lord Jesus Christ; second, Repentance; third, Baptism by immersion for the remission of sins; fourth, Laying on of hands for the gift of the Holy Ghost." },
+                        { "verse": 5, "text": "We believe that a man must be called of God, by prophecy, and by the laying on of hands by those who are in authority, to preach the Gospel and administer in the ordinances thereof." },
+                        { "verse": 6, "text": "We believe in the same organization that existed in the Primitive Church, namely, apostles, prophets, pastors, teachers, evangelists, and so forth." },
+                        { "verse": 7, "text": "We believe in the gift of tongues, prophecy, revelation, visions, healing, interpretation of tongues, and so forth." },
+                        { "verse": 8, "text": "We believe the Bible to be the word of God as far as it is translated correctly; we also believe the Book of Mormon to be the word of God." },
+                        { "verse": 9, "text": "We believe all that God has revealed, all that He does now reveal, and we believe that He will yet reveal many great and important things pertaining to the Kingdom of God." },
+                        { "verse": 10, "text": "We believe in the literal gathering of Israel and in the restoration of the Ten Tribes; that Zion (the New Jerusalem) will be built upon the American continent; that Christ will reign personally upon the earth; and, that the earth will be renewed and receive its paradisiacal glory." },
+                        { "verse": 11, "text": "We claim the privilege of worshiping Almighty God according to the dictates of our own conscience, and allow all men the same privilege, let them worship how, where, or what they may." },
+                        { "verse": 12, "text": "We believe in being subject to kings, presidents, rulers, and magistrates, in obeying, honoring, and sustaining the law." },
+                        { "verse": 13, "text": "We believe in being honest, true, chaste, benevolent, virtuous, and in doing good to all men; indeed, we may say that we follow the admonition of Paul—We believe all things, we hope all things, we have endured many things, and hope to be able to endure all things. If there is anything virtuous, lovely, or of good report or praiseworthy, we seek after these things." }
+                    ]
+                }
+            ]
         }
     ]
 }

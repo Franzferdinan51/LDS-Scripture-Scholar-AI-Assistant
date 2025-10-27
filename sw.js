@@ -1,3 +1,5 @@
+
+
 const CACHE_NAME = 'lds-scripture-scholar-cache-v1';
 const urlsToCache = [
   '/',
@@ -16,6 +18,7 @@ const urlsToCache = [
   '/components/JournalPanel.tsx',
   '/components/CrossReferencePanel.tsx',
   '/components/ScripturePanel.tsx',
+  '/components/ScriptureAgentSidebar.tsx',
   '/components/SettingsModal.tsx',
   '/components/HamburgerIcon.tsx',
   '/components/MessageBubble.tsx',
@@ -44,6 +47,10 @@ const urlsToCache = [
   '/components/PlusIcon.tsx',
   '/components/ThinkingIcon.tsx',
   '/components/SendIcon.tsx',
+  '/components/StudyPlanIcon.tsx',
+  '/components/QuizIcon.tsx',
+  '/components/LessonPrepIcon.tsx',
+  '/components/FHEPlannerIcon.tsx',
   '/data/book-of-mormon.json',
   '/data/doctrine-and-covenants.json',
   '/data/pearl-of-great-price.json',

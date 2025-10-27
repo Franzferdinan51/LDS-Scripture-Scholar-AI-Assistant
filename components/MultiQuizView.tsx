@@ -74,7 +74,7 @@ const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer
                 disabled={hasAnsweredCurrent}
                 className={buttonClasses}
               >
-                {option.text}
+                {typeof option === 'string' ? option : option.text}
               </button>
             );
           })}

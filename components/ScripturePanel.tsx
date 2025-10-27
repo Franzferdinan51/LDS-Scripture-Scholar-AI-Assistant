@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LoadingDots from './LoadingDots';
 
@@ -31,72 +30,28 @@ interface ScripturePanelProps {
     onAskAboutVerse: (verse: { book: string, chapter: number, verse: number, text: string }) => void;
 }
 
-// Simple cache in memory for manifests
+// Simple cache in memory for scripture data
 const scriptureCache = new Map<ScriptureVolume, ScriptureData>();
 
 const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAskAboutVerse }) => {
     const [scriptureData, setScriptureData] = useState<ScriptureData | null>(null);
     const [activeChapter, setActiveChapter] = useState<Chapter | null>(null);
-    const [selectedVolume, setSelectedVolume] = useState<ScriptureVolume>('old-testament');
-    const [selectedBook, setSelectedBook] = useState<string>('');
+    const [selectedVolume, setSelectedVolume] = useState<ScriptureVolume>('book-of-mormon');
+    const [selectedBook, setSelectedBook] = useState<string>('1 Nephi');
     const [selectedChapter, setSelectedChapter] = useState<number>(1);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchScriptureManifest = useCallback(async (volume: ScriptureVolume) => {
-        if (scriptureCache.has(volume)) {
-            const data = scriptureCache.get(volume)!;
-            setScriptureData(data);
-            if (data.books.length > 0 && data.books[0].book !== selectedBook) {
-                setSelectedBook(data.books[0].book);
-                setSelectedChapter(1);
-            }
-            return;
-        }
-        
-        // Use API for Book of Mormon Manifest
-        if (volume === 'book-of-mormon') {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const response = await fetch('https://braydentw.github.io/book-of-mormon-api/v2/books');
-                if (!response.ok) throw new Error('Failed to load Book of Mormon book list from API.');
-                const booksList: { book: string, chapters: number }[] = await response.json();
-
-                const data: ScriptureData = {
-                    title: "The Book of Mormon",
-                    books: booksList.map(b => ({
-                        book: b.book,
-                        chapters: Array.from({ length: b.chapters }, (_, i) => ({
-                            chapter: i + 1,
-                            verses: [] // Empty for manifest, verses fetched on demand
-                        }))
-                    }))
-                };
-
-                scriptureCache.set(volume, data);
-                setScriptureData(data);
-                if (data.books.length > 0) {
-                    setSelectedBook(data.books[0].book);
-                    setSelectedChapter(1);
-                }
-            } catch (err) {
-                console.error(err);
-                let errorMessage = "An unknown error occurred loading the scriptures.";
-                if (err instanceof TypeError && err.message === 'Failed to fetch') {
-                    errorMessage = "Network Error: Could not connect to the scripture API. Please check your internet connection and try again.";
-                } else if (err instanceof Error) {
-                    errorMessage = err.message;
-                }
-                setError(errorMessage);
-                setScriptureData(null);
-            }
-            return;
-        }
-
-        // Use local files for other volumes
+    const fetchScriptureData = useCallback(async (volume: ScriptureVolume) => {
         setIsLoading(true);
         setError(null);
+
+        if (scriptureCache.has(volume)) {
+            setScriptureData(scriptureCache.get(volume)!);
+            // No setIsLoading(false) here, as chapter loading will handle it
+            return;
+        }
+
         try {
             const response = await fetch(`/data/${volume}.json`);
             if (!response.ok) throw new Error(`Failed to load scripture data: ${response.status} ${response.statusText}`);
@@ -104,120 +59,101 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
 
             scriptureCache.set(volume, data);
             setScriptureData(data);
-            if (data.books.length > 0) {
-                setSelectedBook(data.books[0].book);
-                setSelectedChapter(1);
-            } else {
-                 setSelectedBook('');
-                 setSelectedChapter(1);
-            }
         } catch (err) {
             console.error(err);
-            let errorMessage = "An unknown error occurred loading the scriptures.";
+            let errorMessage = `An unknown error occurred loading scriptures for ${volume}.`;
             if (err instanceof TypeError && err.message === 'Failed to fetch') {
-                errorMessage = "Network Error: Could not load local scripture data. The file might be missing or corrupted.";
+                errorMessage = `Network Error: Could not load local scripture data for ${volume}. The file might be missing or corrupted.`;
             } else if (err instanceof Error) {
                 errorMessage = err.message;
             }
             setError(errorMessage);
             setScriptureData(null);
+            setIsLoading(false);
         }
-    }, [selectedBook]);
+    }, []);
 
+    // Effect for loading the volume's book/chapter structure when the selection changes
     useEffect(() => {
-        fetchScriptureManifest(selectedVolume);
-    }, [selectedVolume, fetchScriptureManifest]);
+        setScriptureData(null);
+        setActiveChapter(null);
+        fetchScriptureData(selectedVolume);
+    }, [selectedVolume, fetchScriptureData]);
+
+    // Effect to reset book/chapter selection when a new volume's data is loaded.
+    useEffect(() => {
+        if (scriptureData && scriptureData.books.length > 0) {
+            const currentBookExists = scriptureData.books.some(b => b.book === selectedBook);
+            if (!currentBookExists) {
+                setSelectedBook(scriptureData.books[0].book);
+                setSelectedChapter(1);
+            }
+        }
+    }, [scriptureData, selectedBook]);
     
+    // Effect for fetching and displaying the active chapter's content
     useEffect(() => {
-        const fetchContent = async () => {
-            if (!selectedBook || !selectedChapter) {
-                setActiveChapter(null);
-                return;
-            };
+        if (!scriptureData || !selectedBook || !selectedChapter) {
+            return;
+        }
 
+        const isBible = selectedVolume === 'old-testament' || selectedVolume === 'new-testament';
+
+        const loadChapter = async () => {
             setIsLoading(true);
             setError(null);
             setActiveChapter(null);
 
-            try {
-                if (selectedVolume === 'book-of-mormon') {
-                    const bookSlug = selectedBook.toLowerCase().replace(/\s/g, '-');
-                    const response = await fetch(`https://braydentw.github.io/book-of-mormon-api/v2/${bookSlug}/${selectedChapter}`);
+            if (isBible) {
+                try {
+                    const response = await fetch(`https://bible-api.com/${encodeURIComponent(selectedBook)} ${selectedChapter}?translation=kjv`);
                     if (!response.ok) {
-                        const errorData = await response.json().catch(() => null);
-                        throw new Error(errorData?.error || `Could not find ${selectedBook} ${selectedChapter}.`);
+                        throw new Error(`Could not find ${selectedBook} ${selectedChapter}. Please try another chapter or book.`);
                     }
                     const data = await response.json();
-                    
-                    const newChapter: Chapter = {
-                        chapter: data.chapter,
-                        reference: data.reference,
-                        verses: data.verses.map((v: any) => ({
-                            verse: v.verse,
-                            text: v.text.replace(/\n/g, ' ').trim()
-                        }))
-                    };
-                    setActiveChapter(newChapter);
-
-                } else if (selectedVolume === 'old-testament' || selectedVolume === 'new-testament') {
-                    const bookQuery = selectedBook.replace(/\s/g, '+');
-                    const response = await fetch(`https://bible-api.com/${bookQuery}+${selectedChapter}`);
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => null);
-                        throw new Error(errorData?.error || `Could not find ${selectedBook} ${selectedChapter}.`);
+                    if (!data.verses || data.verses.length === 0) {
+                        throw new Error(`No verses returned for ${selectedBook} ${selectedChapter}.`);
                     }
-                    const data = await response.json();
 
-                    if (!data.verses) throw new Error(`Invalid response for ${selectedBook} ${selectedChapter}.`);
-                    
-                    const newChapter: Chapter = {
-                        chapter: selectedChapter,
+                    const chapterContent: Chapter = {
+                        chapter: data.verses[0].chapter,
                         reference: data.reference,
-                        verses: data.verses.map((v: any) => ({ 
-                            verse: v.verse, 
-                            text: v.text.replace(/\n/g, ' ').trim() 
-                        }))
+                        verses: data.verses.map((v: any) => ({ verse: v.verse, text: v.text.trim() }))
                     };
-                    setActiveChapter(newChapter);
+                    setActiveChapter(chapterContent);
+                    setReadingContext(data.reference);
 
+                } catch (err) {
+                    console.error("Bible API fetch error:", err);
+                    setError(err instanceof Error ? err.message : "An unknown error occurred while fetching chapter data.");
+                    setActiveChapter(null);
+                } finally {
+                    setIsLoading(false);
+                }
+            } else { // Handle local data for BoM, D&C, PGP
+                const bookData = scriptureData.books.find(b => b.book === selectedBook);
+                const chapterData = bookData?.chapters.find(c => c.chapter === selectedChapter);
+
+                if (chapterData) {
+                    setActiveChapter(chapterData);
+                    setReadingContext(chapterData.reference || `${selectedBook} ${selectedChapter}`);
                 } else {
-                    // Logic for other volumes (D&C, PGP) which are fully local
-                    const bookData = scriptureData?.books.find(b => b.book === selectedBook);
-                    const chapterData = bookData?.chapters.find(c => c.chapter === selectedChapter);
-                    setActiveChapter(chapterData || null);
+                    setError(`Could not find ${selectedBook} ${selectedChapter} in local data.`);
+                    setActiveChapter(null);
                 }
-            } catch (err) {
-                 console.error(err);
-                let errorMessage = "An unknown error occurred fetching the chapter.";
-                if (err instanceof TypeError && err.message === 'Failed to fetch') {
-                    errorMessage = "Network Error: Could not load chapter content. Please check your internet connection and try again.";
-                } else if (err instanceof Error) {
-                    errorMessage = err.message;
-                }
-                setError(errorMessage);
-                setActiveChapter(null);
-            } finally {
                 setIsLoading(false);
             }
         };
 
-        if (scriptureData) { // Only fetch content once the manifest is loaded
-            fetchContent();
-        }
-    }, [selectedVolume, selectedBook, selectedChapter, scriptureData]);
+        loadChapter();
+    }, [scriptureData, selectedBook, selectedChapter, selectedVolume, setReadingContext]);
 
-
-    useEffect(() => {
-        if (selectedBook && selectedChapter) {
-            setReadingContext(`${selectedBook} chapter ${selectedChapter}`);
-        }
-    }, [selectedBook, selectedChapter, setReadingContext]);
 
     const currentBookData = useMemo(() => scriptureData?.books.find(b => b.book === selectedBook), [scriptureData, selectedBook]);
     
     const handleBookChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedBook(e.target.value);
-        setSelectedChapter(1);
+        setSelectedChapter(1); // Reset to first chapter on book change
     };
 
     const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -225,38 +161,40 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
     };
     
     const handleVerseClick = (verse: Verse) => {
-        onAskAboutVerse({ book: selectedBook, chapter: selectedChapter, verse: verse.verse, text: verse.text });
+        if (activeChapter) {
+            onAskAboutVerse({ book: selectedBook, chapter: activeChapter.chapter, verse: verse.verse, text: verse.text });
+        }
     }
     
     const volumes: { id: ScriptureVolume, name: string }[] = [
-        { id: 'old-testament', name: 'Old Testament' },
-        { id: 'new-testament', name: 'New Testament' },
         { id: 'book-of-mormon', name: 'Book of Mormon' },
         { id: 'doctrine-and-covenants', name: 'D&C' },
         { id: 'pearl-of-great-price', name: 'Pearl of Great Price' },
+        { id: 'old-testament', name: 'Old Testament' },
+        { id: 'new-testament', name: 'New Testament' },
     ];
 
     const renderContent = () => {
-        if (isLoading) return <div className="flex justify-center items-center h-full"><LoadingDots /></div>;
-        if (error) return <div className="p-4 text-center text-red-400">{error}</div>;
+        if (isLoading) return <div className="flex justify-center items-center flex-1"><LoadingDots /></div>;
+        if (error) return <div className="p-4 text-center text-red-400 flex-1">{error}</div>;
         if (!activeChapter) return (
-             <div className="p-4 text-center text-gray-400">
+             <div className="p-4 text-center text-gray-400 flex-1">
                 Select a book and chapter to begin reading.
              </div>
         );
 
         return (
             <article className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
-                <h3 className="text-2xl font-bold mb-4">{activeChapter?.reference || `${selectedBook} ${selectedChapter}`}</h3>
+                <h3 className="text-2xl font-bold mb-4">{activeChapter.reference || `${selectedBook} ${selectedChapter}`}</h3>
                 <div className="text-lg leading-loose font-serif">
-                    {activeChapter.verses.length > 0 ? activeChapter?.verses.map(verse => (
+                    {activeChapter.verses.map(verse => (
                         <p key={verse.verse} className="mb-2">
-                            <sup className="font-sans font-bold text-blue-400 mr-1">{verse.verse}</sup>
+                            <sup className="font-sans font-bold text-blue-400 mr-1 select-none">{verse.verse}</sup>
                              <span className="cursor-pointer hover:bg-slate-700/50 rounded p-1 transition-colors" onClick={() => handleVerseClick(verse)} title={`Ask about verse ${verse.verse}`}>
                                 {verse.text}
                             </span>
                         </p>
-                    )) : <p>This chapter is empty.</p>}
+                    ))}
                 </div>
             </article>
         );
@@ -264,7 +202,7 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
 
     return (
         <div className="h-full flex flex-col text-gray-200 bg-slate-900/40">
-            <header className="p-4 bg-slate-800/60 backdrop-blur-sm border-b border-white/10 shadow-md sticky top-0 z-10">
+            <header className="p-4 bg-slate-800/60 backdrop-blur-sm border-b border-white/10 shadow-md">
                 <div className="flex justify-center mb-4 border-b border-slate-700 flex-wrap">
                     {volumes.map(vol => (
                         <button key={vol.id} onClick={() => setSelectedVolume(vol.id)} className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${selectedVolume === vol.id ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'}`}>
@@ -272,12 +210,12 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
                         </button>
                     ))}
                 </div>
-                {scriptureData && (
+                {scriptureData ? (
                     <div className="flex gap-2 sm:gap-4">
                         <div className="flex-1">
                             <label htmlFor="book-select" className="sr-only">Book</label>
                             <select id="book-select" value={selectedBook} onChange={handleBookChange} className="w-full p-2 rounded-md bg-slate-700 border border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                {scriptureData?.books.map(book => <option key={book.book} value={book.book}>{book.book}</option>)}
+                                {scriptureData.books.map(book => <option key={book.book} value={book.book}>{book.book}</option>)}
                             </select>
                         </div>
                         <div className="flex-1">
@@ -287,6 +225,8 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
                             </select>
                         </div>
                     </div>
+                ) : (
+                    <div className="flex justify-center"><LoadingDots/></div>
                 )}
             </header>
             {renderContent()}

@@ -14,6 +14,7 @@ import { useSettings } from './contexts/SettingsContext';
 import SettingsModal from './components/SettingsModal';
 import HamburgerIcon from './components/HamburgerIcon';
 import DisclaimerModal from './components/DisclaimerModal';
+import ScriptureAgentSidebar from './components/ScriptureAgentSidebar';
 
 type ChatService = ReturnType<typeof createChatService>;
 type ChatHistory = Record<string, Message[]>;
@@ -55,6 +56,12 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewMode>('chat');
   const [isSuggesting, setIsSuggesting] = useState<boolean>(false);
   const [readingContext, setReadingContext] = useState<string | null>(null);
+
+  // State for Scripture Agent Sidebar
+  const [isScriptureAgentOpen, setIsScriptureAgentOpen] = useState(false);
+  const [scriptureAgentHistory, setScriptureAgentHistory] = useState<Message[]>([]);
+  const [isScriptureAgentLoading, setIsScriptureAgentLoading] = useState(false);
+  const [scriptureAgentContext, setScriptureAgentContext] = useState<{ book: string; chapter: number; verse: number; text: string; } | null>(null);
 
   // State for voice chat / journaling
   const [session, setSession] = useState<Session | null>(null);
@@ -260,9 +267,12 @@ const App: React.FC = () => {
       
       for await (const chunk of responseStream) {
         accumulatedText += chunk.text;
-        const fullResponse = chunk as GenerateContentResponse;
-        const newGrounding = fullResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        if (newGrounding) groundingChunks = newGrounding;
+
+        if (settings.provider === 'google') {
+          const fullResponse = chunk as GenerateContentResponse;
+          const newGrounding = fullResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
+          if (newGrounding) groundingChunks = newGrounding;
+        }
 
         let visibleText = accumulatedText;
         let thinkingText: string | undefined = undefined;
@@ -331,10 +341,12 @@ const App: React.FC = () => {
             const currentMode = overrideMode || chatMode; // Use override if it exists
             if (currentMode === 'study-plan' || currentMode === 'multi-quiz') {
                 try {
-                    const parsedJson = JSON.parse(finalVisibleText);
+                    const cleanedJsonText = finalVisibleText.replace(/```json/g, '').replace(/```/g, '').trim();
+                    const parsedJson = JSON.parse(cleanedJsonText);
                     if (currentMode === 'study-plan') return { ...msg, text: '', thinking: finalThinkingText, studyPlan: parsedJson as StudyPlan };
                     if (currentMode === 'multi-quiz') return { ...msg, text: '', thinking: finalThinkingText, multiQuiz: parsedJson as MultiQuiz };
                 } catch (e) {
+                    console.error(`JSON Parse Error in ${currentMode}:`, e, "Original text:", finalVisibleText);
                     return { ...msg, text: `Sorry, I couldn't create a ${currentMode}. Please try again.`, thinking: finalThinkingText };
                 }
             }
@@ -345,7 +357,18 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Error sending message:", err);
       requestError = err;
-      const errorMessage = `Sorry, I encountered an error. (${err instanceof Error ? err.message : String(err)})`;
+      let errorMessage = `Sorry, I encountered an error. (${err instanceof Error ? err.message : String(err)})`;
+
+      if (err instanceof TypeError && err.message === 'Failed to fetch' && settings.provider !== 'google') {
+        let baseUrl = '';
+        switch(settings.provider) {
+            case 'lmstudio': baseUrl = settings.lmStudioBaseUrl; break;
+            case 'openrouter': baseUrl = settings.openRouterBaseUrl; break;
+            case 'mcp': baseUrl = settings.mcpBaseUrl; break;
+        }
+        errorMessage = `Failed to connect to the model provider at ${baseUrl}. Please ensure the server is running, the URL is correct in settings, and there are no CORS issues.`;
+      }
+      
       setError(errorMessage);
       setChatHistory(prev => ({...prev, [activeChatId]: prev[activeChatId]?.map(msg => msg.id === botMessageId ? { ...msg, text: errorMessage } : msg)}));
     } finally {
@@ -391,10 +414,51 @@ const App: React.FC = () => {
     handleSendMessage(`Please explain ${verse} in more detail, including its context and key principles.`);
   }
 
-  const handleAskAboutVerse = (verse: { book: string; chapter: number; verse: number; text: string; }) => {
-    if (window.innerWidth < 768) setActiveView('chat');
-    handleSendMessage(`Tell me more about this verse: "${verse.text}" (${verse.book} ${verse.chapter}:${verse.verse})`);
+  // Scripture Agent Sidebar Logic
+  const runScriptureAgentQuery = async (prompt: string, currentHistory: Message[]) => {
+    if (isScriptureAgentLoading) return;
+
+    const botMessageId = `agent-bot-${Date.now()}`;
+    const botPlaceholder: Message = { id: botMessageId, text: '', sender: 'bot' };
+    setScriptureAgentHistory([...currentHistory, botPlaceholder]);
+    setIsScriptureAgentLoading(true);
+
+    try {
+        const agentChatService = createChatService(settings, 'chat', currentHistory);
+        const responseStream = await agentChatService.sendMessageStream({ message: prompt });
+
+        let accumulatedText = "";
+        for await (const chunk of responseStream) {
+            accumulatedText += chunk.text;
+            const visibleText = accumulatedText.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+            setScriptureAgentHistory(prev => prev.map(msg => msg.id === botMessageId ? { ...msg, text: visibleText } : msg));
+        }
+    } catch (err) {
+        console.error("Scripture agent error:", err);
+        const errorMessage = "Sorry, I encountered an error.";
+        setScriptureAgentHistory(prev => prev.map(msg => msg.id === botMessageId ? { ...msg, text: errorMessage } : msg));
+    } finally {
+        setIsScriptureAgentLoading(false);
+    }
   };
+
+  const handleAskAboutVerse = (verse: { book: string; chapter: number; verse: number; text: string; }) => {
+    const question = `Tell me more about this verse: "${verse.text}" (${verse.book} ${verse.chapter}:${verse.verse})`;
+    setScriptureAgentContext(verse);
+    setIsScriptureAgentOpen(true);
+
+    const userMessage: Message = { id: `agent-user-${Date.now()}`, text: question, sender: 'user' };
+    setScriptureAgentHistory([userMessage]);
+    runScriptureAgentQuery(question, [userMessage]);
+  };
+  
+  const handleSendScriptureAgentFollowup = (prompt: string) => {
+    const userMessage: Message = { id: `agent-user-${Date.now()}`, text: prompt, sender: 'user' };
+    const newHistory = [...scriptureAgentHistory, userMessage];
+    setScriptureAgentHistory(newHistory);
+    runScriptureAgentQuery(prompt, newHistory);
+  };
+
 
   const handleAnswerQuiz = (messageId: string, questionIndex: number, answerIndex: number) => {
     if(!activeChatId) return;
@@ -505,97 +569,199 @@ const App: React.FC = () => {
     } catch (err) { console.error("Voice chat failed:", err); setError("Could not access microphone."); stopVoiceSession(); }
   };
   
-  const handleToggleVoiceChat = () => { (isVoiceActive || isConnecting) ? stopVoiceSession() : startVoiceChat(); };
+  const handleToggleVoiceChat = () => {
+    (isVoiceActive || isConnecting) ? stopVoiceSession() : startVoiceChat();
+  };
 
   const handleToggleAudio = async (messageId: string, text: string) => {
-    if (!settings.googleApiKey) { setError("Google API Key is required for TTS."); return; }
-    const { status, messageId: currentMessageId, source, audioBuffer, pauseTime } = audioPlayback;
-
-    if (messageId !== currentMessageId && (status === 'playing' || status === 'paused')) {
-      if (source) { source.onended = null; source.stop(); }
-    }
-    
-    if (!outputAudioContextRef.current || outputAudioContextRef.current.state === 'closed') {
-      outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    }
-    if (outputAudioContextRef.current.state === 'suspended') await outputAudioContextRef.current.resume();
-    const audioCtx = outputAudioContextRef.current!;
-
-    if (messageId !== currentMessageId || status === 'stopped') { // Play new
-      setAudioPlayback({ ...audioPlayback, status: 'loading', messageId });
-      try {
-        const audioData = await generateSpeech(settings.googleApiKey, text);
-        const newAudioBuffer = await decodeAudioData(decode(audioData), audioCtx, 24000, 1);
-        const newSource = audioCtx.createBufferSource();
-        newSource.buffer = newAudioBuffer; newSource.connect(audioCtx.destination); newSource.start(0);
-        newSource.onended = () => setAudioPlayback(prev => prev.messageId === messageId ? { ...prev, status: 'stopped', source: null, audioBuffer: null, messageId: null, pauseTime: 0 } : prev);
-        setAudioPlayback({ messageId, status: 'playing', source: newSource, audioBuffer: newAudioBuffer, startTime: audioCtx.currentTime, pauseTime: 0 });
-      } catch (err) {
-        console.error("TTS Error:", err);
-        setError(`Failed to generate speech. ${err instanceof Error ? err.message : ''}`);
+    // If we're stopping the current sound
+    if (audioPlayback.messageId === messageId && audioPlayback.source) {
+        audioPlayback.source.stop(); // This will trigger onended
         setAudioPlayback({ messageId: null, status: 'stopped', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 });
-      }
-    } else if (status === 'playing') { // Pause
-      const elapsedTime = audioCtx.currentTime - audioPlayback.startTime;
-      source!.onended = null; source!.stop();
-      setAudioPlayback({ ...audioPlayback, status: 'paused', source: null, pauseTime: pauseTime + elapsedTime });
-    } else if (status === 'paused' && audioBuffer) { // Resume
-      const newSource = audioCtx.createBufferSource();
-      newSource.buffer = audioBuffer; newSource.connect(audioCtx.destination);
-      newSource.start(0, pauseTime % audioBuffer.duration);
-      newSource.onended = () => setAudioPlayback(prev => prev.messageId === messageId ? { ...prev, status: 'stopped', source: null, audioBuffer: null, messageId: null, pauseTime: 0 } : prev);
-      setAudioPlayback({ ...audioPlayback, status: 'playing', source: newSource, startTime: audioCtx.currentTime });
+        return;
+    }
+
+    // Stop any other sound that might be playing before starting a new one
+    if (audioPlayback.source) {
+        audioPlayback.source.stop();
+    }
+
+    setAudioPlayback({ messageId, status: 'loading', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 });
+    try {
+        if (!settings.googleApiKey) throw new Error("Google API Key is required for text-to-speech.");
+        if (!outputAudioContextRef.current || outputAudioContextRef.current.state === 'closed') {
+            outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        }
+        const outputCtx = outputAudioContextRef.current;
+        await outputCtx.resume();
+
+        const base64Audio = await generateSpeech(settings.googleApiKey, text);
+        const audioBuffer = await decodeAudioData(decode(base64Audio), outputCtx, 24000, 1);
+
+        const newSource = outputCtx.createBufferSource();
+        newSource.buffer = audioBuffer;
+        newSource.connect(outputCtx.destination);
+        newSource.start(0);
+
+        newSource.onended = () => {
+            // Only clear state if the message that ended is the one we are tracking
+            setAudioPlayback(current => {
+                if (current.messageId === messageId) {
+                    return { messageId: null, status: 'stopped', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 };
+                }
+                return current;
+            });
+        };
+        
+        setAudioPlayback({ ...audioPlayback, messageId, status: 'playing', source: newSource, audioBuffer });
+    } catch (e) {
+        console.error("Audio playback error:", e);
+        setError(e instanceof Error ? e.message : "Failed to play audio.");
+        setAudioPlayback({ messageId: null, status: 'stopped', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 });
     }
   };
 
   const renderActiveView = () => {
     switch (activeView) {
       case 'chat':
-        return <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} isVoiceChatActive={isVoiceActive} isConnecting={isConnecting} onToggleVoiceChat={handleToggleVoiceChat} isVoiceChatAvailable={isVoiceChatAvailable} modelName={settings.model} chatMode={chatMode} setChatMode={setChatMode} onToggleAudio={handleToggleAudio} audioPlaybackState={audioPlayback} onAnswerQuiz={handleAnswerQuiz} onExplainVerse={handleExplainVerse} onRetry={handleRetry} />;
-      case 'notes': return <NotesPanel notes={notes} setNotes={setNotes} />;
-      case 'journal': return <JournalPanel entries={journalEntries} setEntries={setJournalEntries} isVoiceActive={isVoiceActive} setIsVoiceActive={setIsVoiceActive} isConnecting={isConnecting} setIsConnecting={setIsConnecting} isApiConfigured={!!settings.googleApiKey} googleApiKey={settings.googleApiKey} setError={setError} stopVoiceSession={stopVoiceSession} getJournalInsights={(text) => getJournalInsights(settings.googleApiKey, text)} />;
-      case 'cross-reference': return <CrossReferencePanel onExplainVerse={handleExplainVerse} />;
-      case 'scripture-reader': return null; // Handled by main layout
-      default: return null;
+        return (
+          <ChatWindow
+            messages={messages}
+            isLoading={isLoading}
+            onSendMessage={handleSendMessage}
+            isVoiceChatActive={isVoiceActive}
+            isConnecting={isConnecting}
+            onToggleVoiceChat={handleToggleVoiceChat}
+            isVoiceChatAvailable={isVoiceChatAvailable}
+            modelName={settings.model}
+            chatMode={chatMode}
+            setChatMode={setChatMode}
+            onToggleAudio={handleToggleAudio}
+            audioPlaybackState={audioPlayback}
+            onAnswerQuiz={handleAnswerQuiz}
+            onExplainVerse={handleExplainVerse}
+            onRetry={handleRetry}
+          />
+        );
+      case 'notes':
+        return <NotesPanel notes={notes} setNotes={setNotes} />;
+      case 'journal':
+        return (
+          <JournalPanel
+            entries={journalEntries}
+            setEntries={setJournalEntries}
+            isVoiceActive={isVoiceActive}
+            setIsVoiceActive={setIsVoiceActive}
+            isConnecting={isConnecting}
+            setIsConnecting={setIsConnecting}
+            isApiConfigured={!!settings.googleApiKey}
+            googleApiKey={settings.googleApiKey}
+            setError={setError}
+            stopVoiceSession={stopVoiceSession}
+            getJournalInsights={(text) => getJournalInsights(settings.googleApiKey, text)}
+          />
+        );
+      case 'cross-reference':
+        return <CrossReferencePanel onExplainVerse={handleExplainVerse} />;
+      case 'scripture-reader':
+        return <ScripturePanel setReadingContext={setReadingContext} onAskAboutVerse={handleAskAboutVerse} />;
+      default:
+        return null;
     }
-  }
+  };
 
   return (
-    <>
-      <main className="h-screen w-screen flex flex-col font-sans bg-transparent">
-        <header className="bg-slate-900/60 backdrop-blur-md border-b border-white/10 shadow-lg p-2 sm:p-4 grid grid-cols-3 items-center w-full gap-2 sm:gap-4 z-20 flex-shrink-0">
-          <div className="flex justify-start items-center"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-300 hover:text-white transition-colors p-1" aria-label="Toggle Menu"><HamburgerIcon /></button></div>
-          <h1 className="text-lg sm:text-2xl font-bold text-center text-gray-100/90 truncate">Scripture Scholar</h1>
-          <div />
-        </header>
-        
-        <div className="flex-1 flex overflow-hidden relative">
-            <Sidebar 
-                isOpen={isSidebarOpen} activeView={activeView} setActiveView={setActiveView}
-                onClose={() => setIsSidebarOpen(false)} chatMode={chatMode} setChatMode={setChatMode}
-                isLoading={isLoading} isVoiceActive={isVoiceActive} isConnecting={isConnecting}
-                onVerseOfTheDay={handleVerseOfTheDay} onOpenSettings={() => setIsSettingsOpen(true)}
-                chatHistory={chatHistory} activeChatId={activeChatId}
-                onNewChat={handleNewChat} onSelectChat={setActiveChatId}
-                pinnedChatIds={pinnedChatIds} onTogglePin={handleTogglePinChat}
-            />
-            <div className={`flex-1 flex flex-col transition-all duration-300 ease-in-out h-full ${isSidebarOpen ? 'md:ml-64' : ''}`}>
-                {error && <div className="bg-red-800/50 text-red-200 border-b border-red-500/30 p-3 text-center z-10 backdrop-blur-sm"><p>{error}</p></div>}
-                
-                {activeView === 'scripture-reader' ? (
-                   <div className="flex-1 flex overflow-hidden">
-                      <div className="w-full md:w-3/5 lg:w-2/3 h-full overflow-y-auto"><ScripturePanel setReadingContext={setReadingContext} onAskAboutVerse={handleAskAboutVerse} /></div>
-                      <div className="hidden md:flex flex-col w-2/5 lg:w-1/3 h-full border-l border-white/10 bg-slate-900/20">
-                          <ChatWindow messages={messages} isLoading={isLoading} onSendMessage={handleSendMessage} isVoiceChatActive={isVoiceActive} isConnecting={isConnecting} onToggleVoiceChat={handleToggleVoiceChat} isVoiceChatAvailable={isVoiceChatAvailable} modelName={settings.model} chatMode={chatMode} setChatMode={setChatMode} onToggleAudio={handleToggleAudio} audioPlaybackState={audioPlayback} onAnswerQuiz={handleAnswerQuiz} onExplainVerse={handleExplainVerse} onRetry={handleRetry} />
-                      </div>
-                   </div>
-                ) : ( <div className="flex-1 overflow-hidden">{renderActiveView()}</div> )}
-            </div>
+    <div className="flex h-screen bg-transparent font-sans">
+      <div className="hidden md:block md:w-64 flex-shrink-0">
+        <Sidebar
+          isOpen={true}
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onClose={() => {}}
+          chatMode={chatMode}
+          setChatMode={setChatMode}
+          isLoading={isLoading}
+          isVoiceActive={isVoiceActive}
+          isConnecting={isConnecting}
+          onVerseOfTheDay={handleVerseOfTheDay}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          chatHistory={chatHistory}
+          activeChatId={activeChatId}
+          onNewChat={handleNewChat}
+          onSelectChat={setActiveChatId}
+          pinnedChatIds={pinnedChatIds}
+          onTogglePin={handleTogglePinChat}
+        />
+      </div>
+
+      <div className="md:hidden">
+        <Sidebar
+          isOpen={isSidebarOpen}
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onClose={() => setIsSidebarOpen(false)}
+          chatMode={chatMode}
+          setChatMode={setChatMode}
+          isLoading={isLoading}
+          isVoiceActive={isVoiceActive}
+          isConnecting={isConnecting}
+          onVerseOfTheDay={handleVerseOfTheDay}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          chatHistory={chatHistory}
+          activeChatId={activeChatId}
+          onNewChat={handleNewChat}
+          onSelectChat={setActiveChatId}
+          pinnedChatIds={pinnedChatIds}
+          onTogglePin={handleTogglePinChat}
+        />
+      </div>
+
+      <main className={`flex-1 flex flex-col relative bg-slate-900/20 transition-all duration-300 ease-in-out ${isScriptureAgentOpen ? 'md:mr-[28rem]' : ''}`}>
+        <div className="absolute top-4 left-4 z-20 md:hidden">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-md bg-slate-800/50 hover:bg-slate-700/70 transition-colors text-gray-300"
+            aria-label="Open sidebar"
+          >
+            <HamburgerIcon />
+          </button>
         </div>
+        
+        {error && (
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl p-4 z-50">
+                <div className="bg-red-800/80 backdrop-blur-sm border border-red-600 text-red-200 px-4 py-3 rounded-md relative shadow-lg" role="alert">
+                    <strong className="font-bold">Error: </strong>
+                    <span className="block sm:inline">{error}</span>
+                    <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3" aria-label="Close">
+                        <svg className="fill-current h-6 w-6 text-red-300" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+                    </button>
+                </div>
+            </div>
+        )}
+
+        {renderActiveView()}
+        
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          onClearHistory={handleClearHistory}
+        />
+
+        <DisclaimerModal
+          isOpen={showDisclaimer}
+          onClose={handleDisclaimerClose}
+        />
       </main>
-      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} onClearHistory={handleClearHistory} />
-      <DisclaimerModal isOpen={showDisclaimer} onClose={handleDisclaimerClose} />
-    </>
+
+      <ScriptureAgentSidebar
+        isOpen={isScriptureAgentOpen}
+        onClose={() => setIsScriptureAgentOpen(false)}
+        context={scriptureAgentContext}
+        messages={scriptureAgentHistory}
+        isLoading={isScriptureAgentLoading}
+        onSendMessage={handleSendScriptureAgentFollowup}
+      />
+    </div>
   );
 };
 

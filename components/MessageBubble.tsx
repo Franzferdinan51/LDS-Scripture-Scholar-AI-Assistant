@@ -74,7 +74,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
 
   const bubbleClasses = isUser
     ? 'bg-blue-600 text-white rounded-br-none'
-    : 'bg-slate-800/70 backdrop-blur-sm text-gray-200 rounded-bl-none';
+    : 'bg-slate-800/70 backdrop-blur-sm text-gray-100 rounded-bl-none';
   
   const containerClasses = isUser ? 'justify-end' : 'justify-start';
 
@@ -183,7 +183,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
           <details ref={detailsRef} className="mt-3 pt-3 border-t border-white/20 text-xs">
             <summary className="cursor-pointer text-gray-400 font-semibold select-none list-none flex items-center gap-1">
               Show Thought Process
-              <svg className="w-4 h-4 transition-transform transform details-arrow" xmlns="http://www.w.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 transition-transform transform details-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </summary>
