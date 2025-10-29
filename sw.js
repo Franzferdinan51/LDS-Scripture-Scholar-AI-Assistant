@@ -1,6 +1,7 @@
 
 
-const CACHE_NAME = 'lds-scripture-scholar-cache-v1';
+
+const CACHE_NAME = 'lds-scripture-scholar-cache-v9';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -51,6 +52,7 @@ const urlsToCache = [
   '/components/QuizIcon.tsx',
   '/components/LessonPrepIcon.tsx',
   '/components/FHEPlannerIcon.tsx',
+  '/components/InstallIcon.tsx',
   '/data/book-of-mormon.json',
   '/data/doctrine-and-covenants.json',
   '/data/pearl-of-great-price.json',
@@ -78,30 +80,38 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') {
-      return;
+  const requestUrl = new URL(event.request.url);
+
+  // Let the browser handle API calls directly, bypassing the service worker.
+  // This prevents potential CORS or caching issues with dynamic data.
+  if (requestUrl.hostname === 'api.nephi.org' || requestUrl.hostname === 'bible-api.com') {
+    return;
   }
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then(
-          networkResponse => {
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
+  
+  // For other GET requests, use a cache-first strategy.
+  if (event.request.method === 'GET') {
+      event.respondWith(
+        caches.match(event.request)
+          .then(response => {
+            if (response) {
+              return response;
             }
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-            return networkResponse;
-          }
-        );
-      })
-  );
+            return fetch(event.request).then(
+              networkResponse => {
+                if (!networkResponse || networkResponse.status !== 200) {
+                  return networkResponse;
+                }
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME)
+                  .then(cache => {
+                    cache.put(event.request, responseToCache);
+                  });
+                return networkResponse;
+              }
+            );
+          })
+      );
+  }
 });
 
 self.addEventListener('activate', event => {

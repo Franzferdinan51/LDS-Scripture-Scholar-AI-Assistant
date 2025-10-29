@@ -2,7 +2,7 @@
   "name": "LDS Scripture Scholar",
   "short_name": "Scholar",
   "description": "A chatbot designed to answer questions about the Book of Mormon and The Church of Jesus Christ of Latter-day Saints.",
-  "start_url": "/index.html",
+  "start_url": ".",
   "display_override": ["fullscreen", "standalone"],
   "display": "standalone",
   "background_color": "#283443",
@@ -11,12 +11,14 @@
     {
       "src": "/app-icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/app-icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

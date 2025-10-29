@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LoadingDots from './LoadingDots';
 
@@ -30,8 +29,13 @@ interface ScripturePanelProps {
     onAskAboutVerse: (verse: { book: string, chapter: number, verse: number, text: string }) => void;
 }
 
-// Simple cache in memory for scripture data
 const scriptureCache = new Map<ScriptureVolume, ScriptureData>();
+
+const formatBookForNephiApi = (bookName: string): string => {
+    if (bookName === 'Doctrine and Covenants') return 'dc';
+    if (bookName === 'Official Declarations') return 'od';
+    return bookName.toLowerCase().replace(/\s+/g, '-');
+};
 
 const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAskAboutVerse }) => {
     const [scriptureData, setScriptureData] = useState<ScriptureData | null>(null);
@@ -45,42 +49,45 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
     const fetchScriptureData = useCallback(async (volume: ScriptureVolume) => {
         setIsLoading(true);
         setError(null);
+        setScriptureData(null); 
 
         if (scriptureCache.has(volume)) {
             setScriptureData(scriptureCache.get(volume)!);
-            // No setIsLoading(false) here, as chapter loading will handle it
-            return;
+            return; 
         }
 
         try {
-            const response = await fetch(`/data/${volume}.json`);
-            if (!response.ok) throw new Error(`Failed to load scripture data: ${response.status} ${response.statusText}`);
-            const data: ScriptureData = await response.json();
+            let data: ScriptureData;
+            const fileName = volume === 'book-of-mormon' ? 'book-of-mormon.json' : `${volume}.json`;
+            const response = await fetch(`/data/${fileName}`);
+            if (!response.ok) throw new Error(`Failed to load scripture data for ${volume}: ${response.statusText}`);
+            const rawData = await response.json();
 
+            // Standardize data structure to ensure references are set correctly
+            const formattedBooks: Book[] = rawData.books.map((b: any) => {
+                const bookName = b.book;
+                return {
+                    book: bookName,
+                    chapters: b.chapters.map((c: any) => ({
+                        ...c,
+                        reference: c.reference || `${bookName} ${c.chapter}`
+                    }))
+                };
+            });
+            data = { title: rawData.title, books: formattedBooks };
+            
             scriptureCache.set(volume, data);
             setScriptureData(data);
         } catch (err) {
             console.error(err);
-            let errorMessage = `An unknown error occurred loading scriptures for ${volume}.`;
-            if (err instanceof TypeError && err.message === 'Failed to fetch') {
-                errorMessage = `Network Error: Could not load local scripture data for ${volume}. The file might be missing or corrupted.`;
-            } else if (err instanceof Error) {
-                errorMessage = err.message;
-            }
-            setError(errorMessage);
-            setScriptureData(null);
-            setIsLoading(false);
-        }
+            setError(err instanceof Error ? err.message : "An unknown error occurred.");
+        } 
     }, []);
 
-    // Effect for loading the volume's book/chapter structure when the selection changes
     useEffect(() => {
-        setScriptureData(null);
-        setActiveChapter(null);
         fetchScriptureData(selectedVolume);
     }, [selectedVolume, fetchScriptureData]);
 
-    // Effect to reset book/chapter selection when a new volume's data is loaded.
     useEffect(() => {
         if (scriptureData && scriptureData.books.length > 0) {
             const currentBookExists = scriptureData.books.some(b => b.book === selectedBook);
@@ -90,22 +97,42 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
             }
         }
     }, [scriptureData, selectedBook]);
-    
-    // Effect for fetching and displaying the active chapter's content
+
     useEffect(() => {
         if (!scriptureData || !selectedBook || !selectedChapter) {
             return;
         }
-
-        const isBible = selectedVolume === 'old-testament' || selectedVolume === 'new-testament';
 
         const loadChapter = async () => {
             setIsLoading(true);
             setError(null);
             setActiveChapter(null);
 
-            if (isBible) {
-                try {
+            try {
+                const currentVolumeTitle = scriptureData.title;
+                const isNephiApiVolume = currentVolumeTitle === 'The Doctrine and Covenants';
+                const isBibleApiVolume = currentVolumeTitle === 'The Old Testament (KJV)' || currentVolumeTitle === 'The New Testament (KJV)';
+                const isLocalFullDataVolume = currentVolumeTitle === 'The Book of Mormon' || currentVolumeTitle === 'The Pearl of Great Price';
+                
+                const bookIsInCurrentVolume = scriptureData.books.some(b => b.book === selectedBook);
+                if (!bookIsInCurrentVolume) {
+                    return;
+                }
+                
+                if (isNephiApiVolume) {
+                    const bookSlug = formatBookForNephiApi(selectedBook);
+                    const url = `https://api.nephi.org/v1/volumes/doctrine-and-covenants/books/${bookSlug}/chapters/${selectedChapter}`;
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Could not find ${selectedBook} ${selectedChapter}.`);
+                    const data = await response.json();
+                     if (!data.verses || data.verses.length === 0) {
+                        throw new Error(`No verses returned for ${selectedBook} ${selectedChapter}.`);
+                    }
+                    const chapterContent: Chapter = { chapter: data.chapter, reference: data.reference, verses: data.verses.map((v: any) => ({ verse: v.verse, text: v.text.trim() })) };
+                    setActiveChapter(chapterContent);
+                    setReadingContext(data.reference);
+
+                } else if (isBibleApiVolume) {
                     const response = await fetch(`https://bible-api.com/${encodeURIComponent(selectedBook)} ${selectedChapter}?translation=kjv`);
                     if (!response.ok) {
                         throw new Error(`Could not find ${selectedBook} ${selectedChapter}. Please try another chapter or book.`);
@@ -123,30 +150,28 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
                     setActiveChapter(chapterContent);
                     setReadingContext(data.reference);
 
-                } catch (err) {
-                    console.error("Bible API fetch error:", err);
-                    setError(err instanceof Error ? err.message : "An unknown error occurred while fetching chapter data.");
-                    setActiveChapter(null);
-                } finally {
-                    setIsLoading(false);
-                }
-            } else { // Handle local data for BoM, D&C, PGP
-                const bookData = scriptureData.books.find(b => b.book === selectedBook);
-                const chapterData = bookData?.chapters.find(c => c.chapter === selectedChapter);
-
-                if (chapterData) {
-                    setActiveChapter(chapterData);
-                    setReadingContext(chapterData.reference || `${selectedBook} ${selectedChapter}`);
+                } else if (isLocalFullDataVolume) {
+                    const bookData = scriptureData.books.find(b => b.book === selectedBook);
+                    const chapterData = bookData?.chapters.find(c => c.chapter === selectedChapter);
+                    if (chapterData) {
+                        setActiveChapter(chapterData);
+                        setReadingContext(chapterData.reference || `${selectedBook} ${selectedChapter}`);
+                    } else {
+                        setError(`Could not find ${selectedBook} ${selectedChapter} in local data.`);
+                    }
                 } else {
-                    setError(`Could not find ${selectedBook} ${selectedChapter} in local data.`);
-                    setActiveChapter(null);
+                    setError("Unsupported scripture volume.");
                 }
+            } catch(e) {
+                 console.error("Chapter loading failed:", e);
+                 setError(e instanceof Error ? e.message : "An unknown error occurred loading chapter.");
+            } finally {
                 setIsLoading(false);
             }
         };
 
         loadChapter();
-    }, [scriptureData, selectedBook, selectedChapter, selectedVolume, setReadingContext]);
+    }, [scriptureData, selectedBook, selectedChapter, setReadingContext]);
 
 
     const currentBookData = useMemo(() => scriptureData?.books.find(b => b.book === selectedBook), [scriptureData, selectedBook]);
@@ -187,7 +212,7 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
             <article className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
                 <h3 className="text-2xl font-bold mb-4">{activeChapter.reference || `${selectedBook} ${selectedChapter}`}</h3>
                 <div className="text-lg leading-loose font-serif">
-                    {activeChapter.verses.map(verse => (
+                    {activeChapter?.verses?.map(verse => (
                         <p key={verse.verse} className="mb-2">
                             <sup className="font-sans font-bold text-blue-400 mr-1 select-none">{verse.verse}</sup>
                              <span className="cursor-pointer hover:bg-slate-700/50 rounded p-1 transition-colors" onClick={() => handleVerseClick(verse)} title={`Ask about verse ${verse.verse}`}>
@@ -221,7 +246,7 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
                         <div className="flex-1">
                             <label htmlFor="chapter-select" className="sr-only">Chapter</label>
                             <select id="chapter-select" value={selectedChapter} onChange={handleChapterChange} className="w-full p-2 rounded-md bg-slate-700 border border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                {currentBookData?.chapters.map(chap => <option key={chap.chapter} value={chap.chapter}>{chap.reference ? chap.reference.split(' ').slice(-1)[0] : `Chapter ${chap.chapter}`}</option>)}
+                                {currentBookData?.chapters?.map(chap => <option key={chap.chapter} value={chap.chapter}>{chap.reference ? chap.reference.split(' ').slice(-1)[0] : `Chapter ${chap.chapter}`}</option>)}
                             </select>
                         </div>
                     </div>

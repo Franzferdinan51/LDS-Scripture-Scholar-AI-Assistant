@@ -6,6 +6,14 @@ interface StudyPlanViewProps {
 }
 
 const StudyPlanView: React.FC<StudyPlanViewProps> = ({ studyPlan }) => {
+  if (!studyPlan || !Array.isArray(studyPlan.days) || studyPlan.days.length === 0) {
+    return (
+      <div className="mt-2 border-t border-slate-600/50 pt-3 text-yellow-400">
+        Could not generate a valid study plan. The AI may have returned an unexpected format. Please try again.
+      </div>
+    );
+  }
+
   return (
     <div className="mt-2 border-t border-slate-600/50 pt-3">
       <h3 className="text-lg font-bold text-gray-100 mb-2">{studyPlan.title}</h3>

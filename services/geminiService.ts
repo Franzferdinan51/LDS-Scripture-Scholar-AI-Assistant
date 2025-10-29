@@ -87,7 +87,6 @@ const LESSON_PREP_SYSTEM_INSTRUCTION = `You are an expert "Lesson Preparation Ag
 
 You MUST use your search tool to find current and relevant source material.`;
 
-// Fix: Completed the FHE_PLANNER_SYSTEM_INSTRUCTION constant.
 const FHE_PLANNER_SYSTEM_INSTRUCTION = `You are a creative "Family Home Evening Planner" assistant. Your task is to generate a complete, age-appropriate FHE plan based on a user's topic request.
 
 **Agentic Process:**
@@ -107,7 +106,6 @@ const FHE_PLANNER_SYSTEM_INSTRUCTION = `You are a creative "Family Home Evening 
 
 You MUST use your search tool to find current and relevant source material.`;
 
-// Fix: Added missing function implementations and exports.
 function getSystemInstruction(chatMode: ChatMode): string {
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const baseInstruction = SYSTEM_INSTRUCTION.replace('{{TODAYS_DATE}}', today);
@@ -386,7 +384,7 @@ export const testMCPConnection = async (baseUrl: string): Promise<{ success: boo
         return { success: true, message: `Connection successful! Found ${modelCount} models.` };
     } catch (e) {
         if (e instanceof TypeError && e.message === 'Failed to fetch') {
-            return { success: false, message: `Connection failed: Could not reach the server at ${baseUrl}. Is it running and is CORS configured correctly?` };
+            return { success: false, message: `Could not reach the server at ${baseUrl}. Is it running and is CORS configured correctly?` };
         }
         if (e instanceof Error) {
             return { success: false, message: `Connection failed: ${e.message}` };

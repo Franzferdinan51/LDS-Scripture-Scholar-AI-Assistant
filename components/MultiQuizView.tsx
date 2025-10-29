@@ -11,8 +11,17 @@ const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showResults, setShowResults] = useState(false);
 
+  if (!quiz || !Array.isArray(quiz.questions) || quiz.questions.length === 0) {
+    return <div className="mt-2 border-t border-slate-600/50 pt-3 text-red-400">Error: Quiz data is invalid or empty. Please try generating the quiz again.</div>;
+  }
+
   const currentQuestion = quiz.questions[currentQuestionIndex];
-  const hasAnsweredCurrent = currentQuestion?.userAnswerIndex !== undefined;
+
+  if (!currentQuestion) {
+      return <div className="mt-2 border-t border-slate-600/50 pt-3 text-red-400">Error: Could not load current question. The quiz data may be incomplete.</div>;
+  }
+
+  const hasAnsweredCurrent = currentQuestion.userAnswerIndex !== undefined;
 
   const handleNext = () => {
     if (currentQuestionIndex < quiz.questions.length - 1) {
@@ -54,7 +63,7 @@ const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer
       <div className="bg-slate-700/50 rounded-lg p-3">
         <p className="font-semibold mb-3">{currentQuestion.question}</p>
         <div className="flex flex-col space-y-2">
-          {currentQuestion.options.map((option, index) => {
+          {Array.isArray(currentQuestion.options) && currentQuestion.options.map((option, index) => {
             let buttonClasses = 'w-full text-left p-2 rounded-md border transition-colors disabled:opacity-80 disabled:cursor-not-allowed';
             if (hasAnsweredCurrent) {
               if (index === currentQuestion.correctAnswerIndex) {

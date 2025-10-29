@@ -56,6 +56,7 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewMode>('chat');
   const [isSuggesting, setIsSuggesting] = useState<boolean>(false);
   const [readingContext, setReadingContext] = useState<string | null>(null);
+  const [installPromptEvent, setInstallPromptEvent] = useState<any | null>(null);
 
   // State for Scripture Agent Sidebar
   const [isScriptureAgentOpen, setIsScriptureAgentOpen] = useState(false);
@@ -85,6 +86,35 @@ const App: React.FC = () => {
   
   const isVoiceChatAvailable = settings.provider === 'google';
   const messages = activeChatId ? chatHistory[activeChatId] || [] : [];
+
+  // --- PWA Install Logic ---
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPromptEvent(e);
+    };
+
+    const handleAppInstalled = () => {
+      setInstallPromptEvent(null);
+      console.log('PWA was installed');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!installPromptEvent) return;
+    installPromptEvent.prompt();
+    const { outcome } = await installPromptEvent.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+    setInstallPromptEvent(null);
+  };
 
   // --- Data Persistence and Initialization ---
   useEffect(() => {
@@ -691,6 +721,8 @@ const App: React.FC = () => {
           onSelectChat={setActiveChatId}
           pinnedChatIds={pinnedChatIds}
           onTogglePin={handleTogglePinChat}
+          onInstallPWA={handleInstallPWA}
+          showInstallButton={!!installPromptEvent}
         />
       </div>
 
@@ -713,6 +745,8 @@ const App: React.FC = () => {
           onSelectChat={setActiveChatId}
           pinnedChatIds={pinnedChatIds}
           onTogglePin={handleTogglePinChat}
+          onInstallPWA={handleInstallPWA}
+          showInstallButton={!!installPromptEvent}
         />
       </div>
 
