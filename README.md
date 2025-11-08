@@ -33,14 +33,6 @@ This application was created by **Ryan**. All scripture data used in this applic
 *   **AI/LLM Integration:** Google Gemini API (`@google/genai`)
 *   **API Abstraction:** Supports OpenAI-compatible endpoints for providers like OpenRouter and LM Studio.
 
-## Data Sources
-
-The scripture text used in this application is from the public domain, provided by **Project Gutenberg**.
-
-*   **The Holy Bible, King James Version:** [Project Gutenberg eBook #10](https://www.gutenberg.org/ebooks/10)
-*   **The Book of Mormon:** [Project Gutenberg eBook #17](https://www.gutenberg.org/ebooks/17)
-*   **The Doctrine and Covenants:** [Project Gutenberg eBook #58999](https://www.gutenberg.org/ebooks/58999)
-*   **The Pearl of Great Price:** [Project Gutenberg eBook #19438](https://www.gutenberg.org/ebooks/19438)
 
 ## Setup and Installation
 
