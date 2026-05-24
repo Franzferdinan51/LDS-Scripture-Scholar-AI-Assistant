@@ -131,6 +131,7 @@ export interface Memory {
   timestamp: number;
   lastAccessed: number;
   accessCount: number;
+  embedding?: number[];
 }
 
 export interface UserProfile {

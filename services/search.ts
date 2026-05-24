@@ -1,5 +1,6 @@
 import type { Message } from '../types';
 import { getAllChats } from './storage';
+import { rankBySemanticSimilarity } from './semanticSearch';
 
 export interface SearchResult {
   chatId: string;
@@ -15,41 +16,41 @@ export async function searchConversations(query: string): Promise<SearchResult[]
   const allChats = await getAllChats();
   if (!query.trim()) return [];
 
-  const queryLower = query.toLowerCase();
-  const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
-  const results: SearchResult[] = [];
-
+  const candidates: Array<SearchResult & { sourceText: string }> = [];
   for (const [chatId, messages] of Object.entries(allChats)) {
     for (const msg of messages) {
       if (msg.isSuggestion || msg.id === 'initial-message') continue;
-
-      const textLower = msg.text.toLowerCase();
-      let relevance = 0;
-
-      if (textLower.includes(queryLower)) relevance += 3;
-      for (const word of queryWords) {
-        if (textLower.includes(word)) relevance += 1;
-      }
-
-      if (relevance > 0) {
-        // Create snippet around the match
-        const matchIndex = textLower.indexOf(queryLower);
-        const start = Math.max(0, matchIndex - 50);
-        const end = Math.min(msg.text.length, matchIndex + query.length + 50);
-        const snippet = (start > 0 ? '...' : '') + msg.text.slice(start, end) + (end < msg.text.length ? '...' : '');
-
-        results.push({
-          chatId,
-          messageId: msg.id,
-          text: msg.text,
-          sender: msg.sender,
-          timestamp: parseInt(msg.id.replace(/\D/g, '')) || Date.now(),
-          snippet,
-          relevance,
-        });
-      }
+      candidates.push({
+        chatId,
+        messageId: msg.id,
+        text: msg.text,
+        sender: msg.sender,
+        timestamp: parseInt(msg.id.replace(/\D/g, '')) || Date.now(),
+        snippet: msg.text,
+        relevance: 0,
+        sourceText: msg.text,
+      });
     }
   }
 
-  return results.sort((a, b) => b.relevance - a.relevance).slice(0, 50);
+  const ranked = await rankBySemanticSimilarity(query, candidates, {
+    getText: item => item.sourceText,
+    limit: 50,
+    keywordWeight: 0.45,
+    semanticWeight: 0.55,
+  });
+
+  return ranked.map(({ sourceText, score, ...item }) => {
+    const textLower = item.text.toLowerCase();
+    const queryLower = query.toLowerCase();
+    const matchIndex = textLower.indexOf(queryLower);
+    const start = Math.max(0, matchIndex >= 0 ? matchIndex - 50 : 0);
+    const end = Math.min(item.text.length, matchIndex >= 0 ? matchIndex + query.length + 50 : Math.min(item.text.length, 120));
+    const snippet = (start > 0 ? '...' : '') + item.text.slice(start, end) + (end < item.text.length ? '...' : '');
+    return {
+      ...item,
+      snippet,
+      relevance: score,
+    };
+  });
 }

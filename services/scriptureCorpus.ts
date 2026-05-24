@@ -1,3 +1,5 @@
+import { rankBySemanticSimilarity } from './semanticSearch';
+
 export type ScriptureVolume =
   | 'old-testament'
   | 'new-testament'
@@ -517,6 +519,12 @@ export async function searchScriptureCorpus(
   }
 
   return results
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .length > 0
+    ? (await rankBySemanticSimilarity(query, results, {
+        getText: result => result.text,
+        limit,
+        keywordWeight: 0.55,
+        semanticWeight: 0.45,
+      })).map(({ score, ...result }) => result)
+    : [];
 }

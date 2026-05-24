@@ -1,6 +1,7 @@
 import type { ApiProviderSettings, Memory, UserProfile, Message } from '../types';
 import { getAllMemories, saveMemory, deleteMemory, getUserProfile, saveUserProfile } from './storage';
 import { generateJsonWithSettings } from './llmService';
+import { embedText, cosineSimilarity } from './semanticSearch';
 
 const MEMORY_EXTRACTION_PROMPT = `You are a memory extraction system. Analyze the following conversation and extract key facts about the user that would be useful for future interactions as a scripture study assistant.
 
@@ -82,7 +83,8 @@ export async function storeMemories(newMemories: Memory[]): Promise<void> {
     );
 
     if (!isDuplicate) {
-      await saveMemory(mem);
+      const embedding = await embedText(mem.content);
+      await saveMemory({ ...mem, embedding: embedding ?? mem.embedding });
     }
   }
 }
@@ -98,9 +100,10 @@ export async function retrieveRelevantMemories(
 
   const queryLower = query.toLowerCase();
   const queryWords = queryLower.split(/\s+/).filter(w => w.length > 3);
+  const queryEmbedding = await embedText(query);
 
   // Score each memory by keyword overlap + recency + relevance
-  const scored = all.map(mem => {
+  const scored = await Promise.all(all.map(async mem => {
     const memLower = mem.content.toLowerCase();
     let keywordScore = 0;
 
@@ -120,11 +123,17 @@ export async function retrieveRelevantMemories(
 
     // Access frequency score
     const accessScore = Math.min(1, mem.accessCount / 5);
+    const memoryEmbedding = mem.embedding ?? await embedText(mem.content);
+    const semanticScore = cosineSimilarity(queryEmbedding, memoryEmbedding);
 
-    const totalScore = (keywordScore * 0.5) + (recencyScore * 0.3) + (mem.relevance * 0.1) + (accessScore * 0.1);
+    const totalScore = (keywordScore * 0.35) + (semanticScore * 2.75) + (recencyScore * 0.2) + (mem.relevance * 0.1) + (accessScore * 0.1);
+
+    if (!mem.embedding && memoryEmbedding) {
+      saveMemory({ ...mem, embedding: memoryEmbedding }).catch(() => {});
+    }
 
     return { ...mem, score: totalScore };
-  });
+  }));
 
   // Filter out zero-score and sort by score
   return scored
