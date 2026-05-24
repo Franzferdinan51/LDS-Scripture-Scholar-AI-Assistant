@@ -545,6 +545,8 @@ const App: React.FC = () => {
 
     let chatService = chat;
     let effectiveMode = overrideMode || chatMode;
+    setAgentPhase('thinking');
+    setToolCallsInProgress(0);
 
     // Auto-route to specialized mode if pattern matches (sub-agent routing)
     if (!overrideMode && chatMode === 'chat') {
@@ -560,7 +562,11 @@ const App: React.FC = () => {
             if (modeMap[matchedAgent.id]) {
                 effectiveMode = modeMap[matchedAgent.id];
             }
+        } else {
+            setActiveAgentName('General Chat Agent');
         }
+    } else if (chatMode === 'chat') {
+        setActiveAgentName('General Chat Agent');
     }
 
     // Create a temporary service if an override is requested and it's different from the current mode
@@ -603,6 +609,7 @@ const App: React.FC = () => {
     let requestError = null;
     let accumulatedText = "";
     try {
+      setAgentPhase('responding');
       const responseStream = await chatService.sendMessageStream({ message: messageToSend });
       let groundingChunks: GroundingChunk[] | undefined = undefined;
       let lastGoogleResponse: GenerateContentResponse | null = null;
@@ -679,12 +686,15 @@ const App: React.FC = () => {
       const toolCallResults: ToolCall[] = [];
       if (lastGoogleResponse && settings.provider === 'google' && chatService.handleToolCalls) {
         try {
+          setAgentPhase('acting');
           const followUpResponse = await chatService.handleToolCalls(lastGoogleResponse);
           if (followUpResponse) {
             // Get the tool calls that were executed
             if (chatService.getToolCalls) {
               toolCallResults.push(...chatService.getToolCalls());
             }
+            setToolCallsInProgress(toolCallResults.length);
+            setAgentPhase('reflecting');
             // Accumulate the follow-up response text
             const followUpText = followUpResponse.text || '';
             if (followUpText) {
@@ -722,6 +732,7 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Error sending message:", err);
       requestError = err;
+      setAgentPhase('done');
 
       // Smart fallback based on user's message intent
       const lowerText = text.toLowerCase();
@@ -743,7 +754,9 @@ const App: React.FC = () => {
       setChatHistory(prev => ({...prev, [activeChatId]: prev[activeChatId]?.map(msg => msg.id === botMessageId ? { ...msg, text: errorMessage } : msg)}));
     } finally {
       setIsLoading(false);
+      setToolCallsInProgress(0);
       setActiveAgentName(null);
+      setAgentPhase('idle');
       if (chatMode === 'chat' && !requestError && activeChatId) {
           setTimeout(() => triggerProactiveSuggestion(), 2000);
           // Extract and store memories from the conversation (async, non-blocking)
@@ -850,9 +863,13 @@ const App: React.FC = () => {
     const botPlaceholder: Message = { id: botMessageId, text: '', sender: 'bot' };
     setScriptureAgentHistory([...currentHistory, botPlaceholder]);
     setIsScriptureAgentLoading(true);
+    setActiveAgentName('Scripture Agent');
+    setAgentPhase('thinking');
+    setToolCallsInProgress(0);
 
     try {
         const agentChatService = createChatService(settings, 'chat', currentHistory);
+        setAgentPhase('responding');
         const responseStream = await agentChatService.sendMessageStream({ message: prompt });
 
         let accumulatedText = "";
@@ -863,10 +880,14 @@ const App: React.FC = () => {
         }
     } catch (err) {
         console.error("Scripture agent error:", err);
+        setAgentPhase('done');
         const errorMessage = "Sorry, I encountered an error.";
         setScriptureAgentHistory(prev => prev.map(msg => msg.id === botMessageId ? { ...msg, text: errorMessage } : msg));
     } finally {
         setIsScriptureAgentLoading(false);
+        setToolCallsInProgress(0);
+        setAgentPhase('idle');
+        setActiveAgentName(null);
     }
   };
 
