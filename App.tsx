@@ -266,7 +266,10 @@ const App: React.FC = () => {
     setError(null);
     try {
       const isConfigured = (settings.provider === 'google' && settings.googleApiKey) ||
-                           (settings.provider !== 'google' && settings.model);
+                           (settings.provider === 'lmstudio' && settings.lmStudioBaseUrl && settings.model) ||
+                           (settings.provider === 'openrouter' && settings.openRouterApiKey && settings.model) ||
+                           (settings.provider === 'mcp' && settings.mcpBaseUrl && settings.model) ||
+                           (settings.provider === 'minimax' && settings.minimaxApiKey && settings.model);
 
       if (isConfigured && activeChatId) {
         const currentHistory = chatHistory[activeChatId] || [];

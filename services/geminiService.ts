@@ -619,7 +619,23 @@ export const getWikimediaImageUrl = async (filename: string): Promise<string> =>
     return pages[pageId].imageinfo[0].url;
 };
 
+// Pre-populated model lists for providers that don't have a standard /models endpoint
+const MINIMAX_MODELS: Model[] = [
+    { id: 'MiniMax-Text-01', name: 'MiniMax Text 01' },
+    { id: 'abab6.5s-chat', name: 'Abab 6.5s Chat' },
+    { id: 'abab6.5g-chat', name: 'Abab 6.5g Chat' },
+    { id: 'abab6.5t-chat', name: 'Abab 6.5t Chat' },
+    { id: 'abab6-chat', name: 'Abab 6 Chat' },
+    { id: 'abab5.5s-chat', name: 'Abab 5.5s Chat' },
+    { id: 'abab5.5-chat', name: 'Abab 5.5 Chat' },
+];
+
 export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {
+    // MiniMax uses pre-populated models (no standard /models endpoint)
+    if (settings.provider === 'minimax') {
+        return MINIMAX_MODELS;
+    }
+
     let url: string;
     let headers: Record<string, string> = {};
 
@@ -637,35 +653,36 @@ export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[
             url = `${settings.openRouterBaseUrl}/models`;
             headers['Authorization'] = `Bearer ${settings.openRouterApiKey}`;
             break;
-        case 'minimax':
-            url = `${settings.minimaxBaseUrl || 'https://api.minimax.chat/v1'}/models`;
-            if (settings.minimaxApiKey) {
-                headers['Authorization'] = `Bearer ${settings.minimaxApiKey}`;
-            }
-            break;
         default:
             return [];
     }
 
-    const response = await fetch(url, { headers });
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch models: ${response.status} ${errorText}`);
-    }
-    const data = await response.json();
+    try {
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to fetch models: ${response.status} ${errorText}`);
+        }
+        const data = await response.json();
 
-    if (settings.provider === 'openrouter') {
-        return data.data.map((model: any) => ({
-            id: model.id,
-            name: model.name || model.id,
-            isFree: model.pricing?.prompt === "0" && model.pricing?.completion === "0"
-        })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
-    } else {
-        return data.data.map((model: any) => ({
-            id: model.id,
-            name: model.id,
-            isFree: true
-        })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
+        if (settings.provider === 'openrouter') {
+            return data.data.map((model: any) => ({
+                id: model.id,
+                name: model.name || model.id,
+                isFree: model.pricing?.prompt === "0" && model.pricing?.completion === "0"
+            })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
+        } else {
+            return data.data.map((model: any) => ({
+                id: model.id,
+                name: model.id,
+                isFree: true
+            })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
+        }
+    } catch (e: any) {
+        if (e.message?.includes('Failed to fetch') || e.name === 'TypeError') {
+            throw new Error(`Cannot reach ${url}. Make sure the server is running and CORS is configured.`);
+        }
+        throw e;
     }
 };
 

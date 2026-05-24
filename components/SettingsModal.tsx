@@ -296,7 +296,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                     {isFetchingModels ? 'Fetching...' : 'Find / Refresh Models'}
                 </button>
                 {fetchError && <p className="text-red-400 text-sm mt-2">{fetchError}</p>}
-                
+
                 {models.length > 0 && (
                      <div>
                         <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
@@ -330,6 +330,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                         </select>
                     </div>
                 )}
+
+                {/* Manual model input fallback */}
+                <div className="mt-3">
+                    <label htmlFor="manualModel" className="block text-sm font-medium text-gray-300">Or enter model ID manually</label>
+                    <input
+                        type="text"
+                        id="manualModel"
+                        name="model"
+                        value={localSettings.model}
+                        onChange={handleInputChange}
+                        className={inputBaseClasses}
+                        placeholder="e.g., llama-3.2-3b-instruct, MiniMax-Text-01"
+                    />
+                    <p className="mt-1 text-xs text-gray-400">Type any model ID if it doesn't appear in the list above.</p>
+                </div>
             </div>
           )}
         </div>
