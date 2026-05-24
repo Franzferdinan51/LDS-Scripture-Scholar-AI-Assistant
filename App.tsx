@@ -38,6 +38,10 @@ import { BUILTIN_SKILLS, initializeSkills } from './services/skills';
 import { checkDueReminders } from './services/reminders';
 // Agent router
 import { routeToAgent, createSubAgentChat } from './services/agentRouter';
+// Context compression
+import { needsCompression, compressContext } from './services/contextCompressor';
+// Conversation search
+import ConversationSearch from './components/ConversationSearch';
 
 type ChatService = ReturnType<typeof createChatService>;
 type ChatHistory = Record<string, Message[]>;
@@ -108,6 +112,7 @@ const App: React.FC = () => {
   const [isSkillSelectorOpen, setIsSkillSelectorOpen] = useState(false);
   const [thinkingDepth, setThinkingDepth] = useState<ThinkingDepth>('medium');
   const [activeAgentName, setActiveAgentName] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Refs for audio processing
   const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -191,9 +196,12 @@ const App: React.FC = () => {
         if (loadedSkills.length > 0) {
           setSkills(loadedSkills);
         } else {
-          // First run: seed built-in skills
-          initializeSkills();
-          setSkills(BUILTIN_SKILLS);
+          // First run: seed built-in skills into IndexedDB
+          const builtins = initializeSkills();
+          for (const skill of builtins) {
+            await saveSkillDB(skill);
+          }
+          setSkills(builtins);
         }
 
         // Initialize reminders
@@ -349,14 +357,71 @@ const App: React.FC = () => {
   }, [chatHistory, settings.googleApiKey, isSuggesting, chatMode, activeChatId]);
 
 
+  // Handle slash commands
+  const handleSlashCommand = async (text: string): Promise<boolean> => {
+    const [cmd, ...args] = text.trim().split(/\s+/);
+    const command = cmd.toLowerCase();
+
+    switch (command) {
+      case '/new':
+        handleNewChat();
+        return true;
+      case '/reset':
+        if (activeChatId) {
+          setChatHistory(prev => ({ ...prev, [activeChatId]: [initialBotMessage] }));
+        }
+        return true;
+      case '/compact':
+        if (activeChatId && settings.googleApiKey) {
+          const currentMessages = chatHistory[activeChatId] || [];
+          const compressed = await compressContext(currentMessages, settings.googleApiKey);
+          setChatHistory(prev => ({ ...prev, [activeChatId]: compressed }));
+        }
+        return true;
+      case '/search':
+        setIsSearchOpen(true);
+        return true;
+      case '/skill':
+        if (args[0]) {
+          const { getSkillById } = await import('./services/skills');
+          const skill = getSkillById(args[0]);
+          if (skill) {
+            setActiveSkill(prev => prev?.id === skill.id ? null : skill);
+          }
+        } else {
+          setIsSkillSelectorOpen(true);
+        }
+        return true;
+      case '/dashboard':
+        setActiveView('dashboard');
+        return true;
+      case '/reminders':
+        setActiveView('reminders');
+        return true;
+      default:
+        return false;
+    }
+  };
+
   const handleSendMessage = async (text: string, overrideMode?: ChatMode) => {
     if (isLoading || (isVoiceChatAvailable && isVoiceActive) || !activeChatId) return;
+
+    // Handle slash commands locally
+    const trimmed = text.trim();
+    if (trimmed.startsWith('/')) {
+      const handled = await handleSlashCommand(trimmed);
+      if (handled) return;
+    }
 
     let chatService = chat;
     // Create a temporary service if an override is requested and it's different from the current mode
     if (overrideMode && overrideMode !== chatMode) {
         try {
-            const currentHistory = chatHistory[activeChatId] || [];
+            let currentHistory = chatHistory[activeChatId] || [];
+            // Auto-compress if context is too large
+            if (needsCompression(currentHistory) && settings.googleApiKey) {
+              currentHistory = await compressContext(currentHistory, settings.googleApiKey);
+            }
             chatService = createChatService(settings, overrideMode, currentHistory);
         } catch (err: any) {
             console.error("Temporary chat service initialization error:", err);
@@ -954,6 +1019,16 @@ const App: React.FC = () => {
               setIsSkillSelectorOpen(false);
             }}
             onClose={() => setIsSkillSelectorOpen(false)}
+          />
+        )}
+
+        {isSearchOpen && (
+          <ConversationSearch
+            onNavigate={(chatId) => {
+              setActiveChatId(chatId);
+              setActiveView('chat');
+            }}
+            onClose={() => setIsSearchOpen(false)}
           />
         )}
 

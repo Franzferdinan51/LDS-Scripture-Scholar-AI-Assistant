@@ -230,7 +230,7 @@ const USER_PROFILE_ID = 'main';
 
 export async function getUserProfile(): Promise<UserProfile | null> {
   const db = await getDB();
-  const profile = await db.get('userProfile', USER_PROFILE_ID);
+  const profile = await (db as any).get('userProfile', USER_PROFILE_ID);
   return profile || null;
 }
 

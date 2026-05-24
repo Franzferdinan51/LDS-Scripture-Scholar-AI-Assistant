@@ -199,9 +199,11 @@ export interface Reminder {
 export interface SearchResult {
   chatId: string;
   messageId: string;
+  text: string;
+  sender: string;
+  timestamp: number;
   snippet: string;
   relevance: number;
-  date: number;
 }
 
 // --- Thinking Depth ---

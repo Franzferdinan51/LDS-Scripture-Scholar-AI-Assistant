@@ -36,6 +36,7 @@ interface SidebarProps {
   showInstallButton: boolean;
   activeSkill?: Skill | null;
   onOpenSkillSelector?: () => void;
+  onOpenSearch?: () => void;
 }
 
 const mainTools = [
@@ -44,6 +45,7 @@ const mainTools = [
   { view: 'cross-reference', label: 'Cross-Reference', icon: <CrossReferenceIcon /> },
   { view: 'notes', label: 'My Notes', icon: <NoteIcon /> },
   { view: 'journal', label: 'Voice Journal', icon: <JournalIcon /> },
+  { view: 'dashboard', label: 'Study Dashboard', icon: <StudyPlanIcon /> },
 ];
 
 // Fix: Replaced JSX.Element with ReactElement to resolve "Cannot find namespace 'JSX'" error.
