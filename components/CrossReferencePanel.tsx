@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { getCrossReferencesForSettings } from '../services/crossReferenceService';
+import { getProviderKeyLabel, providerSupportsOpenAIChatCompletions } from '../services/providerCapabilities';
 import LoadingDots from './LoadingDots';
 
 interface CrossReferenceResult {
@@ -27,11 +28,15 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
     e.preventDefault();
     if (!scripture.trim()) return;
     if (settings.provider === 'google' && !settings.googleApiKey) {
-        setError("Google API Key is required for this feature. Please set it in settings.");
+        setError(`${getProviderKeyLabel(settings.provider)} is required for this feature. Please set it in settings.`);
         return;
     }
     if (settings.provider !== 'google' && !settings.model) {
         setError("Please select a model in settings before using cross-references.");
+        return;
+    }
+    if (settings.provider !== 'google' && !providerSupportsOpenAIChatCompletions(settings.provider)) {
+        setError("The selected provider does not support cross-references.");
         return;
     }
     

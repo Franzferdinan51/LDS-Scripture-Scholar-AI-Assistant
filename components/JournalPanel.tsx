@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { JournalEntry } from '../types';
 import type { LiveServerMessage, Session } from '@google/genai';
-import { connectLive } from '../services/geminiService';
+import { connectLive } from '../services/aiService';
 import { createBlob } from '../utils/audio';
 
 interface JournalPanelProps {
@@ -33,7 +33,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
 
   const startJournaling = async () => {
     if (!isApiConfigured) {
-      setError("Voice journaling is currently available only with the Google provider. Please set it in Settings.");
+      setError("Voice journaling is currently available only with the selected live-voice provider. Please set it in Settings.");
       return;
     }
     setError(null);

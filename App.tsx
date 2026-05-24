@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { Message, ChatMode, ViewMode, GroundingChunk, StudyPlan, MultiQuiz, Note, JournalEntry, UserProfile, Memory as MemoryType, Skill, StudySession, Reminder, ThinkingDepth, ToolCall } from './types';
 import type { Session, LiveServerMessage, GenerateContentResponse, Content } from '@google/genai';
-import { createChatService, createChatServiceWithFailover, connectLive, generateSpeech, getJournalInsights, getProactiveSuggestion, getWikimediaImageUrl } from './services/geminiService';
-import type { ChatServiceOptions } from './services/geminiService';
+import { createChatService, createChatServiceWithFailover, connectLive, generateSpeech, getJournalInsights, getProactiveSuggestion, getWikimediaImageUrl } from './services/aiService';
+import type { ChatServiceOptions } from './services/aiService';
 import ChatWindow from './components/ChatWindow';
 import Sidebar from './components/Sidebar';
 import NotesPanel from './components/NotesPanel';
@@ -46,6 +46,7 @@ import { routeToAgent } from './services/agentRouter';
 import type { AgentPhase } from './components/AgentIndicator';
 // Context compression
 import { needsCompression, compressContext } from './services/contextCompressor';
+import { providerSupportsLiveVoice, providerSupportsTextToSpeech } from './services/providerCapabilities';
 // Conversation search
 import ConversationSearch from './components/ConversationSearch';
 
@@ -150,7 +151,7 @@ const App: React.FC = () => {
     activeChatIdRef.current = activeChatId;
   }, [activeChatId]);
 
-  const isVoiceChatAvailable = settings.provider === 'google';
+  const isVoiceChatAvailable = providerSupportsLiveVoice(settings.provider);
   const messages = activeChatId ? chatHistory[activeChatId] || [] : [];
 
   // --- PWA Install Logic ---
@@ -300,7 +301,7 @@ const App: React.FC = () => {
   const initializeChat = useCallback(() => {
     setError(null);
     try {
-      const isConfigured = (settings.provider === 'google' && settings.googleApiKey) ||
+      const isConfigured = (providerSupportsLiveVoice(settings.provider) && settings.googleApiKey) ||
                            (settings.provider === 'lmstudio' && settings.lmStudioBaseUrl && settings.model) ||
                            (settings.provider === 'openrouter' && settings.openRouterApiKey && settings.model) ||
                            (settings.provider === 'mcp' && settings.mcpBaseUrl && settings.model) ||
@@ -707,9 +708,9 @@ const App: React.FC = () => {
         }
       }
 
-      // Handle tool calls if present (Google Gemini function calling)
+      // Handle tool calls if present
       const toolCallResults: ToolCall[] = [];
-      if (lastGoogleResponse && settings.provider === 'google' && chatService.handleToolCalls) {
+      if (lastGoogleResponse && chatService.handleToolCalls) {
         try {
           setAgentPhase('acting');
           const followUpResponse = await chatService.handleToolCalls(lastGoogleResponse);
@@ -844,6 +845,15 @@ const App: React.FC = () => {
             recordConversation().catch(() => {});
             // Proactive memory capture - silently save important user facts
             extractProactiveMemories(currentMessages, settings).catch(() => {});
+
+            // Self-improving skill creation: detect complex conversations
+            if (botMessageId) {
+              const toolCallCount = currentMessages.reduce((count: number, msg: Message) => count + (msg.toolCalls?.length || 0), 0);
+              const isComplex = currentMessages.length >= 6 || toolCallCount > 3;
+              if (isComplex) {
+                setSkillSaveOffer({ chatId: activeChatId, messageId: botMessageId });
+              }
+            }
           }
       }
     }
@@ -978,11 +988,11 @@ const App: React.FC = () => {
   };
 
   const startVoiceChat = async () => {
-     if (settings.provider !== 'google') {
-       setError('Voice chat is currently available only with the Google provider.');
+     if (!providerSupportsLiveVoice(settings.provider)) {
+       setError('Voice chat is currently available only with the selected live-voice provider.');
        return;
      }
-     if (!settings.googleApiKey) { setError("Google API Key is not set."); return; }
+     if (!settings.googleApiKey) { setError("A provider API key is not set."); return; }
     setError(null);
     setIsConnecting(true);
 
@@ -1079,8 +1089,8 @@ const App: React.FC = () => {
 
     setAudioPlayback({ messageId, status: 'loading', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 });
     try {
-        if (settings.provider !== 'google' || !settings.googleApiKey) {
-          throw new Error("Text-to-speech is currently available only with the Google provider.");
+        if (!providerSupportsTextToSpeech(settings.provider) || !settings.googleApiKey) {
+          throw new Error("Text-to-speech is currently available only with the selected live-voice provider.");
         }
         if (!outputAudioContextRef.current || outputAudioContextRef.current.state === 'closed') {
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -1177,7 +1187,7 @@ const App: React.FC = () => {
             setIsVoiceActive={setIsVoiceActive}
             isConnecting={isConnecting}
             setIsConnecting={setIsConnecting}
-            isApiConfigured={settings.provider === 'google' && !!settings.googleApiKey}
+            isApiConfigured={providerSupportsLiveVoice(settings.provider) && !!settings.googleApiKey}
             googleApiKey={settings.googleApiKey}
             setError={setError}
             stopVoiceSession={stopVoiceSession}

@@ -1,7 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { ApiProvider, Model } from '../types';
-import { fetchModels, testMCPConnection } from '../services/geminiService';
+import { fetchModels, testMCPConnection } from '../services/aiService';
+import {
+  getProviderCapabilities,
+  getProviderDefaultModel,
+  getProviderDescription,
+  getProviderDisplayName,
+  getProviderKeyLabel,
+  getProviderNote,
+  getProviderShortLabel,
+  providerSupportsLiveVoice,
+  providerSupportsModelDiscovery,
+} from '../services/providerCapabilities';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -9,36 +20,9 @@ interface SettingsModalProps {
   onClearHistory: () => void;
 }
 
-const PROVIDER_HELP: Record<ApiProvider, { title: string; description: string; note: string }> = {
-  google: {
-    title: 'Google Gemini',
-    description: 'Best for the built-in LDS study features, journaling, and the fastest path to a full experience.',
-    note: 'Use the Google API key if you want Gemini-powered cross-references, insights, and live voice features.',
-  },
-  lmstudio: {
-    title: 'LM Studio',
-    description: 'Run local models on your machine. Good for privacy, offline use, and experimenting with open models.',
-    note: 'Enter your local server URL, then refresh models from the running LM Studio instance.',
-  },
-  openrouter: {
-    title: 'OpenRouter',
-    description: 'Use hosted models from multiple vendors through one API. Helpful when you want easy model swapping.',
-    note: 'Refresh the model list after adding your API key to browse available models.',
-  },
-  mcp: {
-    title: 'Docker MCP Toolkit',
-    description: 'Connect to a local MCP endpoint that exposes compatible models or tools.',
-    note: 'Set the base URL and test the connection before choosing a model.',
-  },
-  minimax: {
-    title: 'MiniMax',
-    description: "Use MiniMax chat models through their API with this app's provider bridge.",
-    note: 'Refresh the model list after setting your API key and base URL.',
-  },
-};
-
 const PROVIDER_DEFAULT_MODELS: Partial<Record<ApiProvider, string>> = {
-  google: 'gemini-flash-lite-latest',
+  google: getProviderDefaultModel('google'),
+  minimax: 'MiniMax-Text-01',
 };
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearHistory }) => {
@@ -117,8 +101,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     });
   }, [models, modelSearch, showFreeOnly]);
 
-  const providerMeta = PROVIDER_HELP[localSettings.provider];
-  const providerRequiresModelRefresh = ['lmstudio', 'openrouter', 'mcp', 'minimax'].includes(localSettings.provider);
+  const providerMeta = getProviderCapabilities(localSettings.provider);
+  const providerRequiresModelRefresh = providerSupportsModelDiscovery(localSettings.provider);
   const activeModelHint = localSettings.model
     ? `Selected model: ${localSettings.model}`
     : 'No model selected yet.';
@@ -127,7 +111,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   if (!isOpen) return null;
   
-  const isFetchVisible = ['lmstudio', 'openrouter', 'mcp', 'minimax'].includes(localSettings.provider);
+  const isFetchVisible = providerSupportsModelDiscovery(localSettings.provider);
   
   const inputBaseClasses = "mt-1 block w-full shadow-sm sm:text-sm rounded-md p-2 bg-slate-700 border border-slate-600 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const selectBaseClasses = "mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md bg-slate-700 border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm";
@@ -191,8 +175,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                   <h3 className="text-lg font-semibold text-white">Provider</h3>
                   <p className="text-sm text-slate-400">Pick the AI backend you want the app to use.</p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${localSettings.provider === 'google' ? 'bg-amber-500/10 text-amber-200' : 'bg-sky-500/10 text-sky-200'}`}>
-                  {localSettings.provider === 'google' ? 'Cloud' : 'Custom'}
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${providerMeta.environment === 'cloud' ? 'bg-amber-500/10 text-amber-200' : 'bg-sky-500/10 text-sky-200'}`}>
+                  {providerMeta.shortLabel}
                 </span>
               </div>
               <select
@@ -202,7 +186,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                 onChange={handleProviderChange}
                 className={selectBaseClasses}
               >
-                <option value="google">Google Gemini</option>
+                <option value="google">Google AI</option>
                 <option value="lmstudio">LM Studio</option>
                 <option value="openrouter">OpenRouter</option>
                 <option value="mcp">Docker MCP Toolkit</option>
@@ -221,7 +205,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
               {localSettings.provider === 'google' && (
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="googleApiKey" className="block text-sm font-medium text-gray-300">Google API Key</label>
+                    <label htmlFor="googleApiKey" className="block text-sm font-medium text-gray-300">{getProviderKeyLabel(localSettings.provider)}</label>
                     <input
                       type="password"
                       id="googleApiKey"
@@ -233,7 +217,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                     />
                   </div>
                   <p className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                    Google is required for voice journaling and any Gemini-backed features. Cross-references work with other providers too.
+                    Google is required for live voice and TTS. Cross-references and journal insights work with other providers too.
                   </p>
                 </div>
               )}
@@ -369,7 +353,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                 <div>
                   <h3 className="text-lg font-semibold text-white">Model</h3>
                   <p className="text-sm text-slate-400">
-                    {providerRequiresModelRefresh ? 'Refresh models from the provider, or enter one manually.' : 'Pick the Gemini model you want to use.'}
+                    {providerRequiresModelRefresh ? 'Refresh models from the provider, or enter one manually.' : 'Pick the model you want to use.'}
                   </p>
                 </div>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${localSettings.model ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
@@ -386,12 +370,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                     onChange={handleInputChange}
                     className={selectBaseClasses}
                   >
-                    <option value="gemini-flash-lite-latest">Gemini Flash Lite (Low-Latency)</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-flash-latest">Gemini Flash Latest</option>
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                    <option value="gemini-flash-lite-latest">Flash Lite (Low-Latency)</option>
+                    <option value="gemini-2.5-flash">2.5 Flash</option>
+                    <option value="gemini-flash-latest">Flash Latest</option>
+                    <option value="gemini-2.5-pro">2.5 Pro</option>
                   </select>
-                  <p className="text-xs text-gray-400">Specialized modes automatically promote to Gemini 2.5 Pro.</p>
+                  <p className="text-xs text-gray-400">Specialized modes automatically promote to the higher-capability Google model.</p>
                 </div>
               )}
 
