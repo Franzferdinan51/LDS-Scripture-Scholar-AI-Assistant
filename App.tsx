@@ -114,6 +114,7 @@ const App: React.FC = () => {
   const [activeAgentName, setActiveAgentName] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [verboseMode, setVerboseMode] = useState(false);
+  const [persona, setPersona] = useState<string>('');
 
   // Refs for audio processing
   const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -211,6 +212,10 @@ const App: React.FC = () => {
         if (loadedSessions.length > 0) setStudySessions(loadedSessions);
         if (savedMemories) setMemories(savedMemories);
 
+        // Load persona
+        const savedPersona = await getSetting('persona');
+        if (savedPersona) setPersona(savedPersona);
+
         // Initialize skills
         if (loadedSkills.length > 0) {
           setSkills(loadedSkills);
@@ -299,6 +304,7 @@ const App: React.FC = () => {
           readingContext: readingContext || undefined,
           thinkingDepth,
           verbose: verboseMode,
+          persona,
         };
         const newChat = createChatServiceWithFailover(settings, chatMode, currentHistory, chatOptions);
         setChat(newChat);
@@ -313,7 +319,7 @@ const App: React.FC = () => {
       setError(`Could not initialize the chat: ${err.message}`);
       setChat(null);
     }
-  }, [settings, chatMode, activeChatId, chatHistory, activeView, userProfile, memories, activeSkill, readingContext, thinkingDepth]);
+  }, [settings, chatMode, activeChatId, chatHistory, activeView, userProfile, memories, activeSkill, readingContext, thinkingDepth, persona]);
   
   useEffect(() => {
     initializeChat();
@@ -503,6 +509,22 @@ const App: React.FC = () => {
         await setSetting('verboseMode', newVerbose);
         return true;
       }
+      case '/persona':
+        if (args.length > 0) {
+          const newPersona = args.join(' ');
+          setPersona(newPersona);
+          await setSetting('persona', newPersona);
+          if (activeChatId) {
+            const msg: Message = { id: `persona-${Date.now()}`, text: `Persona updated: "${newPersona}"`, sender: 'bot' };
+            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), msg] }));
+          }
+        } else {
+          if (activeChatId) {
+            const msg: Message = { id: `persona-${Date.now()}`, text: persona ? `Current persona: "${persona}"\n\nUsage: /persona <description>\nExample: /persona I am a seminary teacher preparing students for missions` : 'No persona set.\n\nUsage: /persona <description>\nExample: /persona I am a seminary teacher preparing students for missions', sender: 'bot' };
+            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), msg] }));
+          }
+        }
+        return true;
       default:
         return false;
     }
@@ -697,16 +719,21 @@ const App: React.FC = () => {
     } catch (err) {
       console.error("Error sending message:", err);
       requestError = err;
-      let errorMessage = `Sorry, I encountered an error. (${err instanceof Error ? err.message : String(err)})`;
 
-      if (err instanceof TypeError && err.message === 'Failed to fetch' && settings.provider !== 'google') {
-        let baseUrl = '';
-        switch(settings.provider) {
-            case 'lmstudio': baseUrl = settings.lmStudioBaseUrl; break;
-            case 'openrouter': baseUrl = settings.openRouterBaseUrl; break;
-            case 'mcp': baseUrl = settings.mcpBaseUrl; break;
-        }
-        errorMessage = `Failed to connect to the model provider at ${baseUrl}. Please ensure the server is running, the URL is correct in settings, and there are no CORS issues.`;
+      // Smart fallback based on user's message intent
+      const lowerText = text.toLowerCase();
+      let errorMessage: string;
+
+      if (lowerText.includes('scripture') || lowerText.includes('verse') || lowerText.includes('read')) {
+        errorMessage = "I had trouble processing that scripture request. Could you try rephrasing with a specific reference (e.g., '2 Nephi 2:25')?";
+      } else if (lowerText.includes('quiz') || lowerText.includes('test')) {
+        errorMessage = "I couldn't generate a quiz right now. Try asking about a specific topic like 'quiz me on faith' or 'test my knowledge of the Book of Mormon'.";
+      } else if (lowerText.includes('lesson') || lowerText.includes('teach')) {
+        errorMessage = "I had trouble preparing that lesson. Try specifying a topic and audience (e.g., 'prepare a lesson on charity for youth').";
+      } else if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        errorMessage = `I couldn't connect to the ${settings.provider} API. Please check that your server is running and your settings are correct.`;
+      } else {
+        errorMessage = "I encountered an unexpected issue. Please try again, or try rephrasing your question.";
       }
       
       setError(errorMessage);

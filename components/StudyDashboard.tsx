@@ -81,6 +81,34 @@ const StudyDashboard: React.FC<StudyDashboardProps> = ({
         />
       </div>
 
+      {/* Achievements */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-white mb-2">Achievements</h3>
+        {(() => {
+          const achievements = [
+            { id: 'first_steps', name: 'First Steps', icon: '👣', desc: 'Complete your first study session', earned: (profile?.totalStudySessions || 0) >= 1 },
+            { id: 'week_warrior', name: 'Week Warrior', icon: '⚔️', desc: '7-day study streak', earned: (profile?.streakDays || 0) >= 7 },
+            { id: 'month_master', name: 'Month Master', icon: '👑', desc: '30-day study streak', earned: (profile?.longestStreak || 0) >= 30 },
+            { id: 'scripture_scholar', name: 'Scripture Scholar', icon: '📚', desc: 'Study 5 different books', earned: (profile?.preferredBooks?.length || 0) >= 5 },
+            { id: 'deep_diver', name: 'Deep Diver', icon: '🤿', desc: 'Store 10+ memories', earned: memories.length >= 10 },
+            { id: 'topic_explorer', name: 'Topic Explorer', icon: '🧭', desc: 'Explore 5+ topics', earned: (profile?.interests?.length || 0) >= 5 },
+            { id: 'marathon', name: 'Marathon', icon: '🏃', desc: '50+ study sessions', earned: (profile?.totalStudySessions || 0) >= 50 },
+            { id: 'consistent', name: 'Consistent', icon: '📅', desc: '14-day study streak', earned: (profile?.streakDays || 0) >= 14 },
+          ];
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {achievements.map(a => (
+                <div key={a.id} className={`rounded-lg p-3 text-center ${a.earned ? 'bg-yellow-600/30 border border-yellow-500/40' : 'bg-gray-700/50 opacity-50'}`}>
+                  <span className={`text-2xl ${a.earned ? '' : 'grayscale'}`}>{a.icon}</span>
+                  <p className={`text-sm font-semibold mt-1 ${a.earned ? 'text-yellow-300' : 'text-gray-400'}`}>{a.name}</p>
+                  <p className={`text-xs mt-1 ${a.earned ? 'text-yellow-200/70' : 'text-gray-500'}`}>{a.desc}</p>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+
       {/* Quick Actions */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white mb-2">Quick Actions</h3>

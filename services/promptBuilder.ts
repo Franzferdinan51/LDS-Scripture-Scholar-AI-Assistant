@@ -70,7 +70,7 @@ export function buildSystemPrompt(
   memories?: Memory[],
   activeSkill?: Skill | null,
   readingContext?: string,
-  options?: { verbose?: boolean }
+  options?: { verbose?: boolean; persona?: string }
 ): string {
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -115,6 +115,11 @@ export function buildSystemPrompt(
   // Append verbose mode instruction
   if (options?.verbose) {
     sections.push(`\n**Verbose Mode:** Provide detailed, comprehensive responses. Include historical context, cross-references, scholarly insights, and practical applications. Do not be brief.`);
+  }
+
+  // Append user persona/workspace context
+  if (options?.persona) {
+    sections.push(`\n**User Persona / Workspace Context:**\n${options.persona}`);
   }
 
   return sections.join('\n\n');
