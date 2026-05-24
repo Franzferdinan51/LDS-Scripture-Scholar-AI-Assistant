@@ -1,246 +1,159 @@
-import { GoogleGenAI } from "@google/genai";
-import type { ChatMode, ApiProviderSettings } from "../types";
+/**
+ * Agent Router - Routes messages to appropriate sub-agents based on content analysis
+ */
 
-// --- Sub-Agent Definitions ---
+type AgentCapability = string;
+
+interface RouteContext {
+  message: string;
+  capabilities: AgentCapability[];
+  currentState: 'idle' | 'thinking' | 'responding' | 'error' | 'loading';
+}
+
+interface RouterResult {
+  agentType: string;
+  priority: number;
+  reason: string;
+}
+
+export class AgentRouter {
+  private routes: Map<string, { pattern: RegExp; agentType: string; priority: number }[]> = new Map();
+
+  constructor() {
+    this.initializeDefaultRoutes();
+  }
+
+  private initializeDefaultRoutes(): void {
+    // Scripture analysis routes
+    this.registerRoute('scripture_analysis', /bible|scripture|verse|chapter|book of/i, 10);
+    this.registerRoute('scripture_analysis', /genesis|exodus|leviticus|numbers|deuteronomy|joshua|judges/i, 9);
+    this.registerRoute('scripture_analysis', /psalm|proverb|isaiah|jeremiah|ezekiel|daniel/i, 9);
+    this.registerRoute('scripture_analysis', /matthew|mark|luke|john|acts|romans|corinthians|galatians|ephesians/i, 9);
+    this.registerRoute('scripture_analysis', /book of mormon|bofm|1 nephi|2 nephi|jacob|enos|jarom|omni|words of mormon/i, 10);
+    this.registerRoute('scripture_analysis', /d&c|doctrine and covenants|section|revelation/i, 10);
+    this.registerRoute('scripture_analysis', /pearl of great price|mosiah|alma|helaman|3 nephi|4 nephi|ether|moroni/i, 9);
+
+    // General chat routes
+    this.registerRoute('general_chat', /^(hi|hello|hey|howdy)/i, 5);
+    this.registerRoute('general_chat', /how are you|what's up/i, 6);
+    this.registerRoute('general_chat', /thank|thanks/i, 4);
+
+    // Study tracking routes
+    this.registerRoute('study_tracking', /track|study session|progress|analytics/i, 7);
+    this.registerRoute('study_tracking', /achievement|badge|goal/i, 6);
+  }
+
+  private registerRoute(agentType: string, pattern: RegExp, priority: number): void {
+    const existing = this.routes.get(agentType) || [];
+    existing.push({ pattern, agentType, priority });
+    this.routes.set(agentType, existing);
+  }
+
+  route(context: RouteContext): RouterResult {
+    const { message } = context;
+    const scores: Map<string, number> = new Map();
+
+    // Calculate scores for each route based on pattern matching
+    this.routes.forEach((routeList, agentType) => {
+      for (const route of routeList) {
+        if (route.pattern.test(message)) {
+          const currentScore = scores.get(agentType) || 0;
+          scores.set(agentType, Math.max(currentScore, route.priority));
+        }
+      }
+    });
+
+    // Find the highest scoring agent type
+    let bestAgentType = 'general_chat';
+    let bestScore = 0;
+
+    scores.forEach((score, agentType) => {
+      if (score > bestScore) {
+        bestScore = score;
+        bestAgentType = agentType;
+      }
+    });
+
+    return {
+      agentType: bestAgentType,
+      priority: bestScore,
+      reason: `Matched routes with priority ${bestScore}`,
+    };
+  }
+
+  getRegisteredRoutes(): string[] {
+    return Array.from(this.routes.keys());
+  }
+}
+
+export const createAgentRouter = (): AgentRouter => new AgentRouter();
+
+// Legacy export - routes to sub-agents based on message content and mode
+export function routeToAgent(message: string, mode: ChatMode): SubAgent | null {
+  const lower = message.toLowerCase();
+
+  if (mode === 'study-plan' || /study\s*plan|create\s*plan|schedule/i.test(lower)) {
+    return SUB_AGENTS.get('studyPlanner') || null;
+  }
+  if (mode === 'multi-quiz' || /quiz|test\s*me|exam/i.test(lower)) {
+    return SUB_AGENTS.get('quizMaster') || null;
+  }
+  if (mode === 'lesson-prep' || /lesson|prepare\s*teach|preach/i.test(lower)) {
+    return SUB_AGENTS.get('lessonPrep') || null;
+  }
+  if (/search\s*scripture|find\s*verse|look\s*up|research/i.test(lower) || mode === 'chat') {
+    return SUB_AGENTS.get('research') || null;
+  }
+
+  return SUB_AGENTS.get('research') || null;
+}
+
+// ============================================================================
+// Sub-Agent Definitions
+// ============================================================================
+
+import type { ChatMode } from '../types';
 
 export interface SubAgent {
   id: string;
   name: string;
+  description: string;
+  capabilities: string[];
   systemPrompt: string;
-  tools: string[];
-  model: string;
+  icon?: string;
 }
 
 export const SUB_AGENTS: Map<string, SubAgent> = new Map([
-  [
-    "research",
-    {
-      id: "research",
-      name: "Research Agent",
-      systemPrompt:
-        "You are a specialized LDS scripture research agent. Your purpose is to search across all standard works (Bible, Book of Mormon, Doctrine and Covenants, Pearl of Great Price) and provide thorough, accurate findings. " +
-        "When answering: cite specific scripture references (book, chapter, verse), provide the full verse text when relevant, find cross-references and thematic connections, include context from surrounding passages, " +
-        "and reference General Conference talks or official sources when helpful. Always be precise with references and faithful to the original text.",
-      tools: [
-        "searchScriptures",
-        "getScriptureText",
-        "getCrossReferences",
-        "searchWeb",
-      ],
-      model: "gemini-2.5-flash",
-    },
-  ],
-  [
-    "studyPlanner",
-    {
-      id: "studyPlanner",
-      name: "Study Planner Agent",
-      systemPrompt:
-        "You are a specialized LDS scripture study planning agent. Your purpose is to create structured, thoughtful study plans tailored to the user's needs. " +
-        "Organize material into manageable daily sessions with specific scripture readings, reflection questions, and progressive difficulty. " +
-        "Incorporate a mix of reading, reflection, and application. Respond with a well-structured study plan in JSON format with a title and an array of day objects, " +
-        "each containing: day (number), topic (string), scriptures (array of references), and reflection_question (string).",
-      tools: ["searchScriptures", "getScriptureText"],
-      model: "gemini-2.5-pro",
-    },
-  ],
-  [
-    "quizMaster",
-    {
-      id: "quizMaster",
-      name: "Quiz Master Agent",
-      systemPrompt:
-        "You are a specialized LDS scripture quiz master agent. Your purpose is to generate engaging, educational quizzes that test and deepen knowledge of the scriptures. " +
-        "Write clear, unambiguous questions with 4 multiple-choice options and one correct answer. Draw from a range of difficulty levels covering doctrine, history, narrative, and application. " +
-        "For each question provide: the question text, an array of 4 options, and the zero-based index of the correct answer. Respond with a JSON array of question objects.",
-      tools: ["searchScriptures", "getScriptureText"],
-      model: "gemini-2.5-pro",
-    },
-  ],
-  [
-    "lessonPrep",
-    {
-      id: "lessonPrep",
-      name: "Lesson Prep Agent",
-      systemPrompt:
-        "You are a specialized LDS lesson and talk preparation agent. Your purpose is to help users prepare meaningful lessons, talks, and presentations for church settings. " +
-        "Structure material with a clear introduction, body, and conclusion. Suggest relevant scripture references, include discussion questions, provide practical application ideas, " +
-        "and offer relevant quotes from General Authorities. Organize the output with clear headings and bullet points.",
-      tools: [
-        "searchScriptures",
-        "getScriptureText",
-        "getCrossReferences",
-        "searchWeb",
-      ],
-      model: "gemini-2.5-pro",
-    },
-  ],
+  ['research', {
+    id: 'research',
+    name: 'Research Agent',
+    description: 'Searches scriptures, finds cross-references, and provides detailed scripture analysis',
+    capabilities: ['scripture_search', 'cross_references', 'web_search'],
+    systemPrompt: 'You are a knowledgeable LDS scripture scholar. Search and analyze scriptures with precision.',
+    icon: '📖',
+  }],
+  ['studyPlanner', {
+    id: 'studyPlanner',
+    name: 'Study Planner',
+    description: 'Creates structured study plans with daily sessions and goals',
+    capabilities: ['study_planning'],
+    systemPrompt: 'You are a study planning assistant. Create organized, achievable study plans.',
+    icon: '📚',
+  }],
+  ['quizMaster', {
+    id: 'quizMaster',
+    name: 'Quiz Master',
+    description: 'Generates interactive quizzes to test scripture knowledge',
+    capabilities: ['quiz_generation'],
+    systemPrompt: 'You are a quiz master. Create engaging multiple-choice quizzes about LDS scriptures.',
+    icon: '🎯',
+  }],
+  ['lessonPrep', {
+    id: 'lessonPrep',
+    name: 'Lesson Prep',
+    description: 'Prepares lesson outlines with discussion questions and key points',
+    capabilities: ['lesson_prep'],
+    systemPrompt: 'You are a lesson preparation assistant. Create clear, inspiring lesson outlines.',
+    icon: '📝',
+  }],
 ]);
-
-// --- Routing Logic ---
-
-const ROUTE_PATTERNS: { agentId: string; keywords: string[] }[] = [
-  {
-    agentId: "research",
-    keywords: [
-      "find scriptures",
-      "search for",
-      "what does the bible say",
-      "what does the book of mormon say",
-      "cross-reference",
-      "cross reference",
-      "related scriptures",
-      "where does it say",
-      "scripture about",
-      "passages about",
-      "verses about",
-      "references for",
-      "look up",
-      "study topic",
-      "research",
-      "find verses",
-    ],
-  },
-  {
-    agentId: "studyPlanner",
-    keywords: [
-      "study plan",
-      "create a plan",
-      "make a plan",
-      "schedule my study",
-      "daily reading",
-      "reading plan",
-      "study schedule",
-      "plan for studying",
-      "organize my study",
-      "how should i study",
-      "help me study",
-      "week-long study",
-      "month-long study",
-      "30-day",
-      "7-day",
-      "study guide",
-    ],
-  },
-  {
-    agentId: "quizMaster",
-    keywords: [
-      "quiz me",
-      "quiz",
-      "test my knowledge",
-      "create a quiz",
-      "make a quiz",
-      "generate questions",
-      "test questions",
-      "trivia",
-      "flashcards",
-      "study questions",
-      "practice questions",
-      "multiple choice",
-      "challenge me",
-      "how well do i know",
-    ],
-  },
-  {
-    agentId: "lessonPrep",
-    keywords: [
-      "lesson",
-      "talk",
-      "prepare a talk",
-      "prepare a lesson",
-      "sacrament talk",
-      "sunday school",
-      "relief society",
-      "elders quorum",
-      "priesthood",
-      "young women",
-      "young men",
-      "primary lesson",
-      "youth lesson",
-      "discourse",
-      "presentation",
-      "outline for",
-      "help me write",
-    ],
-  },
-];
-
-/**
- * Determines if a sub-agent should handle the request based on keyword
- * matching against the user message. Returns the matching SubAgent or
- * null if the main chat agent should handle it directly.
- *
- * Skips routing when the current mode is already a specialized mode
- * (study-plan, multi-quiz, lesson-prep) since those are handled by
- * the main agent pipeline.
- */
-export function routeToAgent(
-  userMessage: string,
-  currentMode: ChatMode
-): SubAgent | null {
-  // If already in a specialized mode, let the main agent handle it
-  if (
-    currentMode === "study-plan" ||
-    currentMode === "multi-quiz" ||
-    currentMode === "lesson-prep"
-  ) {
-    return null;
-  }
-
-  const lowerMessage = userMessage.toLowerCase();
-
-  // Score each agent based on keyword matches
-  let bestAgentId: string | null = null;
-  let bestScore = 0;
-
-  for (const { agentId, keywords } of ROUTE_PATTERNS) {
-    let score = 0;
-    for (const keyword of keywords) {
-      if (lowerMessage.includes(keyword)) {
-        // Longer keywords are more specific and get higher weight
-        score += keyword.length;
-      }
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      bestAgentId = agentId;
-    }
-  }
-
-  if (bestAgentId && bestScore > 0) {
-    return SUB_AGENTS.get(bestAgentId) ?? null;
-  }
-
-  return null;
-}
-
-/**
- * Creates a one-shot chat with a sub-agent using the Gemini API.
- * Sends the user message with the sub-agent's specialized system prompt
- * and returns the complete text response.
- */
-export async function createSubAgentChat(
-  agent: SubAgent,
-  settings: ApiProviderSettings,
-  message: string
-): Promise<string> {
-  if (settings.provider !== "google") {
-    throw new Error("Sub-agents currently only support the Google provider.");
-  }
-
-  if (!settings.googleApiKey) {
-    throw new Error("Google API Key is not set.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey: settings.googleApiKey });
-
-  const response = await ai.models.generateContent({
-    model: agent.model,
-    contents: message,
-    config: {
-      systemInstruction: agent.systemPrompt,
-    },
-  });
-
-  return response.text ?? "";
-}

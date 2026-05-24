@@ -54,9 +54,6 @@ export interface ToolCall {
   status: 'pending' | 'executing' | 'completed' | 'error';
   result?: unknown;
   error?: string;
-  startedAt?: number;
-  completedAt?: number;
-  failedAt?: number;
 }
 
 export interface ToolDefinition {
@@ -207,3 +204,60 @@ export class ToolExecutionError extends AgentError {
     this.name = 'ToolExecutionError';
   }
 }
+
+// ============================================================================
+// Agent Routing Types
+// ============================================================================
+
+export type AgentCapability =
+  | 'scripture_search'
+  | 'cross_references'
+  | 'study_planning'
+  | 'quiz_generation'
+  | 'lesson_prep'
+  | 'general_chat'
+  | 'web_search';
+
+export interface SubAgent {
+  id: string;
+  name: string;
+  description: string;
+  capabilities: AgentCapability[];
+  systemPrompt: string;
+  icon?: string;
+}
+
+export const SUB_AGENTS: Record<string, SubAgent> = {
+  research: {
+    id: 'research',
+    name: 'Research Agent',
+    description: 'Searches scriptures, finds cross-references, and provides detailed scripture analysis',
+    capabilities: ['scripture_search', 'cross_references', 'web_search'],
+    systemPrompt: 'You are a knowledgeable LDS scripture scholar. Search and analyze scriptures with precision.',
+    icon: '📖',
+  },
+  studyPlanner: {
+    id: 'studyPlanner',
+    name: 'Study Planner',
+    description: 'Creates structured study plans with daily sessions and goals',
+    capabilities: ['study_planning'],
+    systemPrompt: 'You are a study planning assistant. Create organized, achievable study plans.',
+    icon: '📚',
+  },
+  quizMaster: {
+    id: 'quizMaster',
+    name: 'Quiz Master',
+    description: 'Generates interactive quizzes to test scripture knowledge',
+    capabilities: ['quiz_generation'],
+    systemPrompt: 'You are a quiz master. Create engaging multiple-choice quizzes about LDS scriptures.',
+    icon: '🎯',
+  },
+  lessonPrep: {
+    id: 'lessonPrep',
+    name: 'Lesson Prep',
+    description: 'Prepares lesson outlines with discussion questions and key points',
+    capabilities: ['lesson_prep'],
+    systemPrompt: 'You are a lesson preparation assistant. Create clear, inspiring lesson outlines.',
+    icon: '📝',
+  },
+};
