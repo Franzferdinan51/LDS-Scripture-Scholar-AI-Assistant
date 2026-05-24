@@ -9,6 +9,7 @@ export {
   fetchModels,
   testMCPConnection,
   getCrossReferences,
+  executeToolWithRetry,
 } from './geminiService';
 
 export type {

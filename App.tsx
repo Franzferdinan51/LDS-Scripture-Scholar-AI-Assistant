@@ -14,6 +14,7 @@ import SkillSelector from './components/SkillSelector';
 import RemindersPanel from './components/RemindersPanel';
 import ReminderToast from './components/ReminderToast';
 import SuggestedReminderToast from './components/SuggestedReminderToast';
+import SkillSaveOffer from './components/SkillSaveOffer';
 import { createBlob, decode, decodeAudioData } from './utils/audio';
 import { useSettings } from './contexts/SettingsContext';
 import SettingsModal from './components/SettingsModal';
@@ -225,7 +226,7 @@ const App: React.FC = () => {
         if (savedMemories) setMemories(savedMemories);
 
         // Load persona
-        const savedPersona = await getSetting('persona');
+        const savedPersona = await getPersona();
         if (savedPersona) setPersona(savedPersona);
 
         // Initialize skills
@@ -542,7 +543,7 @@ const App: React.FC = () => {
         if (args.length > 0) {
           const newPersona = args.join(' ');
           setPersona(newPersona);
-          await setSetting('persona', newPersona);
+          await savePersona(newPersona);
           if (activeChatId) {
             const msg: Message = { id: `persona-${Date.now()}`, text: `Persona updated: "${newPersona}"`, sender: 'bot' };
             setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), msg] }));
@@ -1367,6 +1368,21 @@ const App: React.FC = () => {
             suggestions={suggestedReminders}
             onAccept={handleAcceptSuggestedReminder}
             onDismiss={handleDismissSuggestedReminder}
+          />
+        )}
+
+        {skillSaveOffer && (
+          <SkillSaveOffer
+            chatId={skillSaveOffer.chatId}
+            messageId={skillSaveOffer.messageId}
+            chatHistory={chatHistory}
+            onSave={async (skill) => {
+              await saveSkillDB(skill);
+              const allSkills = await getAllSkills();
+              setSkills(allSkills);
+              setSkillSaveOffer(null);
+            }}
+            onDismiss={() => setSkillSaveOffer(null)}
           />
         )}
       </main>

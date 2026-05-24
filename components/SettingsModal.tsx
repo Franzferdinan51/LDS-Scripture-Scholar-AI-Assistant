@@ -5,12 +5,7 @@ import { fetchModels, testMCPConnection } from '../services/aiService';
 import {
   getProviderCapabilities,
   getProviderDefaultModel,
-  getProviderDescription,
-  getProviderDisplayName,
   getProviderKeyLabel,
-  getProviderNote,
-  getProviderShortLabel,
-  providerSupportsLiveVoice,
   providerSupportsModelDiscovery,
 } from '../services/providerCapabilities';
 

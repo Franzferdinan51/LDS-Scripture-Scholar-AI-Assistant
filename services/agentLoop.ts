@@ -1,7 +1,7 @@
 import type { Message, ChatMode, ApiProviderSettings } from '../types';
 import type { ToolCall } from '../types';
 import type { GenerateContentResponse } from '@google/genai';
-import { executeToolWithRetry } from './geminiService';
+import { executeToolWithRetry } from './aiService';
 
 export type AgentPhase = 'thinking' | 'planning' | 'acting' | 'reflecting' | 'responding' | 'done';
 
@@ -177,7 +177,7 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
   }
 
   private extractFunctionCalls(chunk: any): any[] {
-    // Gemini function calls
+    // Model function calls
     if (chunk.functionCalls && chunk.functionCalls.length > 0) {
       return chunk.functionCalls;
     }
@@ -190,7 +190,7 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
 
   private async generateResponse(systemPrompt: string): Promise<AsyncGenerator<any>> {
     // Create a temporary chat service for this generation
-    const { createChatService } = await import('./geminiService');
+    const { createChatService } = await import('./aiService');
     const history: Message[] = this.messages.map(m => ({
       id: m.id,
       text: m.text,
@@ -206,7 +206,7 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
     priorResponse: string,
     toolResults: ToolResult[]
   ): Promise<AsyncGenerator<any>> {
-    const { createChatService } = await import('./geminiService');
+    const { createChatService } = await import('./aiService');
     const history: Message[] = this.messages.map(m => ({
       id: m.id,
       text: m.text,
