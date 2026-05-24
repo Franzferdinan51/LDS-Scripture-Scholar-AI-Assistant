@@ -13,6 +13,7 @@ import StudyDashboard from './components/StudyDashboard';
 import SkillSelector from './components/SkillSelector';
 import RemindersPanel from './components/RemindersPanel';
 import ReminderToast from './components/ReminderToast';
+import SuggestedReminderToast from './components/SuggestedReminderToast';
 import { createBlob, decode, decodeAudioData } from './utils/audio';
 import { useSettings } from './contexts/SettingsContext';
 import SettingsModal from './components/SettingsModal';
@@ -29,6 +30,7 @@ import {
   getAllReminders, saveReminder as saveReminderDB, deleteReminder as deleteReminderDB,
   getAllStudySessions, saveStudySession,
   getUserProfile, saveUserProfile,
+  getPersona, savePersona,
 } from './services/storage';
 // Memory system
 import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfileFromConversation, consolidateMemories, extractProactiveMemories } from './services/memory';
@@ -122,6 +124,8 @@ const App: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [verboseMode, setVerboseMode] = useState(false);
   const [persona, setPersona] = useState<string>('');
+
+  const [skillSaveOffer, setSkillSaveOffer] = useState<{ chatId: string; messageId: string } | null>(null);
 
   // Refs for audio processing
   const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -838,6 +842,8 @@ const App: React.FC = () => {
             setStudySessions(prev => [...prev, session]);
             // Record progress for achievements
             recordConversation().catch(() => {});
+            // Proactive memory capture - silently save important user facts
+            extractProactiveMemories(currentMessages, settings).catch(() => {});
           }
       }
     }
@@ -1343,6 +1349,14 @@ const App: React.FC = () => {
             reminder={activeReminder}
             onDismiss={handleReminderDismiss}
             onStartStudy={handleReminderStartStudy}
+          />
+        )}
+
+        {suggestedReminders.length > 0 && (
+          <SuggestedReminderToast
+            suggestions={suggestedReminders}
+            onAccept={handleAcceptSuggestedReminder}
+            onDismiss={handleDismissSuggestedReminder}
           />
         )}
       </main>

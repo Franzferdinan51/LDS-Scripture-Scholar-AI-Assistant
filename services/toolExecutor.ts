@@ -157,11 +157,52 @@ async function searchWikimediaImage(params: { query: string }): Promise<ToolResu
 
 // --- Web Search ---
 
-async function searchWeb(): Promise<ToolResult> {
+async function searchWeb(params: { query: string }): Promise<ToolResult> {
+  const query = params?.query?.trim();
+  if (!query) {
+    return {
+      success: false,
+      data: null,
+      error: 'A search query is required.',
+    };
+  }
+
+  const searchUrl = new URL('https://en.wikipedia.org/w/api.php');
+  searchUrl.search = new URLSearchParams({
+    action: 'query',
+    list: 'search',
+    srsearch: query,
+    srlimit: '5',
+    format: 'json',
+    origin: '*',
+  }).toString();
+
+  const resp = await fetch(searchUrl.toString());
+  if (!resp.ok) {
+    return {
+      success: false,
+      data: null,
+      error: `Public search failed with status ${resp.status}`,
+    };
+  }
+
+  const data = await resp.json();
+  const results = (data?.query?.search || []).map((item: any) => ({
+    title: item.title,
+    snippet: String(item.snippet || '').replace(/<[^>]+>/g, ''),
+    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/\s/g, '_'))}`,
+  }));
+
   return {
     success: true,
-    data: { message: 'Web search is performed via Google Search grounding. Results will appear in the response.' },
-    source: 'google-search-grounding',
+    data: {
+      query,
+      results,
+      message: results.length > 0
+        ? 'Returned public search results from Wikipedia.'
+        : 'No public search results were found.',
+    },
+    source: 'wikipedia',
   };
 }
 
@@ -182,7 +223,7 @@ export async function executeTool(
     case 'searchWikimediaImage':
       return searchWikimediaImage(parameters as any);
     case 'searchWeb':
-      return searchWeb();
+      return searchWeb(parameters as any);
     default:
       return { success: false, data: null, error: `Unknown tool: ${name}` };
   }

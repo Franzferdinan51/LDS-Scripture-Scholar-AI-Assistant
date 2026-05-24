@@ -2,7 +2,7 @@ import type { Reminder, ApiProviderSettings } from '../types';
 import { getAllReminders, saveReminder } from './storage';
 import { generateJsonWithSettings } from './llmService';
 
-interface SuggestedReminder {
+export interface SuggestedReminder {
   title: string;
   message: string;
   type: 'daily-reading' | 'study-plan' | 'custom';
@@ -170,4 +170,42 @@ export async function createReminderFromSuggestion(
 
   await saveReminder(reminder);
   return reminder;
+}
+
+// Agent-facing function: create a reminder directly from conversation context
+export async function createReminderFromContext(
+  context: string,
+  settings: ApiProviderSettings
+): Promise<Reminder | null> {
+  const CREATEREMINDER_PROMPT = `Extract or create a reminder from this conversation context.
+
+Return a JSON object with:
+- title: short title (max 50 chars)
+- message: helpful message (max 200 chars)
+- type: "daily-reading", "study-plan", or "custom"
+- schedule: with time (HH:MM 24hr format) and days array (e.g., ["Mon","Wed","Fri"] for MWF)
+
+If no reminder is warranted, return null.
+
+Current date: ${new Date().toISOString().split('T')[0]}
+
+Respond only with valid JSON object or null.`;
+
+  try {
+    const suggestion = await generateJsonWithSettings<SuggestedReminder | null>(
+      settings,
+      context,
+      {
+        systemInstruction: CREATEREMINDER_PROMPT,
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+      }
+    );
+
+    if (!suggestion) return null;
+    return createReminderFromSuggestion(suggestion);
+  } catch (err) {
+    console.error('Failed to create reminder from context:', err);
+    return null;
+  }
 }

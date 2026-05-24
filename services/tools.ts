@@ -110,7 +110,7 @@ export const SCRIPTURE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'searchWeb',
-    description: 'Search the web for current LDS-related information including General Conference talks, news from ChurchofJesusChrist.org, and other official sources.',
+    description: 'Search public web sources for current LDS-related information, background, and related topics.',
     parameters: {
       type: Type.OBJECT,
       properties: {

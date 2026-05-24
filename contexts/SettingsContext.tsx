@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { ApiProviderSettings } from '../types';
 import { getApiSettings, saveApiSettings, migrateFromLocalStorage } from '../services/storage';
+import { getProviderDefaultModel } from '../services/providerCapabilities';
 
 const DEFAULT_SETTINGS: ApiProviderSettings = {
   provider: 'google',
@@ -12,7 +13,7 @@ const DEFAULT_SETTINGS: ApiProviderSettings = {
   mcpBaseUrl: 'http://localhost:8080/v1',
   minimaxBaseUrl: 'https://api.minimax.chat/v1',
   minimaxApiKey: '',
-  model: 'gemini-flash-lite-latest',
+  model: getProviderDefaultModel('google'),
   fallbackProvider: undefined,
   fallbackModel: undefined,
 };
@@ -55,11 +56,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const handleSetSettings = useCallback((newSettings: ApiProviderSettings) => {
     if (newSettings.provider !== settings.provider) {
-      if (newSettings.provider === 'google') {
-        newSettings.model = 'gemini-flash-lite-latest';
-      } else {
-        newSettings.model = '';
-      }
+      newSettings.model = getProviderDefaultModel(newSettings.provider);
     }
     setSettingsState(newSettings);
   }, [settings.provider]);

@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ApiProviderSettings } from '../types';
 import { parseJSON } from '../utils/jsonRepair';
+import { getProviderKeyLabel, providerSupportsOpenAIChatCompletions } from './providerCapabilities';
 
 export interface CrossReferenceItem {
   scripture: string;
@@ -64,19 +65,6 @@ function getOpenAICompatibleSettings(settings: ApiProviderSettings): { baseUrl: 
         apiKey: '',
         model: settings.model,
       };
-  }
-}
-
-function getProviderKeyLabel(provider: ApiProviderSettings['provider']): string {
-  switch (provider) {
-    case 'google':
-      return 'Google API key';
-    case 'openrouter':
-      return 'OpenRouter API key';
-    case 'minimax':
-      return 'MiniMax API key';
-    default:
-      return '';
   }
 }
 
@@ -153,6 +141,10 @@ export async function getCrossReferencesForSettings(
 ): Promise<CrossReferenceResult> {
   if (settings.provider === 'google') {
     return generateWithGoogleProvider(settings, scripture);
+  }
+
+  if (!providerSupportsOpenAIChatCompletions(settings.provider)) {
+    throw new Error('The selected provider does not support cross-references.');
   }
 
   return generateWithOpenAICompatibleProvider(settings, scripture);
