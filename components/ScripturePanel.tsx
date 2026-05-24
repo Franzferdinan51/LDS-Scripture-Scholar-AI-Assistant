@@ -58,30 +58,132 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
 
         try {
             let data: ScriptureData;
-            const fileName = volume === 'book-of-mormon' ? 'book-of-mormon.json' : `${volume}.json`;
-            const response = await fetch(`/data/${fileName}`);
-            if (!response.ok) throw new Error(`Failed to load scripture data for ${volume}: ${response.statusText}`);
-            const rawData = await response.json();
 
-            // Standardize data structure to ensure references are set correctly
-            const formattedBooks: Book[] = rawData.books.map((b: any) => {
-                const bookName = b.book;
-                return {
-                    book: bookName,
-                    chapters: b.chapters.map((c: any) => ({
-                        ...c,
-                        reference: c.reference || `${bookName} ${c.chapter}`
-                    }))
+            if (volume === 'book-of-mormon') {
+                // BOM is split across 3 files with different structures — merge them
+                const [mainResp, part1Resp, part2Resp] = await Promise.all([
+                    fetch('/data/book-of-mormon.json'),
+                    fetch('/data/book-of-mormon-part1.json'),
+                    fetch('/data/book-of-mormon-part2.json'),
+                ]);
+
+                const allBooks = new Map<string, Book>();
+
+                // Helper to normalize a book entry
+                const normalizeBook = (b: any): Book => {
+                    const bookName = b.book || b.shortName || b.title || 'Unknown';
+                    const chapters: Chapter[] = (b.chapters || []).map((c: any) => ({
+                        chapter: c.chapter,
+                        reference: c.reference || `${bookName} ${c.chapter}`,
+                        verses: (c.verses || []).map((v: any) => ({
+                            verse: v.verse || v.verse_number || 0,
+                            text: (v.text || '').trim(),
+                        })).filter((v: Verse) => v.text.length > 0),
+                    })).filter((c: Chapter) => c.verses.length > 0);
+                    return { book: bookName, chapters };
                 };
-            });
-            data = { title: rawData.title, books: formattedBooks };
-            
+
+                // Load main file (1 Nephi chapter 1)
+                if (mainResp.ok) {
+                    const mainData = await mainResp.json();
+                    for (const b of mainData.books || []) {
+                        const normalized = normalizeBook(b);
+                        if (normalized.chapters.length > 0) {
+                            allBooks.set(normalized.book, normalized);
+                        }
+                    }
+                }
+
+                // Load part1 (1 Nephi through Mosiah - full text from Gutenberg)
+                if (part1Resp.ok) {
+                    const part1Data = await part1Resp.json();
+                    for (const b of part1Data.books || []) {
+                        const normalized = normalizeBook(b);
+                        if (normalized.chapters.length > 0) {
+                            // Merge: add chapters that don't already exist
+                            const existing = allBooks.get(normalized.book);
+                            if (!existing) {
+                                allBooks.set(normalized.book, normalized);
+                            } else {
+                                for (const ch of normalized.chapters) {
+                                    if (!existing.chapters.some(ec => ec.chapter === ch.chapter)) {
+                                        existing.chapters.push(ch);
+                                    }
+                                }
+                                existing.chapters.sort((a, b) => a.chapter - b.chapter);
+                            }
+                        }
+                    }
+                }
+
+                // Load part2 (Mosiah continued through Moroni)
+                if (part2Resp.ok) {
+                    const part2Data = await part2Resp.json();
+                    for (const b of part2Data.books || []) {
+                        const normalized = normalizeBook(b);
+                        if (normalized.chapters.length > 0) {
+                            // For part2, books may have names like "THE BOOK OF ALMA"
+                            // Try to match by short name
+                            const normalizedName = normalized.book;
+                            const existingKey = [...allBooks.keys()].find(
+                                k => k.toLowerCase() === normalizedName.toLowerCase() ||
+                                     normalizedName.toLowerCase().includes(k.toLowerCase()) ||
+                                     k.toLowerCase().includes(normalizedName.toLowerCase())
+                            );
+                            if (!existingKey) {
+                                allBooks.set(normalizedName, normalized);
+                            } else {
+                                const existing = allBooks.get(existingKey)!;
+                                for (const ch of normalized.chapters) {
+                                    if (!existing.chapters.some(ec => ec.chapter === ch.chapter)) {
+                                        existing.chapters.push(ch);
+                                    }
+                                }
+                                existing.chapters.sort((a, b) => a.chapter - b.chapter);
+                            }
+                        }
+                    }
+                }
+
+                // Sort books in canonical order
+                const canonicalOrder = [
+                    '1 Nephi', '2 Nephi', 'Jacob', 'Enos', 'Jarom', 'Omni',
+                    'Words of Mormon', 'Mosiah', 'Alma', 'Helaman',
+                    '3 Nephi', '4 Nephi', 'Mormon', 'Ether', 'Moroni'
+                ];
+                const booksArr = [...allBooks.values()];
+                booksArr.sort((a, b) => {
+                    const ai = canonicalOrder.findIndex(n => a.book.toLowerCase().includes(n.toLowerCase()));
+                    const bi = canonicalOrder.findIndex(n => b.book.toLowerCase().includes(n.toLowerCase()));
+                    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+                });
+
+                data = { title: 'The Book of Mormon', books: booksArr };
+            } else {
+                const response = await fetch(`/data/${volume}.json`);
+                if (!response.ok) throw new Error(`Failed to load scripture data for ${volume}: ${response.statusText}`);
+                const rawData = await response.json();
+
+                // Standardize data structure to ensure references are set correctly
+                const formattedBooks: Book[] = rawData.books.map((b: any) => {
+                    const bookName = b.book;
+                    return {
+                        book: bookName,
+                        chapters: b.chapters.map((c: any) => ({
+                            ...c,
+                            reference: c.reference || `${bookName} ${c.chapter}`
+                        }))
+                    };
+                });
+                data = { title: rawData.title, books: formattedBooks };
+            }
+
             scriptureCache.set(volume, data);
             setScriptureData(data);
         } catch (err) {
             console.error(err);
-            setError(err instanceof Error ? err.message : "An unknown error occurred.");
-        } 
+            setError(err instanceof Error ? err.message : "An unknown error occurred loading scriptures.");
+        }
     }, []);
 
     useEffect(() => {

@@ -93,7 +93,7 @@ export interface JournalEntry {
 }
 
 
-export type ApiProvider = 'google' | 'lmstudio' | 'openrouter' | 'mcp';
+export type ApiProvider = 'google' | 'lmstudio' | 'openrouter' | 'mcp' | 'minimax';
 export type ChatMode = 'chat' | 'thinking' | 'study-plan' | 'multi-quiz' | 'lesson-prep' | 'fhe-planner';
 export type ViewMode = 'chat' | 'notes' | 'journal' | 'cross-reference' | 'scripture-reader' | 'dashboard' | 'reminders' | 'skills';
 
@@ -102,8 +102,11 @@ export interface ApiProviderSettings {
   googleApiKey: string;
   openRouterApiKey: string;
   lmStudioBaseUrl: string;
+  lmStudioApiKey: string;
   openRouterBaseUrl: string;
   mcpBaseUrl: string;
+  minimaxBaseUrl: string;
+  minimaxApiKey: string;
   model: string;
   fallbackProvider?: ApiProvider;
   fallbackModel?: string;

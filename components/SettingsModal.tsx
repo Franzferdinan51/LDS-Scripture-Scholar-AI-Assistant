@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { ApiProvider, Model } from '../types';
+import { ApiProvider, Model, ApiProviderSettings } from '../types';
 import { fetchModels, testMCPConnection } from '../services/geminiService';
 
 interface SettingsModalProps {
@@ -90,7 +90,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   if (!isOpen) return null;
   
-  const isFetchVisible = ['lmstudio', 'openrouter', 'mcp'].includes(localSettings.provider);
+  const isFetchVisible = ['lmstudio', 'openrouter', 'mcp', 'minimax'].includes(localSettings.provider);
   
   const inputBaseClasses = "mt-1 block w-full shadow-sm sm:text-sm rounded-md p-2 bg-slate-700 border border-slate-600 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500";
   const selectBaseClasses = "mt-1 block w-full pl-3 pr-10 py-2 text-base rounded-md bg-slate-700 border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm";
@@ -126,6 +126,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
               <option value="lmstudio">LM Studio</option>
               <option value="openrouter">OpenRouter</option>
               <option value="mcp">Docker MCP Toolkit</option>
+              <option value="minimax">MiniMax</option>
             </select>
           </div>
           
@@ -173,6 +174,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                     onChange={handleInputChange}
                     className={inputBaseClasses}
                   />
+                </div>
+                <div>
+                  <label htmlFor="lmStudioApiKey" className="block text-sm font-medium text-gray-300">API Key (optional)</label>
+                  <input
+                    type="password"
+                    id="lmStudioApiKey"
+                    name="lmStudioApiKey"
+                    value={localSettings.lmStudioApiKey || ''}
+                    onChange={handleInputChange}
+                    className={inputBaseClasses}
+                    placeholder="Leave blank if not required"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">Required for newer LM Studio versions. Get it from LM Studio settings.</p>
                 </div>
              </>
           )}
@@ -238,6 +252,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                   id="openRouterApiKey"
                   name="openRouterApiKey"
                   value={localSettings.openRouterApiKey}
+                  onChange={handleInputChange}
+                  className={inputBaseClasses}
+                />
+              </div>
+            </>
+          )}
+
+          {localSettings.provider === 'minimax' && (
+            <>
+              <div>
+                <label htmlFor="minimaxBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
+                <input
+                  type="text"
+                  id="minimaxBaseUrl"
+                  name="minimaxBaseUrl"
+                  value={localSettings.minimaxBaseUrl || 'https://api.minimax.chat/v1'}
+                  onChange={handleInputChange}
+                  className={inputBaseClasses}
+                />
+              </div>
+              <div>
+                <label htmlFor="minimaxApiKey" className="block text-sm font-medium text-gray-300">MiniMax API Key</label>
+                <input
+                  type="password"
+                  id="minimaxApiKey"
+                  name="minimaxApiKey"
+                  value={localSettings.minimaxApiKey || ''}
                   onChange={handleInputChange}
                   className={inputBaseClasses}
                 />

@@ -396,12 +396,19 @@ export const createChatService = (
         let baseUrl = '';
         let apiKey = '';
         switch(settings.provider) {
-            case 'lmstudio': baseUrl = settings.lmStudioBaseUrl; break;
+            case 'lmstudio':
+                baseUrl = settings.lmStudioBaseUrl;
+                apiKey = settings.lmStudioApiKey || '';
+                break;
             case 'openrouter':
                 baseUrl = settings.openRouterBaseUrl;
                 apiKey = settings.openRouterApiKey;
                 break;
             case 'mcp': baseUrl = settings.mcpBaseUrl; break;
+            case 'minimax':
+                baseUrl = settings.minimaxBaseUrl || 'https://api.minimax.chat/v1';
+                apiKey = settings.minimaxApiKey || '';
+                break;
         }
 
         const sendMessageStream = async function* ({ message }: { message: string }): AsyncGenerator<GenerateContentResponse> {
@@ -618,12 +625,23 @@ export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[
 
     switch (settings.provider) {
         case 'lmstudio':
+            url = `${settings.lmStudioBaseUrl}/models`;
+            if (settings.lmStudioApiKey) {
+                headers['Authorization'] = `Bearer ${settings.lmStudioApiKey}`;
+            }
+            break;
         case 'mcp':
-            url = settings.provider === 'lmstudio' ? `${settings.lmStudioBaseUrl}/models` : `${settings.mcpBaseUrl}/models`;
+            url = `${settings.mcpBaseUrl}/models`;
             break;
         case 'openrouter':
             url = `${settings.openRouterBaseUrl}/models`;
             headers['Authorization'] = `Bearer ${settings.openRouterApiKey}`;
+            break;
+        case 'minimax':
+            url = `${settings.minimaxBaseUrl || 'https://api.minimax.chat/v1'}/models`;
+            if (settings.minimaxApiKey) {
+                headers['Authorization'] = `Bearer ${settings.minimaxApiKey}`;
+            }
             break;
         default:
             return [];
