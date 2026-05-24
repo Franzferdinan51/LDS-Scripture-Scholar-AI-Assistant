@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { ApiProvider, Model, ApiProviderSettings } from '../types';
+import { ApiProvider, Model } from '../types';
 import { fetchModels, testMCPConnection } from '../services/geminiService';
 
 interface SettingsModalProps {
@@ -8,6 +8,38 @@ interface SettingsModalProps {
   onClose: () => void;
   onClearHistory: () => void;
 }
+
+const PROVIDER_HELP: Record<ApiProvider, { title: string; description: string; note: string }> = {
+  google: {
+    title: 'Google Gemini',
+    description: 'Best for the built-in LDS study features, journaling, and the fastest path to a full experience.',
+    note: 'Use the Google API key if you want Gemini-powered cross-references, insights, and live voice features.',
+  },
+  lmstudio: {
+    title: 'LM Studio',
+    description: 'Run local models on your machine. Good for privacy, offline use, and experimenting with open models.',
+    note: 'Enter your local server URL, then refresh models from the running LM Studio instance.',
+  },
+  openrouter: {
+    title: 'OpenRouter',
+    description: 'Use hosted models from multiple vendors through one API. Helpful when you want easy model swapping.',
+    note: 'Refresh the model list after adding your API key to browse available models.',
+  },
+  mcp: {
+    title: 'Docker MCP Toolkit',
+    description: 'Connect to a local MCP endpoint that exposes compatible models or tools.',
+    note: 'Set the base URL and test the connection before choosing a model.',
+  },
+  minimax: {
+    title: 'MiniMax',
+    description: 'Use MiniMax chat models through their API with this app’s provider bridge.',
+    note: 'Refresh the model list after setting your API key and base URL.',
+  },
+};
+
+const PROVIDER_DEFAULT_MODELS: Partial<Record<ApiProvider, string>> = {
+  google: 'gemini-flash-lite-latest',
+};
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearHistory }) => {
   const { settings, setSettings } = useSettings();
@@ -18,9 +50,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const [modelSearch, setModelSearch] = useState('');
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>({ status: 'idle', message: null });
+  const providerModelMemory = useRef<Partial<Record<ApiProvider, string>>>({});
 
   useEffect(() => {
     setLocalSettings(settings);
+    providerModelMemory.current[settings.provider] = settings.model;
   }, [settings, isOpen]);
 
   useEffect(() => {
@@ -64,13 +98,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const provider = e.target.value as ApiProvider;
-    let newModel = '';
-    if (provider === 'google') {
-        newModel = 'gemini-flash-lite-latest';
-    } else {
-        // Clear model for all other providers until fetched
-        newModel = '';
-    }
+    providerModelMemory.current[localSettings.provider] = localSettings.model;
+    const rememberedModel = providerModelMemory.current[provider];
+    const newModel = rememberedModel ?? PROVIDER_DEFAULT_MODELS[provider] ?? '';
     setLocalSettings(prev => ({ ...prev, provider, model: newModel }));
   };
   
@@ -87,6 +117,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     });
   }, [models, modelSearch, showFreeOnly]);
 
+  const providerMeta = PROVIDER_HELP[localSettings.provider];
+  const providerRequiresModelRefresh = ['lmstudio', 'openrouter', 'mcp', 'minimax'].includes(localSettings.provider);
+  const activeModelHint = localSettings.model
+    ? `Selected model: ${localSettings.model}`
+    : 'No model selected yet.';
+  const canSave = Boolean(localSettings.provider) && (localSettings.provider === 'google' ? Boolean(localSettings.googleApiKey) : true);
+
 
   if (!isOpen) return null;
   
@@ -97,277 +134,368 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center backdrop-blur-sm" 
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div 
-        className="bg-slate-800/70 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl p-6 w-full max-w-md m-4 relative text-gray-200"
-        onClick={e => e.stopPropagation()}
+      <div
+        className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 text-gray-200 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        <h2 className="text-2xl font-bold mb-4 text-white">Settings</h2>
-
-        <div className="space-y-4">
+        <div className="flex items-start justify-between border-b border-white/10 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-6 py-5">
           <div>
-            <label htmlFor="provider" className="block text-sm font-medium text-gray-300">API Provider</label>
-            <select
-              id="provider"
-              name="provider"
-              value={localSettings.provider}
-              onChange={handleProviderChange}
-              className={selectBaseClasses}
-            >
-              <option value="google">Google Gemini</option>
-              <option value="lmstudio">LM Studio</option>
-              <option value="openrouter">OpenRouter</option>
-              <option value="mcp">Docker MCP Toolkit</option>
-              <option value="minimax">MiniMax</option>
-            </select>
+            <div className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
+              Settings
+            </div>
+            <h2 className="mt-3 text-3xl font-bold text-white">Configure your study stack</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Choose the provider, key, and model that power chat, cross-references, journaling, and other study tools.
+            </p>
           </div>
-          
-          {localSettings.provider === 'google' && (
-            <>
-              <div>
-                <label htmlFor="googleApiKey" className="block text-sm font-medium text-gray-300">Google API Key</label>
-                <input
-                  type="password"
-                  id="googleApiKey"
-                  name="googleApiKey"
-                  value={localSettings.googleApiKey}
-                  onChange={handleInputChange}
-                  className={inputBaseClasses}
-                />
-              </div>
-              <div>
-                <label htmlFor="model" className="block text-sm font-medium text-gray-300">Model</label>
-                <select
-                  id="model"
-                  name="model"
-                  value={localSettings.model}
-                  onChange={handleInputChange}
-                  className={selectBaseClasses}
-                >
-                  <option value="gemini-flash-lite-latest">Gemini Flash Lite (Low-Latency)</option>
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                  <option value="gemini-flash-latest">Gemini Flash Latest</option>
-                  <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                </select>
-                 <p className="mt-1 text-xs text-gray-400">Note: Specialized modes will use Gemini 2.5 Pro.</p>
-              </div>
-            </>
-          )}
+          <button onClick={onClose} className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white/5 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-          {localSettings.provider === 'lmstudio' && (
-             <>
+        <div className="max-h-[78vh] overflow-y-auto px-6 py-5">
+          <div className="mb-5 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-200">
+                  {providerMeta.title}
+                </span>
+                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
+                  {activeModelHint}
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-slate-300">{providerMeta.description}</p>
+              <p className="mt-2 text-xs text-slate-400">{providerMeta.note}</p>
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-300">What this affects</h3>
+              <ul className="mt-3 space-y-2 text-sm text-slate-300">
+                <li>• Chat agent provider and model selection</li>
+                <li>• Scripture cross-references and related study tools</li>
+                <li>• Model refresh and local provider connection checks</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-4">
                 <div>
-                  <label htmlFor="lmStudioBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
-                  <input
-                    type="text"
-                    id="lmStudioBaseUrl"
-                    name="lmStudioBaseUrl"
-                    value={localSettings.lmStudioBaseUrl}
-                    onChange={handleInputChange}
-                    className={inputBaseClasses}
-                  />
+                  <h3 className="text-lg font-semibold text-white">Provider</h3>
+                  <p className="text-sm text-slate-400">Pick the AI backend you want the app to use.</p>
                 </div>
-                <div>
-                  <label htmlFor="lmStudioApiKey" className="block text-sm font-medium text-gray-300">API Key (optional)</label>
-                  <input
-                    type="password"
-                    id="lmStudioApiKey"
-                    name="lmStudioApiKey"
-                    value={localSettings.lmStudioApiKey || ''}
-                    onChange={handleInputChange}
-                    className={inputBaseClasses}
-                    placeholder="Leave blank if not required"
-                  />
-                  <p className="mt-1 text-xs text-gray-400">Required for newer LM Studio versions. Get it from LM Studio settings.</p>
-                </div>
-             </>
-          )}
-          
-          {localSettings.provider === 'mcp' && (
-             <>
-                <div>
-                    <label htmlFor="mcpBaseUrl" className="block text-sm font-medium text-gray-300">Docker MCP URL</label>
-                    <div className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          id="mcpBaseUrl"
-                          name="mcpBaseUrl"
-                          value={localSettings.mcpBaseUrl}
-                          onChange={handleInputChange}
-                          className={inputBaseClasses + ' flex-1'}
-                        />
-                        <button
-                            type="button"
-                            onClick={handleTestMCPConnection}
-                            disabled={mcpTestStatus.status === 'testing'}
-                            className="mt-1 px-4 py-2 text-sm bg-slate-600 text-white rounded-md hover:bg-slate-500 disabled:opacity-50 transition-colors"
-                        >
-                            {mcpTestStatus.status === 'testing' ? 'Testing...' : 'Test'}
-                        </button>
-                    </div>
-                     <p className="mt-1 text-xs text-gray-400">Default for Docker MCP is http://localhost:8080/v1</p>
-                      {mcpTestStatus.message && (
-                        <div className="mt-2 p-3 rounded-md bg-slate-900/70 border border-slate-700">
-                            <pre className={`whitespace-pre-wrap font-mono text-xs 
-                                ${mcpTestStatus.status === 'success' ? 'text-green-400' : ''}
-                                ${mcpTestStatus.status === 'error' ? 'text-red-400' : ''}
-                                ${mcpTestStatus.status === 'testing' ? 'text-yellow-400' : ''}
-                            `}>
-                                <code>
-                                    {mcpTestStatus.message}
-                                </code>
-                            </pre>
-                        </div>
-                    )}
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${localSettings.provider === 'google' ? 'bg-amber-500/10 text-amber-200' : 'bg-sky-500/10 text-sky-200'}`}>
+                  {localSettings.provider === 'google' ? 'Cloud' : 'Custom'}
+                </span>
+              </div>
+              <select
+                id="provider"
+                name="provider"
+                value={localSettings.provider}
+                onChange={handleProviderChange}
+                className={selectBaseClasses}
+              >
+                <option value="google">Google Gemini</option>
+                <option value="lmstudio">LM Studio</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="mcp">Docker MCP Toolkit</option>
+                <option value="minimax">MiniMax</option>
+              </select>
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+              <div className="mb-3">
+                <h3 className="text-lg font-semibold text-white">Connection details</h3>
+                <p className="text-sm text-slate-400">
+                  Enter the API key or local base URL required by the selected provider.
+                </p>
+              </div>
+
+              {localSettings.provider === 'google' && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="googleApiKey" className="block text-sm font-medium text-gray-300">Google API Key</label>
+                    <input
+                      type="password"
+                      id="googleApiKey"
+                      name="googleApiKey"
+                      value={localSettings.googleApiKey}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                      placeholder="AIza..."
+                    />
                   </div>
-             </>
-          )}
+                  <p className="rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                    Google is required for voice journaling and any Gemini-backed features. Cross-references work with other providers too.
+                  </p>
+                </div>
+              )}
 
+              {localSettings.provider === 'lmstudio' && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="lmStudioBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
+                    <input
+                      type="text"
+                      id="lmStudioBaseUrl"
+                      name="lmStudioBaseUrl"
+                      value={localSettings.lmStudioBaseUrl}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="lmStudioApiKey" className="block text-sm font-medium text-gray-300">API Key <span className="text-gray-500">(optional)</span></label>
+                    <input
+                      type="password"
+                      id="lmStudioApiKey"
+                      name="lmStudioApiKey"
+                      value={localSettings.lmStudioApiKey || ''}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                      placeholder="Leave blank if not required"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400">Required for newer LM Studio versions. Get it from LM Studio settings.</p>
+                </div>
+              )}
 
-          {localSettings.provider === 'openrouter' && (
-            <>
-               <div>
-                <label htmlFor="openRouterBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
-                <input
-                  type="text"
-                  id="openRouterBaseUrl"
-                  name="openRouterBaseUrl"
-                  value={localSettings.openRouterBaseUrl}
-                  onChange={handleInputChange}
-                  className={inputBaseClasses}
-                />
+              {localSettings.provider === 'mcp' && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="mcpBaseUrl" className="block text-sm font-medium text-gray-300">Docker MCP URL</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        id="mcpBaseUrl"
+                        name="mcpBaseUrl"
+                        value={localSettings.mcpBaseUrl}
+                        onChange={handleInputChange}
+                        className={inputBaseClasses + ' flex-1'}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleTestMCPConnection}
+                        disabled={mcpTestStatus.status === 'testing'}
+                        className="mt-1 rounded-md bg-slate-700 px-4 py-2 text-sm text-white transition-colors hover:bg-slate-600 disabled:cursor-wait disabled:opacity-50"
+                      >
+                        {mcpTestStatus.status === 'testing' ? 'Testing...' : 'Test'}
+                      </button>
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">Default for Docker MCP is http://localhost:8080/v1</p>
+                  </div>
+                  {mcpTestStatus.message && (
+                    <div className="rounded-lg border border-slate-700 bg-slate-950/70 p-3">
+                      <pre
+                        className={`whitespace-pre-wrap font-mono text-xs ${
+                          mcpTestStatus.status === 'success' ? 'text-green-400' : ''
+                        } ${mcpTestStatus.status === 'error' ? 'text-red-400' : ''} ${
+                          mcpTestStatus.status === 'testing' ? 'text-yellow-400' : ''
+                        }`}
+                      >
+                        <code>{mcpTestStatus.message}</code>
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {localSettings.provider === 'openrouter' && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="openRouterBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
+                    <input
+                      type="text"
+                      id="openRouterBaseUrl"
+                      name="openRouterBaseUrl"
+                      value={localSettings.openRouterBaseUrl}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="openRouterApiKey" className="block text-sm font-medium text-gray-300">OpenRouter API Key</label>
+                    <input
+                      type="password"
+                      id="openRouterApiKey"
+                      name="openRouterApiKey"
+                      value={localSettings.openRouterApiKey}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                      placeholder="sk-or-..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {localSettings.provider === 'minimax' && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="minimaxBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
+                    <input
+                      type="text"
+                      id="minimaxBaseUrl"
+                      name="minimaxBaseUrl"
+                      value={localSettings.minimaxBaseUrl || 'https://api.minimax.chat/v1'}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="minimaxApiKey" className="block text-sm font-medium text-gray-300">MiniMax API Key</label>
+                    <input
+                      type="password"
+                      id="minimaxApiKey"
+                      name="minimaxApiKey"
+                      value={localSettings.minimaxApiKey || ''}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                      placeholder="Enter your MiniMax key"
+                    />
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+              <div className="mb-3 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Model</h3>
+                  <p className="text-sm text-slate-400">
+                    {providerRequiresModelRefresh ? 'Refresh models from the provider, or enter one manually.' : 'Pick the Gemini model you want to use.'}
+                  </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${localSettings.model ? 'bg-emerald-500/10 text-emerald-200' : 'bg-slate-700 text-slate-300'}`}>
+                  {localSettings.model || 'No model selected'}
+                </span>
               </div>
-              <div>
-                <label htmlFor="openRouterApiKey" className="block text-sm font-medium text-gray-300">OpenRouter API Key</label>
-                <input
-                  type="password"
-                  id="openRouterApiKey"
-                  name="openRouterApiKey"
-                  value={localSettings.openRouterApiKey}
-                  onChange={handleInputChange}
-                  className={inputBaseClasses}
-                />
-              </div>
-            </>
-          )}
 
-          {localSettings.provider === 'minimax' && (
-            <>
-              <div>
-                <label htmlFor="minimaxBaseUrl" className="block text-sm font-medium text-gray-300">Base URL</label>
-                <input
-                  type="text"
-                  id="minimaxBaseUrl"
-                  name="minimaxBaseUrl"
-                  value={localSettings.minimaxBaseUrl || 'https://api.minimax.chat/v1'}
-                  onChange={handleInputChange}
-                  className={inputBaseClasses}
-                />
-              </div>
-              <div>
-                <label htmlFor="minimaxApiKey" className="block text-sm font-medium text-gray-300">MiniMax API Key</label>
-                <input
-                  type="password"
-                  id="minimaxApiKey"
-                  name="minimaxApiKey"
-                  value={localSettings.minimaxApiKey || ''}
-                  onChange={handleInputChange}
-                  className={inputBaseClasses}
-                />
-              </div>
-            </>
-          )}
+              {localSettings.provider === 'google' && (
+                <div className="space-y-3">
+                  <select
+                    id="model"
+                    name="model"
+                    value={localSettings.model}
+                    onChange={handleInputChange}
+                    className={selectBaseClasses}
+                  >
+                    <option value="gemini-flash-lite-latest">Gemini Flash Lite (Low-Latency)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  </select>
+                  <p className="text-xs text-gray-400">Specialized modes automatically promote to Gemini 2.5 Pro.</p>
+                </div>
+              )}
 
-          {isFetchVisible && (
-            <div className='border-t border-gray-600 pt-4'>
-                <button
-                    onClick={handleFetchModels}
-                    disabled={isFetchingModels}
-                    className="w-full bg-slate-600 text-white py-2 px-4 rounded-md hover:bg-slate-500 disabled:opacity-50 transition-colors"
-                >
-                    {isFetchingModels ? 'Fetching...' : 'Find / Refresh Models'}
-                </button>
-                {fetchError && <p className="text-red-400 text-sm mt-2">{fetchError}</p>}
+              {isFetchVisible && (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button
+                      type="button"
+                      onClick={handleFetchModels}
+                      disabled={isFetchingModels}
+                      className="rounded-md bg-slate-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-600 disabled:cursor-wait disabled:opacity-50"
+                    >
+                      {isFetchingModels ? 'Fetching...' : 'Find / Refresh Models'}
+                    </button>
+                    <div className="flex flex-1 items-center gap-3">
+                      <label className="flex items-center gap-2 text-sm text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={showFreeOnly}
+                          onChange={e => setShowFreeOnly(e.target.checked)}
+                          className="rounded border-slate-500 bg-slate-700 text-blue-500 focus:ring-blue-500"
+                        />
+                        <span>Show free models only</span>
+                      </label>
+                    </div>
+                  </div>
 
-                {models.length > 0 && (
-                     <div>
-                        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
-                            <input
-                                type="text"
-                                placeholder="Search models..."
-                                value={modelSearch}
-                                onChange={e => setModelSearch(e.target.value)}
-                                className={inputBaseClasses + ' flex-1'}
-                            />
-                            <label className="flex items-center space-x-2 text-sm text-gray-300 whitespace-nowrap">
-                                <input
-                                    type="checkbox"
-                                    checked={showFreeOnly}
-                                    onChange={e => setShowFreeOnly(e.target.checked)}
-                                    className="rounded bg-slate-700 border-slate-500 text-blue-500 focus:ring-blue-500"
-                                />
-                                <span>Show free models only</span>
-                            </label>
-                        </div>
-                        <label htmlFor="model" className="block text-sm font-medium text-gray-300 mt-2">Model ({filteredModels.length} found)</label>
-                        <select
+                  {fetchError && <p className="text-sm text-red-400">{fetchError}</p>}
+
+                  {models.length > 0 && (
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Search models..."
+                        value={modelSearch}
+                        onChange={e => setModelSearch(e.target.value)}
+                        className={inputBaseClasses}
+                      />
+                      <label htmlFor="model" className="block text-sm font-medium text-gray-300">
+                        Model ({filteredModels.length} found)
+                      </label>
+                      <select
                         id="model"
                         name="model"
                         value={localSettings.model}
                         onChange={handleInputChange}
                         className={selectBaseClasses}
-                        >
+                      >
                         <option value="">-- Select a Model --</option>
                         {filteredModels.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
+                      </select>
                     </div>
-                )}
+                  )}
 
-                {/* Manual model input fallback */}
-                <div className="mt-3">
+                  <div>
                     <label htmlFor="manualModel" className="block text-sm font-medium text-gray-300">Or enter model ID manually</label>
                     <input
-                        type="text"
-                        id="manualModel"
-                        name="model"
-                        value={localSettings.model}
-                        onChange={handleInputChange}
-                        className={inputBaseClasses}
-                        placeholder="e.g., llama-3.2-3b-instruct, MiniMax-Text-01"
+                      type="text"
+                      id="manualModel"
+                      name="model"
+                      value={localSettings.model}
+                      onChange={handleInputChange}
+                      className={inputBaseClasses}
+                      placeholder="e.g., llama-3.2-3b-instruct, MiniMax-Text-01"
                     />
-                    <p className="mt-1 text-xs text-gray-400">Type any model ID if it doesn't appear in the list above.</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      Type any model ID if it doesn't appear in the list above.
+                    </p>
+                  </div>
                 </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="mt-6 border-t border-slate-600 pt-4">
-            <h3 className="text-lg font-semibold text-gray-200 mb-2">Data Management</h3>
-            <button
+              )}
+            </section>
+
+            <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+              <h3 className="text-lg font-semibold text-white">Data management</h3>
+              <p className="mt-1 text-sm text-slate-400">
+                Remove local conversation history if you want to start fresh.
+              </p>
+              <button
                 onClick={onClearHistory}
-                className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
-            >
+                className="mt-4 w-full rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              >
                 Clear All Chat History
-            </button>
-            <p className="mt-2 text-xs text-gray-400">
-                This will permanently delete all your conversation history.
-            </p>
+              </button>
+              <p className="mt-2 text-xs text-gray-400">
+                This permanently deletes all conversation history stored in the app.
+              </p>
+            </section>
+          </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-slate-950/60 px-6 py-4">
+          <button
+            onClick={onClose}
+            className="rounded-md border border-white/10 bg-transparent px-4 py-2 text-sm text-gray-200 transition-colors hover:bg-white/5"
+          >
+            Cancel
+          </button>
           <button
             onClick={handleSave}
-            className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors"
+            disabled={!canSave}
+            className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Save & Close
+            Save Settings
           </button>
         </div>
       </div>
