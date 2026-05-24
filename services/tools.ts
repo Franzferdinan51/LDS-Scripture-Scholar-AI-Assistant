@@ -8,14 +8,6 @@ export interface ToolDefinition {
   parameters: any; // Gemini Schema
 }
 
-/** Metadata for UI display of a tool */
-export interface ToolDisplayDefinition {
-  name: string;
-  description: string;
-  icon: string;
-  category: 'scripture' | 'search' | 'media' | 'reference';
-}
-
 // --- Gemini Function Declarations ---
 
 export const SCRIPTURE_TOOLS: ToolDefinition[] = [
@@ -98,46 +90,6 @@ export const SCRIPTURE_TOOLS: ToolDefinition[] = [
     },
   },
 ];
-
-/** Alias for the Gemini function declarations array (for clarity in imports) */
-export const TOOL_DECLARATIONS = SCRIPTURE_TOOLS;
-
-/** UI display metadata for each tool */
-export const TOOL_DEFINITIONS: ToolDisplayDefinition[] = [
-  {
-    name: 'searchScriptures',
-    description: 'Search across all LDS scriptures for passages matching a query',
-    icon: '🔍',
-    category: 'scripture',
-  },
-  {
-    name: 'getCrossReferences',
-    description: 'Find cross-references for a scripture reference',
-    icon: '🔗',
-    category: 'reference',
-  },
-  {
-    name: 'getScriptureText',
-    description: 'Get full text of a specific verse or chapter',
-    icon: '📖',
-    category: 'scripture',
-  },
-  {
-    name: 'searchWeb',
-    description: 'Search the web for current LDS information',
-    icon: '🌐',
-    category: 'search',
-  },
-  {
-    name: 'searchWikimediaImage',
-    description: 'Search Wikimedia Commons for LDS images',
-    icon: '🖼',
-    category: 'media',
-  },
-];
-
-// --- Accessor Functions ---
-
 /**
  * Returns the Gemini tools array for use in chat configuration.
  * Each entry contains a `name`, `description`, and `parameters` schema
@@ -145,25 +97,4 @@ export const TOOL_DEFINITIONS: ToolDisplayDefinition[] = [
  */
 export function getGeminiToolDeclarations(): ToolDefinition[] {
   return SCRIPTURE_TOOLS;
-}
-
-/**
- * Returns a tool display definition by its name, or undefined if not found.
- */
-export function getToolByName(name: string): ToolDisplayDefinition | undefined {
-  return TOOL_DEFINITIONS.find(t => t.name === name);
-}
-
-/**
- * Returns all tool display definitions for a given category.
- */
-export function getToolsByCategory(category: ToolDisplayDefinition['category']): ToolDisplayDefinition[] {
-  return TOOL_DEFINITIONS.filter(t => t.category === category);
-}
-
-/**
- * Get the subset of tool definitions that a given skill requires.
- */
-export function getToolsForSkill(skillToolNames: string[]): ToolDefinition[] {
-  return SCRIPTURE_TOOLS.filter(t => skillToolNames.includes(t.name));
 }

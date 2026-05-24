@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { Message } from '../types';
 import MessageBubble from './MessageBubble';
 import SendIcon from './SendIcon';
@@ -20,18 +20,21 @@ const ScriptureAgentSidebar: React.FC<ScriptureAgentSidebarProps> = ({ isOpen, o
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const noOpAsync = useCallback(() => Promise.resolve(), []);
+  const noOp = useCallback(() => {}, []);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim() || isLoading) return;
     onSendMessage(text);
     setText('');
-  };
+  }, [text, isLoading, onSendMessage]);
 
   return (
     <>
-      <div 
+      <div
         className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity md:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
+        onClick={isOpen ? onClose : undefined}
       ></div>
       <aside 
         className={`fixed top-0 right-0 h-full bg-slate-900/90 backdrop-blur-lg border-l border-white/10 w-full max-w-md z-50 transform transition-transform duration-300 ease-in-out flex flex-col
@@ -49,25 +52,25 @@ const ScriptureAgentSidebar: React.FC<ScriptureAgentSidebarProps> = ({ isOpen, o
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((msg) => (
-              <MessageBubble 
-                key={msg.id} 
+            {(messages ?? []).map((msg) => (
+              <MessageBubble
+                key={msg.id}
                 message={msg}
-                onToggleAudio={() => Promise.resolve()} 
+                onToggleAudio={noOpAsync}
                 audioPlaybackState={{messageId: null, status: 'stopped'}}
-                onAnswerQuiz={() => {}}
-                onExplainVerse={() => {}}
-                onRetry={() => {}}
+                onAnswerQuiz={noOp}
+                onExplainVerse={noOp}
+                onRetry={noOp}
               />
             ))}
-            {isLoading && messages.length > 0 && messages[messages.length - 1]?.sender === 'user' && (
-                <MessageBubble 
-                    message={{id: 'loading-agent', text: '', sender: 'bot'}} 
-                    onToggleAudio={() => Promise.resolve()} 
+            {isLoading && (messages ?? []).length > 0 && (messages ?? [])[(messages ?? []).length - 1]?.sender === 'user' && (
+                <MessageBubble
+                    message={{id: 'loading-agent', text: '', sender: 'bot'}}
+                    onToggleAudio={noOpAsync}
                     audioPlaybackState={{messageId: null, status: 'stopped'}}
-                    onAnswerQuiz={() => {}}
-                    onExplainVerse={() => {}}
-                    onRetry={() => {}}
+                    onAnswerQuiz={noOp}
+                    onExplainVerse={noOp}
+                    onRetry={noOp}
                 />
             )}
             <div ref={messagesEndRef} />

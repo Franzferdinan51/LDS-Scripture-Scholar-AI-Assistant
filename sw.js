@@ -67,7 +67,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.debug('Opened cache');
         const cachePromises = urlsToCache.map(urlToCache => {
             const request = new Request(urlToCache, {mode: 'no-cors'});
             return cache.add(request).catch(err => {
@@ -105,10 +105,17 @@ self.addEventListener('fetch', event => {
                 caches.open(CACHE_NAME)
                   .then(cache => {
                     cache.put(event.request, responseToCache);
+                  })
+                  .catch(err => {
+                    console.debug('Failed to cache response:', err);
                   });
                 return networkResponse;
               }
-            );
+            ).catch(err => {
+              console.debug('Network fetch failed:', err);
+              // Return a basic offline-style Response so the SW always responds
+              return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
+            });
           })
       );
   }

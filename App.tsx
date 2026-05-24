@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import type { Message, ChatMode, ViewMode, GroundingChunk, StudyPlan, MultiQuiz, Note, JournalEntry, UserProfile, Memory as MemoryType, Skill, StudySession, Reminder, ThinkingDepth } from './types';
 import type { Session, LiveServerMessage, GenerateContentResponse, Content } from '@google/genai';
 import { createChatService, createChatServiceWithFailover, connectLive, generateSpeech, getJournalInsights, getProactiveSuggestion, getWikimediaImageUrl } from './services/geminiService';
@@ -31,13 +31,13 @@ import {
   getUserProfile, saveUserProfile,
 } from './services/storage';
 // Memory system
-import { extractMemories, storeMemories, retrieveRelevantMemories, getOrCreateProfile, updateProfileFromConversation, consolidateMemories } from './services/memory';
+import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfileFromConversation, consolidateMemories } from './services/memory';
 // Skills
 import { BUILTIN_SKILLS, initializeSkills } from './services/skills';
 // Reminders
 import { checkDueReminders } from './services/reminders';
 // Agent router
-import { routeToAgent, createSubAgentChat } from './services/agentRouter';
+import { routeToAgent } from './services/agentRouter';
 // Context compression
 import { needsCompression, compressContext } from './services/contextCompressor';
 // Conversation search
@@ -123,7 +123,20 @@ const App: React.FC = () => {
   const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
   const currentUserMessageIdRef = useRef<string | null>(null);
   const currentBotMessageIdRef = useRef<string | null>(null);
-  
+  const chatHistoryRef = useRef<ChatHistory>(chatHistory);
+  const activeChatIdRef = useRef<string | null>(activeChatId);
+
+  // Keep chatHistoryRef in sync so the finally block in handleSendMessage
+  // always reads the latest state (avoids stale closure bug).
+  useEffect(() => {
+    chatHistoryRef.current = chatHistory;
+  }, [chatHistory]);
+
+  // Keep activeChatIdRef in sync for callbacks with stale closures
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
+
   const isVoiceChatAvailable = settings.provider === 'google';
   const messages = activeChatId ? chatHistory[activeChatId] || [] : [];
 
@@ -136,7 +149,6 @@ const App: React.FC = () => {
 
     const handleAppInstalled = () => {
       setInstallPromptEvent(null);
-      console.log('PWA was installed');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -150,10 +162,16 @@ const App: React.FC = () => {
 
   const handleInstallPWA = async () => {
     if (!installPromptEvent) return;
-    installPromptEvent.prompt();
-    const { outcome } = await installPromptEvent.userChoice;
-    console.log(`User response to the install prompt: ${outcome}`);
-    setInstallPromptEvent(null);
+    try {
+      installPromptEvent.prompt();
+      const { outcome } = await installPromptEvent.userChoice;
+      // User responded to install prompt
+      void outcome;
+    } catch (e) {
+      console.error('PWA install prompt failed:', e);
+    } finally {
+      setInstallPromptEvent(null);
+    }
   };
 
   // --- Data Persistence and Initialization (IndexedDB) ---
@@ -337,26 +355,31 @@ const App: React.FC = () => {
 
   const triggerProactiveSuggestion = useCallback(async () => {
     if (isSuggesting || !settings.googleApiKey || chatMode !== 'chat' || !activeChatId) return;
-    
+
     setIsSuggesting(true);
-    const relevantMessages = chatHistory[activeChatId]?.filter(m => !m.isSuggestion) || [];
-    const history: Content[] = relevantMessages.slice(-4).map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.text }]
-    }));
+    try {
+      const relevantMessages = chatHistory[activeChatId]?.filter(m => !m.isSuggestion) || [];
+      const history: Content[] = relevantMessages.slice(-4).map(msg => ({
+          role: msg.sender === 'user' ? 'user' : 'model',
+          parts: [{ text: msg.text }]
+      }));
 
-    if (history.length > 0 && history[history.length - 1].role === 'model') history.pop();
-    if (history.length === 0 || history[history.length - 1].role !== 'user') {
+      if (history.length > 0 && history[history.length - 1].role === 'model') history.pop();
+      if (history.length === 0 || history[history.length - 1].role !== 'user') {
+        setIsSuggesting(false);
+        return;
+      }
+
+      const suggestion = await getProactiveSuggestion(settings.googleApiKey, history);
+      if (suggestion) {
+        const suggestionMessage: Message = { id: `suggestion-${Date.now()}`, text: suggestion, sender: 'bot', isSuggestion: true };
+        setChatHistory(prev => ({...prev, [activeChatId]: [...(prev[activeChatId] || []), suggestionMessage]}));
+      }
+    } catch (err) {
+      console.error("Proactive suggestion failed:", err);
+    } finally {
       setIsSuggesting(false);
-      return;
     }
-
-    const suggestion = await getProactiveSuggestion(settings.googleApiKey, history);
-    if (suggestion) {
-      const suggestionMessage: Message = { id: `suggestion-${Date.now()}`, text: suggestion, sender: 'bot', isSuggestion: true };
-      setChatHistory(prev => ({...prev, [activeChatId]: [...(prev[activeChatId] || []), suggestionMessage]}));
-    }
-    setIsSuggesting(false);
   }, [chatHistory, settings.googleApiKey, isSuggesting, chatMode, activeChatId]);
 
 
@@ -376,9 +399,14 @@ const App: React.FC = () => {
         return true;
       case '/compact':
         if (activeChatId && settings.googleApiKey) {
-          const currentMessages = chatHistory[activeChatId] || [];
-          const compressed = await compressContext(currentMessages, settings.googleApiKey);
-          setChatHistory(prev => ({ ...prev, [activeChatId]: compressed }));
+          try {
+            const currentMessages = chatHistoryRef.current[activeChatId] || [];
+            const compressed = await compressContext(currentMessages, settings.googleApiKey);
+            setChatHistory(prev => ({ ...prev, [activeChatId]: compressed }));
+          } catch (e) {
+            console.error("Context compression failed:", e);
+            setError("Failed to compress context. Please try again.");
+          }
         }
         return true;
       case '/search':
@@ -400,6 +428,83 @@ const App: React.FC = () => {
         return true;
       case '/reminders':
         setActiveView('reminders');
+        return true;
+      case '/retry':
+        if (activeChatId) {
+          const msgs = chatHistory[activeChatId] || [];
+          // Find last user message
+          const lastUserIdx = [...msgs].reverse().findIndex(m => m.sender === 'user' && !m.isSuggestion);
+          if (lastUserIdx !== -1) {
+            const actualIdx = msgs.length - 1 - lastUserIdx;
+            const lastUserMsg = msgs[actualIdx];
+            // Remove the last bot response (if any) and resend
+            const newMsgs = msgs.slice(0, actualIdx);
+            setChatHistory(prev => ({ ...prev, [activeChatId]: newMsgs }));
+            // Re-trigger send after a tick
+            setTimeout(() => handleSendMessage(lastUserMsg.text), 100);
+          }
+        }
+        return true;
+      case '/undo':
+        if (activeChatId) {
+          const msgs = chatHistory[activeChatId] || [];
+          // Find last user message and remove it + its bot response
+          const lastUserIdx = [...msgs].reverse().findIndex(m => m.sender === 'user' && !m.isSuggestion);
+          if (lastUserIdx !== -1) {
+            const actualIdx = msgs.length - 1 - lastUserIdx;
+            // Keep everything up to (not including) the last user message
+            const newMsgs = msgs.slice(0, actualIdx);
+            setChatHistory(prev => ({ ...prev, [activeChatId]: newMsgs }));
+          }
+        }
+        return true;
+      case '/status':
+        if (activeChatId) {
+          const msgs = chatHistory[activeChatId] || [];
+          const msgCount = msgs.filter(m => !m.isSuggestion && m.id !== 'initial-message').length;
+          const statusText = [
+            `**System Status**`,
+            `Provider: ${settings.provider}`,
+            `Model: ${settings.model || 'default'}`,
+            `Chat Mode: ${chatMode}`,
+            `Active Skill: ${activeSkill?.name || 'none'}`,
+            `Messages in chat: ${msgCount}`,
+            `Memories stored: ${memories.length}`,
+            `Study Streak: ${userProfile?.streakDays || 0} days`,
+            `Thinking Depth: ${thinkingDepth}`,
+          ].join('\n');
+          const statusMsg: Message = { id: `status-${Date.now()}`, text: statusText, sender: 'bot' };
+          setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), statusMsg] }));
+        }
+        return true;
+      case '/think':
+        if (args[0] && ['light', 'medium', 'deep'].includes(args[0])) {
+          setThinkingDepth(args[0] as ThinkingDepth);
+          const thinkMsg: Message = { id: `think-${Date.now()}`, text: `Thinking depth set to **${args[0]}**.`, sender: 'bot' };
+          if (activeChatId) {
+            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), thinkMsg] }));
+          }
+        } else {
+          const errMsg: Message = { id: `think-err-${Date.now()}`, text: 'Usage: `/think light`, `/think medium`, or `/think deep`', sender: 'bot' };
+          if (activeChatId) {
+            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), errMsg] }));
+          }
+        }
+        return true;
+      case '/verbose':
+        if (args[0] === 'on' || args[0] === 'off') {
+          const verboseMsg: Message = { id: `verbose-${Date.now()}`, text: `Verbose mode ${args[0]}. Responses will be ${args[0] === 'on' ? 'more detailed' : 'more concise'}.`, sender: 'bot' };
+          if (activeChatId) {
+            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), verboseMsg] }));
+          }
+          // Store verbose setting
+          await setSetting('verboseMode', args[0] === 'on');
+        } else {
+          const errMsg: Message = { id: `verbose-err-${Date.now()}`, text: 'Usage: `/verbose on` or `/verbose off`', sender: 'bot' };
+          if (activeChatId) {
+            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), errMsg] }));
+          }
+        }
         return true;
       default:
         return false;
@@ -591,7 +696,7 @@ const App: React.FC = () => {
       if (chatMode === 'chat' && !requestError && activeChatId) {
           setTimeout(() => triggerProactiveSuggestion(), 2000);
           // Extract and store memories from the conversation (async, non-blocking)
-          const currentMessages = chatHistory[activeChatId] || [];
+          const currentMessages = chatHistoryRef.current[activeChatId] || [];
           if (settings.googleApiKey && currentMessages.length >= 4) {
             extractMemories(currentMessages, settings.googleApiKey)
               .then(extracted => {
@@ -738,7 +843,7 @@ const App: React.FC = () => {
 
       const sessionPromise = connectLive(settings.googleApiKey, {
         onopen: () => {
-          console.log('Voice session opened');
+          console.debug('Voice session opened');
           const source = inputAudioContextRef.current!.createMediaStreamSource(mediaStreamRef.current!);
           scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
           scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
@@ -752,32 +857,33 @@ const App: React.FC = () => {
           setIsVoiceActive(true);
         },
         onmessage: async (message: LiveServerMessage) => {
-          if (!activeChatId) return; // Should not happen but safety check
+          const currentActiveChatId = activeChatIdRef.current;
+          if (!currentActiveChatId) return; // Should not happen but safety check
           // Handle Input Transcription
           if (message.serverContent?.inputTranscription) {
             const text = message.serverContent.inputTranscription.text;
             if (currentUserMessageIdRef.current) {
-              setChatHistory(prev => ({...prev, [activeChatId]: prev[activeChatId]?.map(m => m.id === currentUserMessageIdRef.current ? { ...m, text: m.text + text } : m)}));
+              setChatHistory(prev => ({...prev, [currentActiveChatId]: prev[currentActiveChatId]?.map(m => m.id === currentUserMessageIdRef.current ? { ...m, text: m.text + text } : m)}));
             } else {
               const id = `user-${Date.now()}`;
               currentUserMessageIdRef.current = id;
-              setChatHistory(prev => ({...prev, [activeChatId]: [...(prev[activeChatId] || []), { id, text, sender: 'user' }]}));
+              setChatHistory(prev => ({...prev, [currentActiveChatId]: [...(prev[currentActiveChatId] || []), { id, text, sender: 'user' }]}));
             }
           }
           // Handle Bot Response
           if (message.serverContent?.outputTranscription) {
             const text = message.serverContent.outputTranscription.text;
             if (currentBotMessageIdRef.current) {
-               setChatHistory(prev => ({...prev, [activeChatId]: prev[activeChatId]?.map(m => m.id === currentBotMessageIdRef.current ? { ...m, text: m.text + text } : m)}));
+               setChatHistory(prev => ({...prev, [currentActiveChatId]: prev[currentActiveChatId]?.map(m => m.id === currentBotMessageIdRef.current ? { ...m, text: m.text + text } : m)}));
             } else {
               currentUserMessageIdRef.current = null;
               const id = `bot-${Date.now()}`;
               currentBotMessageIdRef.current = id;
-              setChatHistory(prev => ({...prev, [activeChatId]: [...(prev[activeChatId] || []), { id, text, sender: 'bot' }]}));
+              setChatHistory(prev => ({...prev, [currentActiveChatId]: [...(prev[currentActiveChatId] || []), { id, text, sender: 'bot' }]}));
             }
           }
 
-          const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+          const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
           if (audioData) {
             const outputCtx = outputAudioContextRef.current!;
             nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
@@ -795,7 +901,7 @@ const App: React.FC = () => {
           if (message.serverContent?.interrupted) { audioSourcesRef.current.forEach(source => source.stop()); audioSourcesRef.current.clear(); nextStartTimeRef.current = 0; }
         },
         onerror: (e: ErrorEvent) => { console.error('Voice error:', e); setError('Voice chat error.'); stopVoiceSession(); },
-        onclose: (e: CloseEvent) => { console.log('Voice closed'); stopVoiceSession(); },
+        onclose: (e: CloseEvent) => { console.debug('Voice closed'); stopVoiceSession(); },
       });
       sessionPromise.then(setSession).catch(err => { console.error("Live session failed:", err); setError("Could not start voice chat."); stopVoiceSession(); });
     } catch (err) { console.error("Voice chat failed:", err); setError("Could not access microphone."); stopVoiceSession(); }
@@ -845,7 +951,7 @@ const App: React.FC = () => {
             });
         };
         
-        setAudioPlayback({ ...audioPlayback, messageId, status: 'playing', source: newSource, audioBuffer });
+        setAudioPlayback(prev => ({ ...prev, messageId, status: 'playing', source: newSource, audioBuffer }));
     } catch (e) {
         console.error("Audio playback error:", e);
         setError(e instanceof Error ? e.message : "Failed to play audio.");
@@ -917,6 +1023,16 @@ const App: React.FC = () => {
             profile={userProfile}
             studySessions={studySessions}
             onNavigate={(view) => setActiveView(view as ViewMode)}
+            onDeleteMemory={async (id: string) => {
+              const { deleteMemory: deleteMem } = await import('./services/storage');
+              await deleteMem(id);
+              setMemories(prev => prev.filter(m => m.id !== id));
+            }}
+            onRefreshMemories={async () => {
+              const { retrieveRelevantMemories: retrieve } = await import('./services/memory');
+              const refreshed = await retrieve('', 20);
+              setMemories(refreshed);
+            }}
           />
         );
       case 'reminders':
