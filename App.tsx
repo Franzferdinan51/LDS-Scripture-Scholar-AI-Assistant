@@ -36,6 +36,8 @@ import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfile
 import { BUILTIN_SKILLS, initializeSkills } from './services/skills';
 // Reminders
 import { checkDueReminders } from './services/reminders';
+// Study progress tracking
+import { recordConversation } from './services/studyProgress';
 // Agent router
 import { routeToAgent } from './services/agentRouter';
 import type { AgentPhase } from './components/AgentIndicator';
@@ -824,6 +826,8 @@ const App: React.FC = () => {
             };
             saveStudySession(session).catch(() => {});
             setStudySessions(prev => [...prev, session]);
+            // Record progress for achievements
+            recordConversation().catch(() => {});
           }
       }
     }
