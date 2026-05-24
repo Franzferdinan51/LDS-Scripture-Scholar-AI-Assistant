@@ -1,7 +1,7 @@
 
 
 
-const CACHE_NAME = 'lds-scripture-scholar-cache-v9';
+const CACHE_NAME = 'lds-scripture-scholar-cache-v10';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -60,7 +60,7 @@ export function getOpenAIToolDeclarations(): OpenAITool[] {
 export const SCRIPTURE_TOOLS: ToolDefinition[] = [
   {
     name: 'searchScriptures',
-    description: 'Search across all LDS scriptures (Bible, Book of Mormon, Doctrine and Covenants, Pearl of Great Price) for passages matching a query. Returns matching verses with references.',
+    description: 'Search across all standard works (Bible, Book of Mormon, Doctrine and Covenants, Pearl of Great Price) for passages matching a query. Returns matching verses with references.',
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -96,7 +96,7 @@ export const SCRIPTURE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'getScriptureText',
-    description: 'Get the full text of a specific scripture verse or chapter. Provide a reference like "2 Nephi 2:25" or "Alma 32" or "D&C 76".',
+    description: 'Get the full text of a specific scripture verse or chapter from the standard works. Provide a reference like "2 Nephi 2:25", "Alma 32", or "D&C 76".',
     parameters: {
       type: Type.OBJECT,
       properties: {

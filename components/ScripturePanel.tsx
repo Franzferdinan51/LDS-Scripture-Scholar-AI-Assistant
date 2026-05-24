@@ -1,7 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import LoadingDots from './LoadingDots';
+import {
+    loadScriptureVolume,
+    type ScriptureData,
+    type ScriptureVolume,
+} from '../services/scriptureCorpus';
 
-type ScriptureVolume = 'old-testament' | 'new-testament' | 'book-of-mormon' | 'doctrine-and-covenants' | 'pearl-of-great-price';
+interface ScripturePanelProps {
+    setReadingContext: (context: string) => void;
+    onAskAboutVerse: (verse: { book: string; chapter: number; verse: number; text: string }) => void;
+}
 
 interface Verse {
     verse: number;
@@ -10,32 +18,9 @@ interface Verse {
 
 interface Chapter {
     chapter: number;
-    reference?: string; 
+    reference?: string;
     verses: Verse[];
 }
-
-interface Book {
-    book: string;
-    chapters: Chapter[];
-}
-
-interface ScriptureData {
-    title: string;
-    books: Book[];
-}
-
-interface ScripturePanelProps {
-    setReadingContext: (context: string) => void;
-    onAskAboutVerse: (verse: { book: string, chapter: number, verse: number, text: string }) => void;
-}
-
-const scriptureCache = new Map<ScriptureVolume, ScriptureData>();
-
-const formatBookForNephiApi = (bookName: string): string => {
-    if (bookName === 'Doctrine and Covenants') return 'dc';
-    if (bookName === 'Official Declarations') return 'od';
-    return bookName.toLowerCase().replace(/\s+/g, '-');
-};
 
 const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAskAboutVerse }) => {
     const [scriptureData, setScriptureData] = useState<ScriptureData | null>(null);
@@ -49,251 +34,75 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
     const fetchScriptureData = useCallback(async (volume: ScriptureVolume) => {
         setIsLoading(true);
         setError(null);
-        setScriptureData(null); 
-
-        if (scriptureCache.has(volume)) {
-            setScriptureData(scriptureCache.get(volume)!);
-            return; 
-        }
 
         try {
-            let data: ScriptureData;
-
-            if (volume === 'book-of-mormon') {
-                // BOM is split across 3 files with different structures — merge them
-                const [mainResp, part1Resp, part2Resp] = await Promise.all([
-                    fetch('/data/book-of-mormon.json'),
-                    fetch('/data/book-of-mormon-part1.json'),
-                    fetch('/data/book-of-mormon-part2.json'),
-                ]);
-
-                const allBooks = new Map<string, Book>();
-
-                // Helper to normalize a book entry
-                const normalizeBook = (b: any): Book => {
-                    const bookName = b.book || b.shortName || b.title || 'Unknown';
-                    const chapters: Chapter[] = (b.chapters || []).map((c: any) => ({
-                        chapter: c.chapter,
-                        reference: c.reference || `${bookName} ${c.chapter}`,
-                        verses: (c.verses || []).map((v: any) => ({
-                            verse: v.verse || v.verse_number || 0,
-                            text: (v.text || '').trim(),
-                        })).filter((v: Verse) => v.text.length > 0),
-                    })).filter((c: Chapter) => c.verses.length > 0);
-                    return { book: bookName, chapters };
-                };
-
-                // Load main file (1 Nephi chapter 1)
-                if (mainResp.ok) {
-                    const mainData = await mainResp.json();
-                    for (const b of mainData.books || []) {
-                        const normalized = normalizeBook(b);
-                        if (normalized.chapters.length > 0) {
-                            allBooks.set(normalized.book, normalized);
-                        }
-                    }
-                }
-
-                // Load part1 (1 Nephi through Mosiah - full text from Gutenberg)
-                if (part1Resp.ok) {
-                    const part1Data = await part1Resp.json();
-                    for (const b of part1Data.books || []) {
-                        const normalized = normalizeBook(b);
-                        if (normalized.chapters.length > 0) {
-                            // Merge: add chapters that don't already exist
-                            const existing = allBooks.get(normalized.book);
-                            if (!existing) {
-                                allBooks.set(normalized.book, normalized);
-                            } else {
-                                for (const ch of normalized.chapters) {
-                                    if (!existing.chapters.some(ec => ec.chapter === ch.chapter)) {
-                                        existing.chapters.push(ch);
-                                    }
-                                }
-                                existing.chapters.sort((a, b) => a.chapter - b.chapter);
-                            }
-                        }
-                    }
-                }
-
-                // Load part2 (Mosiah continued through Moroni)
-                if (part2Resp.ok) {
-                    const part2Data = await part2Resp.json();
-                    for (const b of part2Data.books || []) {
-                        const normalized = normalizeBook(b);
-                        if (normalized.chapters.length > 0) {
-                            // For part2, books may have names like "THE BOOK OF ALMA"
-                            // Try to match by short name
-                            const normalizedName = normalized.book;
-                            const existingKey = [...allBooks.keys()].find(
-                                k => k.toLowerCase() === normalizedName.toLowerCase() ||
-                                     normalizedName.toLowerCase().includes(k.toLowerCase()) ||
-                                     k.toLowerCase().includes(normalizedName.toLowerCase())
-                            );
-                            if (!existingKey) {
-                                allBooks.set(normalizedName, normalized);
-                            } else {
-                                const existing = allBooks.get(existingKey)!;
-                                for (const ch of normalized.chapters) {
-                                    if (!existing.chapters.some(ec => ec.chapter === ch.chapter)) {
-                                        existing.chapters.push(ch);
-                                    }
-                                }
-                                existing.chapters.sort((a, b) => a.chapter - b.chapter);
-                            }
-                        }
-                    }
-                }
-
-                // Sort books in canonical order
-                const canonicalOrder = [
-                    '1 Nephi', '2 Nephi', 'Jacob', 'Enos', 'Jarom', 'Omni',
-                    'Words of Mormon', 'Mosiah', 'Alma', 'Helaman',
-                    '3 Nephi', '4 Nephi', 'Mormon', 'Ether', 'Moroni'
-                ];
-                const booksArr = [...allBooks.values()];
-                booksArr.sort((a, b) => {
-                    const ai = canonicalOrder.findIndex(n => a.book.toLowerCase().includes(n.toLowerCase()));
-                    const bi = canonicalOrder.findIndex(n => b.book.toLowerCase().includes(n.toLowerCase()));
-                    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-                });
-
-                data = { title: 'The Book of Mormon', books: booksArr };
-            } else {
-                const response = await fetch(`/data/${volume}.json`);
-                if (!response.ok) throw new Error(`Failed to load scripture data for ${volume}: ${response.statusText}`);
-                const rawData = await response.json();
-
-                // Standardize data structure to ensure references are set correctly
-                const formattedBooks: Book[] = rawData.books.map((b: any) => {
-                    const bookName = b.book;
-                    return {
-                        book: bookName,
-                        chapters: b.chapters.map((c: any) => ({
-                            ...c,
-                            reference: c.reference || `${bookName} ${c.chapter}`
-                        }))
-                    };
-                });
-                data = { title: rawData.title, books: formattedBooks };
-            }
-
-            scriptureCache.set(volume, data);
+            const data = await loadScriptureVolume(volume);
             setScriptureData(data);
         } catch (err) {
             console.error(err);
-            setError(err instanceof Error ? err.message : "An unknown error occurred loading scriptures.");
+            setError(err instanceof Error ? err.message : 'An unknown error occurred loading scriptures.');
+            setScriptureData(null);
+        } finally {
+            setIsLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchScriptureData(selectedVolume);
+        void fetchScriptureData(selectedVolume);
     }, [selectedVolume, fetchScriptureData]);
 
     useEffect(() => {
-        if (scriptureData && scriptureData.books.length > 0) {
-            const currentBookExists = scriptureData.books.some(b => b.book === selectedBook);
-            if (!currentBookExists) {
-                setSelectedBook(scriptureData.books[0].book);
-                setSelectedChapter(1);
-            }
+        if (!scriptureData || scriptureData.books.length === 0) return;
+
+        const currentBookExists = scriptureData.books.some(book => book.book === selectedBook);
+        if (!currentBookExists) {
+            setSelectedBook(scriptureData.books[0].book);
+            setSelectedChapter(1);
         }
     }, [scriptureData, selectedBook]);
 
     useEffect(() => {
-        if (!scriptureData || !selectedBook || !selectedChapter) {
-            return;
-        }
+        if (!scriptureData || !selectedBook || !selectedChapter) return;
 
-        const loadChapter = async () => {
-            setIsLoading(true);
+        const bookData = scriptureData.books.find(book => book.book === selectedBook);
+        const chapterData = bookData?.chapters.find(chapter => chapter.chapter === selectedChapter);
+
+        if (chapterData) {
+            setActiveChapter(chapterData);
+            setReadingContext(chapterData.reference || `${selectedBook} ${selectedChapter}`);
             setError(null);
+        } else {
             setActiveChapter(null);
-
-            try {
-                const currentVolumeTitle = scriptureData.title;
-                const isNephiApiVolume = currentVolumeTitle === 'The Doctrine and Covenants';
-                const isBibleApiVolume = currentVolumeTitle === 'The Old Testament (KJV)' || currentVolumeTitle === 'The New Testament (KJV)';
-                const isLocalFullDataVolume = currentVolumeTitle === 'The Book of Mormon' || currentVolumeTitle === 'The Pearl of Great Price';
-                
-                const bookIsInCurrentVolume = scriptureData.books.some(b => b.book === selectedBook);
-                if (!bookIsInCurrentVolume) {
-                    return;
-                }
-                
-                if (isNephiApiVolume) {
-                    const bookSlug = formatBookForNephiApi(selectedBook);
-                    const url = `https://api.nephi.org/v1/volumes/doctrine-and-covenants/books/${bookSlug}/chapters/${selectedChapter}`;
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`Could not find ${selectedBook} ${selectedChapter}.`);
-                    const data = await response.json();
-                     if (!data.verses || data.verses.length === 0) {
-                        throw new Error(`No verses returned for ${selectedBook} ${selectedChapter}.`);
-                    }
-                    const chapterContent: Chapter = { chapter: data.chapter, reference: data.reference, verses: data.verses.map((v: any) => ({ verse: v.verse, text: v.text.trim() })) };
-                    setActiveChapter(chapterContent);
-                    setReadingContext(data.reference);
-
-                } else if (isBibleApiVolume) {
-                    const response = await fetch(`https://bible-api.com/${encodeURIComponent(selectedBook)} ${selectedChapter}?translation=kjv`);
-                    if (!response.ok) {
-                        throw new Error(`Could not find ${selectedBook} ${selectedChapter}. Please try another chapter or book.`);
-                    }
-                    const data = await response.json();
-                    if (!data.verses || data.verses.length === 0) {
-                        throw new Error(`No verses returned for ${selectedBook} ${selectedChapter}.`);
-                    }
-
-                    const chapterContent: Chapter = {
-                        chapter: data.verses[0].chapter,
-                        reference: data.reference,
-                        verses: data.verses.map((v: any) => ({ verse: v.verse, text: v.text.trim() }))
-                    };
-                    setActiveChapter(chapterContent);
-                    setReadingContext(data.reference);
-
-                } else if (isLocalFullDataVolume) {
-                    const bookData = scriptureData.books.find(b => b.book === selectedBook);
-                    const chapterData = bookData?.chapters.find(c => c.chapter === selectedChapter);
-                    if (chapterData) {
-                        setActiveChapter(chapterData);
-                        setReadingContext(chapterData.reference || `${selectedBook} ${selectedChapter}`);
-                    } else {
-                        setError(`Could not find ${selectedBook} ${selectedChapter} in local data.`);
-                    }
-                } else {
-                    setError("Unsupported scripture volume.");
-                }
-            } catch(e) {
-                 console.error("Chapter loading failed:", e);
-                 setError(e instanceof Error ? e.message : "An unknown error occurred loading chapter.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadChapter();
+            setError(`Could not find ${selectedBook} ${selectedChapter}.`);
+        }
     }, [scriptureData, selectedBook, selectedChapter, setReadingContext]);
 
+    const currentBookData = useMemo(
+        () => scriptureData?.books.find(book => book.book === selectedBook),
+        [scriptureData, selectedBook]
+    );
 
-    const currentBookData = useMemo(() => scriptureData?.books.find(b => b.book === selectedBook), [scriptureData, selectedBook]);
-    
     const handleBookChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedBook(e.target.value);
-        setSelectedChapter(1); // Reset to first chapter on book change
+        setSelectedChapter(1);
     };
 
     const handleChapterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedChapter(Number(e.target.value));
     };
-    
+
     const handleVerseClick = (verse: Verse) => {
         if (activeChapter) {
-            onAskAboutVerse({ book: selectedBook, chapter: activeChapter.chapter, verse: verse.verse, text: verse.text });
+            onAskAboutVerse({
+                book: selectedBook,
+                chapter: activeChapter.chapter,
+                verse: verse.verse,
+                text: verse.text,
+            });
         }
-    }
-    
-    const volumes: { id: ScriptureVolume, name: string }[] = [
+    };
+
+    const volumes: { id: ScriptureVolume; name: string }[] = [
         { id: 'book-of-mormon', name: 'Book of Mormon' },
         { id: 'doctrine-and-covenants', name: 'D&C' },
         { id: 'pearl-of-great-price', name: 'Pearl of Great Price' },
@@ -302,22 +111,42 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
     ];
 
     const renderContent = () => {
-        if (isLoading) return <div className="flex justify-center items-center flex-1"><LoadingDots /></div>;
-        if (error) return <div className="p-4 text-center text-red-400 flex-1">{error}</div>;
-        if (!activeChapter) return (
-             <div className="p-4 text-center text-gray-400 flex-1">
-                Select a book and chapter to begin reading.
-             </div>
-        );
+        if (isLoading) {
+            return (
+                <div className="flex flex-1 items-center justify-center">
+                    <LoadingDots />
+                </div>
+            );
+        }
+
+        if (error) {
+            return <div className="flex-1 p-4 text-center text-red-400">{error}</div>;
+        }
+
+        if (!activeChapter) {
+            return (
+                <div className="flex-1 p-4 text-center text-gray-400">
+                    Select a book and chapter to begin reading.
+                </div>
+            );
+        }
 
         return (
             <article className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
-                <h3 className="text-2xl font-bold mb-4">{activeChapter.reference || `${selectedBook} ${selectedChapter}`}</h3>
+                <h3 className="mb-4 text-2xl font-bold">
+                    {activeChapter.reference || `${selectedBook} ${selectedChapter}`}
+                </h3>
                 <div className="text-lg leading-loose font-serif">
-                    {activeChapter?.verses?.map(verse => (
+                    {activeChapter.verses.map(verse => (
                         <p key={verse.verse} className="mb-2">
-                            <sup className="font-sans font-bold text-blue-400 mr-1 select-none">{verse.verse}</sup>
-                             <span className="cursor-pointer hover:bg-slate-700/50 rounded p-1 transition-colors" onClick={() => handleVerseClick(verse)} title={`Ask about verse ${verse.verse}`}>
+                            <sup className="mr-1 select-none font-sans font-bold text-blue-400">
+                                {verse.verse}
+                            </sup>
+                            <span
+                                className="cursor-pointer rounded p-1 transition-colors hover:bg-slate-700/50"
+                                onClick={() => handleVerseClick(verse)}
+                                title={`Ask about verse ${verse.verse}`}
+                            >
                                 {verse.text}
                             </span>
                         </p>
@@ -328,32 +157,65 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
     };
 
     return (
-        <div className="h-full flex flex-col text-gray-200 bg-slate-900/40">
-            <header className="p-4 bg-slate-800/60 backdrop-blur-sm border-b border-white/10 shadow-md">
-                <div className="flex justify-center mb-4 border-b border-slate-700 flex-wrap">
-                    {volumes.map(vol => (
-                        <button key={vol.id} onClick={() => setSelectedVolume(vol.id)} className={`px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${selectedVolume === vol.id ? 'text-blue-400 border-b-2 border-blue-400' : 'text-gray-400 hover:text-white'}`}>
-                            {vol.name}
+        <div className="flex h-full flex-col bg-slate-900/40 text-gray-200">
+            <header className="border-b border-white/10 bg-slate-800/60 p-4 shadow-md backdrop-blur-sm">
+                <div className="mb-4 flex flex-wrap justify-center border-b border-slate-700">
+                    {volumes.map(volume => (
+                        <button
+                            key={volume.id}
+                            onClick={() => setSelectedVolume(volume.id)}
+                            className={`whitespace-nowrap px-2 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
+                                selectedVolume === volume.id
+                                    ? 'border-b-2 border-blue-400 text-blue-400'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            {volume.name}
                         </button>
                     ))}
                 </div>
+
                 {scriptureData ? (
                     <div className="flex gap-2 sm:gap-4">
                         <div className="flex-1">
-                            <label htmlFor="book-select" className="sr-only">Book</label>
-                            <select id="book-select" value={selectedBook} onChange={handleBookChange} className="w-full p-2 rounded-md bg-slate-700 border border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                {scriptureData.books.map(book => <option key={book.book} value={book.book}>{book.book}</option>)}
+                            <label htmlFor="book-select" className="sr-only">
+                                Book
+                            </label>
+                            <select
+                                id="book-select"
+                                value={selectedBook}
+                                onChange={handleBookChange}
+                                className="w-full rounded-md border border-slate-600 bg-slate-700 p-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {scriptureData.books.map(book => (
+                                    <option key={book.book} value={book.book}>
+                                        {book.book}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div className="flex-1">
-                            <label htmlFor="chapter-select" className="sr-only">Chapter</label>
-                            <select id="chapter-select" value={selectedChapter} onChange={handleChapterChange} className="w-full p-2 rounded-md bg-slate-700 border border-slate-600 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                {currentBookData?.chapters?.map(chap => <option key={chap.chapter} value={chap.chapter}>{chap.reference ? chap.reference.split(' ').slice(-1)[0] : `Chapter ${chap.chapter}`}</option>)}
+                            <label htmlFor="chapter-select" className="sr-only">
+                                Chapter
+                            </label>
+                            <select
+                                id="chapter-select"
+                                value={selectedChapter}
+                                onChange={handleChapterChange}
+                                className="w-full rounded-md border border-slate-600 bg-slate-700 p-2 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {currentBookData?.chapters.map(chapter => (
+                                    <option key={chapter.chapter} value={chapter.chapter}>
+                                        {chapter.reference ? chapter.reference.split(' ').slice(-1)[0] : `Chapter ${chapter.chapter}`}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex justify-center"><LoadingDots/></div>
+                    <div className="flex justify-center">
+                        <LoadingDots />
+                    </div>
                 )}
             </header>
             {renderContent()}

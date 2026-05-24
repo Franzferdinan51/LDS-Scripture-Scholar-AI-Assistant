@@ -92,6 +92,10 @@ export const createAgentRouter = (): AgentRouter => new AgentRouter();
 export function routeToAgent(message: string, mode: ChatMode): SubAgent | null {
   const lower = message.toLowerCase();
 
+  if (/^\s*(hi|hello|hey|howdy|thanks|thank you|good morning|good afternoon|good evening)\b/i.test(lower)) {
+    return SUB_AGENTS.get('generalChat') || null;
+  }
+
   if (mode === 'study-plan' || /study\s*plan|create\s*plan|schedule/i.test(lower)) {
     return SUB_AGENTS.get('studyPlanner') || null;
   }
@@ -101,11 +105,11 @@ export function routeToAgent(message: string, mode: ChatMode): SubAgent | null {
   if (mode === 'lesson-prep' || /lesson|prepare\s*teach|preach/i.test(lower)) {
     return SUB_AGENTS.get('lessonPrep') || null;
   }
-  if (/search\s*scripture|find\s*verse|look\s*up|research/i.test(lower) || mode === 'chat') {
+  if (/(scripture|verse|cross-?reference|book of mormon|doctrine and covenants|pearl of great price|old testament|new testament|1 nephi|2 nephi|alma|moroni|moses|abraham|joseph smith|gospel doctrine)/i.test(lower)) {
     return SUB_AGENTS.get('research') || null;
   }
 
-  return SUB_AGENTS.get('research') || null;
+  return SUB_AGENTS.get('generalChat') || null;
 }
 
 // ============================================================================
@@ -124,6 +128,14 @@ export interface SubAgent {
 }
 
 export const SUB_AGENTS: Map<string, SubAgent> = new Map([
+  ['generalChat', {
+    id: 'generalChat',
+    name: 'General Chat Agent',
+    description: 'Handles ordinary conversation, short follow-ups, and broad scripture questions without forcing a specialist mode.',
+    capabilities: ['conversation', 'clarification'],
+    systemPrompt: 'You are a helpful LDS scripture scholar assistant. Keep ordinary chat natural, concise, and grounded in scripture when relevant.',
+    icon: '💬',
+  }],
   ['research', {
     id: 'research',
     name: 'Research Agent',
