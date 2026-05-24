@@ -33,7 +33,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
 
   const startJournaling = async () => {
     if (!isApiConfigured) {
-      setError("Google API Key is required for this feature. Please set it in settings.");
+      setError("Voice journaling is currently available only with the Google provider. Please set it in Settings.");
       return;
     }
     setError(null);

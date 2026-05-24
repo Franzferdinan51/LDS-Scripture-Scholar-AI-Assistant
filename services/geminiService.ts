@@ -4,6 +4,7 @@ import { buildSystemPrompt } from "./promptBuilder";
 import { SCRIPTURE_TOOLS, getGeminiToolDeclarations, getOpenAIToolDeclarations } from "./tools";
 import { executeTool } from "./toolExecutor";
 import { getCrossReferences as getCrossReferencesCompat } from './crossReferenceService';
+import { generateTextWithSettings, generateJsonWithSettings } from './llmService';
 import { parseJSON } from "../utils/jsonRepair";
 
 // ============================================================================
@@ -943,34 +944,26 @@ export const generateSpeech = async (apiKey: string, text: string): Promise<stri
     return base64Audio;
 };
 
-export const getJournalInsights = async (apiKey: string, text: string): Promise<any> => {
-    if (!apiKey) throw new Error("Google API Key is not set for Journal Insights.");
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: text,
-        config: {
-            systemInstruction: JOURNAL_SUMMARY_SYSTEM_INSTRUCTION,
-            responseMimeType: 'application/json'
-        },
+export const getJournalInsights = async (settings: ApiProviderSettings, text: string): Promise<any> => {
+    if (!settings) throw new Error("Provider settings are not configured for Journal Insights.");
+    return generateJsonWithSettings(settings, text, {
+        systemInstruction: JOURNAL_SUMMARY_SYSTEM_INSTRUCTION,
+        model: settings.model || undefined,
+        temperature: 0.2,
     });
-    return parseJSON(response.text);
 };
 
-export const getProactiveSuggestion = async (apiKey: string, history: Content[]): Promise<string | null> => {
-    if (!apiKey || history.length === 0) return null;
-    const ai = new GoogleGenAI({ apiKey });
+export const getProactiveSuggestion = async (settings: ApiProviderSettings, history: Content[]): Promise<string | null> => {
+    if (!settings || history.length === 0) return null;
     try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: history,
-            config: {
-                systemInstruction: `You are a helpful assistant. Based on this short conversation history, suggest ONE concise and relevant follow-up question the user might be interested in asking. The suggestion should be a question. Do not add any preamble. Respond with only the question text.`,
-                stopSequences: ['\n'],
-                temperature: 0.8,
-            },
+        const conversationText = history
+            .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${(msg.parts || []).map(part => ('text' in part ? part.text : '')).join(' ')}`)
+            .join('\n');
+        let suggestion = await generateTextWithSettings(settings, conversationText, {
+            systemInstruction: `You are a helpful assistant. Based on this short conversation history, suggest ONE concise and relevant follow-up question the user might be interested in asking. The suggestion should be a question. Do not add any preamble. Respond with only the question text.`,
+            temperature: 0.8,
+            model: settings.model || undefined,
         });
-        let suggestion = response.text.trim();
         if (suggestion.startsWith('"') && suggestion.endsWith('"')) {
             suggestion = suggestion.substring(1, suggestion.length - 1);
         }

@@ -1,6 +1,6 @@
-import { GoogleGenAI } from '@google/genai';
-import type { Memory, UserProfile, Message } from '../types';
+import type { ApiProviderSettings, Memory, UserProfile, Message } from '../types';
 import { getAllMemories, saveMemory, deleteMemory, getUserProfile, saveUserProfile } from './storage';
+import { generateJsonWithSettings } from './llmService';
 
 const MEMORY_EXTRACTION_PROMPT = `You are a memory extraction system. Analyze the following conversation and extract key facts about the user that would be useful for future interactions as a scripture study assistant.
 
@@ -32,9 +32,9 @@ Fields:
 
 export async function extractMemories(
   messages: Message[],
-  apiKey: string
+  settings: ApiProviderSettings
 ): Promise<Memory[]> {
-  if (!apiKey || messages.length < 2) return [];
+  if (!settings || messages.length < 2) return [];
 
   const conversationText = messages
     .filter(m => !m.isSuggestion && m.id !== 'initial-message')
@@ -45,19 +45,11 @@ export async function extractMemories(
   if (conversationText.length < 50) return []; // Too short to extract meaning
 
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: conversationText,
-      config: {
-        systemInstruction: MEMORY_EXTRACTION_PROMPT,
-        responseMimeType: 'application/json',
-        temperature: 0.3,
-      },
+    const extracted = await generateJsonWithSettings<any[]>(settings, conversationText, {
+      systemInstruction: MEMORY_EXTRACTION_PROMPT,
+      temperature: 0.3,
+      model: settings.model || undefined,
     });
-
-    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const extracted = JSON.parse(jsonText);
 
     if (!Array.isArray(extracted)) return [];
 
@@ -170,13 +162,12 @@ export async function getOrCreateProfile(): Promise<UserProfile> {
 
 export async function updateProfileFromConversation(
   messages: Message[],
-  apiKey: string
+  settings: ApiProviderSettings
 ): Promise<void> {
-  if (!apiKey || messages.length < 2) return;
+  if (!settings || messages.length < 2) return;
 
   try {
     const profile = await getOrCreateProfile();
-    const ai = new GoogleGenAI({ apiKey });
 
     const conversationText = messages
       .filter(m => !m.isSuggestion && m.id !== 'initial-message')
@@ -185,19 +176,11 @@ export async function updateProfileFromConversation(
       .join('\n');
 
     const prompt = PROFILE_UPDATE_PROMPT.replace('{{CURRENT_PROFILE}}', JSON.stringify(profile, null, 2));
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: conversationText,
-      config: {
-        systemInstruction: prompt,
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      },
+    const updates = await generateJsonWithSettings<Record<string, any>>(settings, conversationText, {
+      systemInstruction: prompt,
+      temperature: 0.2,
+      model: settings.model || undefined,
     });
-
-    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const updates = JSON.parse(jsonText);
 
     if (updates && typeof updates === 'object' && Object.keys(updates).length > 0) {
       await saveUserProfile({ ...profile, ...updates, lastActiveDate: new Date().toISOString().split('T')[0] });

@@ -32,7 +32,7 @@ const PROVIDER_HELP: Record<ApiProvider, { title: string; description: string; n
   },
   minimax: {
     title: 'MiniMax',
-    description: 'Use MiniMax chat models through their API with this app’s provider bridge.',
+    description: "Use MiniMax chat models through their API with this app's provider bridge.",
     note: 'Refresh the model list after setting your API key and base URL.',
   },
 };
@@ -177,9 +177,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
             <div className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
               <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-300">What this affects</h3>
               <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                <li>• Chat agent provider and model selection</li>
-                <li>• Scripture cross-references and related study tools</li>
-                <li>• Model refresh and local provider connection checks</li>
+                <li>- Chat agent provider and model selection</li>
+                <li>- Scripture cross-references and related study tools</li>
+                <li>- Model refresh and local provider connection checks</li>
               </ul>
             </div>
           </div>
@@ -504,3 +504,4 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 };
 
 export default SettingsModal;
+

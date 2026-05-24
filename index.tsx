@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import './styles.css';
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {

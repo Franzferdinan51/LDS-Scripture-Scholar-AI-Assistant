@@ -367,7 +367,7 @@ const App: React.FC = () => {
   };
 
   const triggerProactiveSuggestion = useCallback(async () => {
-    if (isSuggesting || !settings.googleApiKey || chatMode !== 'chat' || !activeChatId) return;
+    if (isSuggesting || chatMode !== 'chat' || !activeChatId) return;
 
     setIsSuggesting(true);
     try {
@@ -383,7 +383,7 @@ const App: React.FC = () => {
         return;
       }
 
-      const suggestion = await getProactiveSuggestion(settings.googleApiKey, history);
+      const suggestion = await getProactiveSuggestion(settings, history);
       if (suggestion) {
         const suggestionMessage: Message = { id: `suggestion-${Date.now()}`, text: suggestion, sender: 'bot', isSuggestion: true };
         setChatHistory(prev => ({...prev, [activeChatId]: [...(prev[activeChatId] || []), suggestionMessage]}));
@@ -393,7 +393,7 @@ const App: React.FC = () => {
     } finally {
       setIsSuggesting(false);
     }
-  }, [chatHistory, settings.googleApiKey, isSuggesting, chatMode, activeChatId]);
+  }, [chatHistory, settings, isSuggesting, chatMode, activeChatId]);
 
 
   // Handle slash commands
@@ -411,10 +411,10 @@ const App: React.FC = () => {
         }
         return true;
       case '/compact':
-        if (activeChatId && settings.googleApiKey) {
+        if (activeChatId) {
           try {
             const currentMessages = chatHistoryRef.current[activeChatId] || [];
-            const compressed = await compressContext(currentMessages, settings.googleApiKey);
+            const compressed = await compressContext(currentMessages, settings);
             setChatHistory(prev => ({ ...prev, [activeChatId]: compressed }));
           } catch (e) {
             console.error("Context compression failed:", e);
@@ -593,8 +593,8 @@ const App: React.FC = () => {
         try {
             let currentHistory = chatHistory[activeChatId] || [];
             // Auto-compress if context is too large
-            if (needsCompression(currentHistory) && settings.googleApiKey) {
-              currentHistory = await compressContext(currentHistory, settings.googleApiKey);
+            if (needsCompression(currentHistory)) {
+              currentHistory = await compressContext(currentHistory, settings);
             }
             chatService = createChatService(settings, effectiveMode, currentHistory);
         } catch (err: any) {
@@ -780,8 +780,8 @@ const App: React.FC = () => {
           setTimeout(() => triggerProactiveSuggestion(), 2000);
           // Extract and store memories from the conversation (async, non-blocking)
           const currentMessages = chatHistoryRef.current[activeChatId] || [];
-          if (settings.googleApiKey && currentMessages.length >= 4) {
-            extractMemories(currentMessages, settings.googleApiKey)
+          if (currentMessages.length >= 4) {
+            extractMemories(currentMessages, settings)
               .then(extracted => {
                 if (extracted.length > 0) {
                   storeMemories(extracted);
@@ -791,7 +791,7 @@ const App: React.FC = () => {
               })
               .catch(() => {});
             // Update user profile from conversation
-            updateProfileFromConversation(currentMessages, settings.googleApiKey)
+            updateProfileFromConversation(currentMessages, settings)
               .then(async () => {
                 const updated = await getUserProfile();
                 if (updated) {
@@ -962,6 +962,10 @@ const App: React.FC = () => {
   };
 
   const startVoiceChat = async () => {
+     if (settings.provider !== 'google') {
+       setError('Voice chat is currently available only with the Google provider.');
+       return;
+     }
      if (!settings.googleApiKey) { setError("Google API Key is not set."); return; }
     setError(null);
     setIsConnecting(true);
@@ -1059,7 +1063,9 @@ const App: React.FC = () => {
 
     setAudioPlayback({ messageId, status: 'loading', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 });
     try {
-        if (!settings.googleApiKey) throw new Error("Google API Key is required for text-to-speech.");
+        if (settings.provider !== 'google' || !settings.googleApiKey) {
+          throw new Error("Text-to-speech is currently available only with the Google provider.");
+        }
         if (!outputAudioContextRef.current || outputAudioContextRef.current.state === 'closed') {
             outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
         }
@@ -1141,11 +1147,11 @@ const App: React.FC = () => {
             setIsVoiceActive={setIsVoiceActive}
             isConnecting={isConnecting}
             setIsConnecting={setIsConnecting}
-            isApiConfigured={!!settings.googleApiKey}
+            isApiConfigured={settings.provider === 'google' && !!settings.googleApiKey}
             googleApiKey={settings.googleApiKey}
             setError={setError}
             stopVoiceSession={stopVoiceSession}
-            getJournalInsights={(text) => getJournalInsights(settings.googleApiKey, text)}
+            getJournalInsights={(text) => getJournalInsights(settings, text)}
           />
         );
       case 'cross-reference':

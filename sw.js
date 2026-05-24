@@ -1,7 +1,7 @@
 
 
 
-const CACHE_NAME = 'lds-scripture-scholar-cache-v10';
+const CACHE_NAME = 'lds-scripture-scholar-cache-v11';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -54,12 +54,13 @@ const urlsToCache = [
   '/components/FHEPlannerIcon.tsx',
   '/components/InstallIcon.tsx',
   '/data/book-of-mormon.json',
+  '/data/book-of-mormon-part1.json',
+  '/data/book-of-mormon-part2.json',
   '/data/doctrine-and-covenants.json',
   '/data/pearl-of-great-price.json',
   '/data/old-testament.json',
   '/data/new-testament.json',
-  '/app-icon-192.png',
-  '/app-icon-512.png',
+  '/app-icon.svg',
   'https://i.imgur.com/AdUgfiQ.jpeg'
 ];
 

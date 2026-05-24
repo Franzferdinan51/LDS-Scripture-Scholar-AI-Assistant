@@ -2,19 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/app-icon-512.png" type="image/png" />
+    <link rel="icon" href="/app-icon.svg" type="image/svg+xml" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LDS Scripture Scholar</title>
 
     <!-- PWA Tags -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#283443">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Scripture Scholar">
-    <link rel="apple-touch-icon" href="/app-icon-512.png">
+    <meta name="theme-color" content="#283443" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Scripture Scholar" />
+    <link rel="apple-touch-icon" href="/app-icon.svg" />
 
-    <script src="https://cdn.tailwindcss.com"></script>
     <script type="importmap">
 {
   "imports": {
@@ -25,44 +24,7 @@
   }
 }
 </script>
-  <style>
-    body {
-      background-color: #283443; /* Fallback color from new background image */
-      background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('https://i.imgur.com/AdUgfiQ.jpeg');
-      background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-      background-repeat: no-repeat;
-    }
-    /* Custom scrollbar for dark theme */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.5);
-    }
-
-    /* Streaming cursor for bot messages */
-    .streaming-bubble::after {
-      content: '▊';
-      display: inline-block;
-      animation: blink 0.8s step-end infinite;
-      color: #60a5fa;
-      margin-left: 2px;
-    }
-    @keyframes blink {
-      50% { opacity: 0; }
-    }
-  </style>
-</head>
+  </head>
   <body class="text-gray-200">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
