@@ -158,6 +158,12 @@ export interface Skill {
   systemPromptAddition: string;
   requiredTools: string[];
   triggerPatterns?: string[]; // Serialized regex patterns
+  // Effectiveness tracking (Hermes-inspired)
+  useCount: number; // How many times this skill was used
+  lastUsed: string | null; // ISO date of last use
+  successCount: number; // How many times user marked it helpful
+  avgRating: number; // 0-5 scale, rolling average
+  isCustom: boolean; // true if user-created
 }
 
 // --- Study Analytics Types ---

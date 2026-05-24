@@ -438,7 +438,14 @@ const App: React.FC = () => {
           const { getSkillById } = await import('./services/skills');
           const skill = getSkillById(args[0]);
           if (skill) {
-            setActiveSkill(prev => prev?.id === skill.id ? null : skill);
+            setActiveSkill(prev => {
+              const next = prev?.id === skill.id ? null : skill;
+              if (next) {
+                // Track skill usage when activated
+                import('./services/storage').then(s => s.updateSkillUsage(skill.id).catch(() => {}));
+              }
+              return next;
+            });
           }
         } else {
           setIsSkillSelectorOpen(true);
@@ -1338,7 +1345,14 @@ const App: React.FC = () => {
             skills={skills}
             activeSkillId={activeSkill?.id || null}
             onSelect={(skill) => {
-              setActiveSkill(prev => prev?.id === skill.id ? null : skill);
+              setActiveSkill(prev => {
+                const next = prev?.id === skill.id ? null : skill;
+                if (next) {
+                  // Track skill usage when selected from UI
+                  import('./services/storage').then(s => s.updateSkillUsage(skill.id).catch(() => {}));
+                }
+                return next;
+              });
               setIsSkillSelectorOpen(false);
             }}
             onClose={() => setIsSkillSelectorOpen(false)}

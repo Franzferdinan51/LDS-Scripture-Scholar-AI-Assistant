@@ -256,6 +256,28 @@ export async function deleteSkill(id: string): Promise<void> {
   await db.delete('skills', id);
 }
 
+export async function updateSkillUsage(skillId: string): Promise<void> {
+  const db = await getDB();
+  const skill = await db.get('skills', skillId);
+  if (skill) {
+    skill.useCount = (skill.useCount || 0) + 1;
+    skill.lastUsed = new Date().toISOString();
+    await db.put('skills', skill);
+  }
+}
+
+export async function rateSkill(skillId: string, rating: number): Promise<void> {
+  const db = await getDB();
+  const skill = await db.get('skills', skillId);
+  if (skill) {
+    const prev = skill.avgRating || 0;
+    const prevCount = skill.successCount || 0;
+    skill.successCount = prevCount + 1;
+    skill.avgRating = (prev * prevCount + rating) / skill.successCount;
+    await db.put('skills', skill);
+  }
+}
+
 // --- Study History ---
 
 export async function getAllStudySessions(): Promise<StudySession[]> {
