@@ -13,6 +13,7 @@ import QuizIcon from './QuizIcon';
 import LessonPrepIcon from './LessonPrepIcon';
 import FHEPlannerIcon from './FHEPlannerIcon';
 import InstallIcon from './InstallIcon';
+import WebIcon from './WebIcon';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -61,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   chatMode, setChatMode, isLoading, isVoiceActive, isConnecting,
   onVerseOfTheDay, onOpenSettings, chatHistory, activeChatId,
   onNewChat, onSelectChat, pinnedChatIds, onTogglePin,
-  onInstallPWA, showInstallButton, activeSkill, onOpenSkillSelector
+  onInstallPWA, showInstallButton, activeSkill, onOpenSkillSelector, onOpenSearch
 }) => {
   const handleItemClick = (view: ViewMode) => {
     setActiveView(view);
@@ -98,6 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   
   const actionItems = [
     { action: onVerseOfTheDay, label: 'Verse of the Day', icon: <StarIcon /> },
+    { action: () => onOpenSearch?.(), label: 'Search Conversations', icon: <WebIcon /> },
     ...(showInstallButton ? [{ action: onInstallPWA, label: 'Install App', icon: <InstallIcon /> }] : []),
     { action: onOpenSettings, label: 'Settings', icon: <SettingsIcon /> },
   ];

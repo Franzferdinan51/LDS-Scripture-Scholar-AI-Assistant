@@ -5,6 +5,10 @@ export function estimateTokens(messages: Message[]): number {
   return messages.reduce((total, m) => total + Math.ceil(m.text.length / 4), 0);
 }
 
+export function needsCompression(messages: Message[], threshold: number = 8000): boolean {
+  return estimateTokens(messages) > threshold;
+}
+
 export async function compressContext(messages: Message[], apiKey: string, maxTokens: number = 8000): Promise<Message[]> {
   if (!apiKey || messages.length <= 10) return messages;
 

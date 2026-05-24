@@ -945,6 +945,7 @@ const App: React.FC = () => {
           showInstallButton={!!installPromptEvent}
           activeSkill={activeSkill}
           onOpenSkillSelector={() => setIsSkillSelectorOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
         />
       </div>
 
@@ -971,6 +972,7 @@ const App: React.FC = () => {
           showInstallButton={!!installPromptEvent}
           activeSkill={activeSkill}
           onOpenSkillSelector={() => setIsSkillSelectorOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
         />
       </div>
 
