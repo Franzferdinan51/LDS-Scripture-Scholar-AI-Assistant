@@ -622,28 +622,6 @@ const App: React.FC = () => {
         }));
       }
       
-      // Handle tool calls from Google Gemini
-      let toolCallsForMessage: ToolCall[] = [];
-      if (settings.provider === 'google' && lastGoogleResponse) {
-        try {
-          const handleToolCalls = (chatService as any).handleToolCalls;
-          if (handleToolCalls) {
-            const toolResult = await handleToolCalls(lastGoogleResponse);
-            if (toolResult) {
-              // Tool calls were executed, get them
-              const getToolCalls = (chatService as any).getToolCalls;
-              if (getToolCalls) {
-                toolCallsForMessage = getToolCalls();
-              }
-              // If tool results came back, they were sent back to the model
-              // The accumulated text may need updating from the follow-up response
-            }
-          }
-        } catch (toolErr) {
-          console.warn('Tool call handling error:', toolErr);
-        }
-      }
-
       let finalVisibleText = accumulatedText;
       let finalThinkingText: string | undefined = undefined;
 
