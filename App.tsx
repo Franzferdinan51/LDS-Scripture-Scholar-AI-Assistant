@@ -488,6 +488,23 @@ const App: React.FC = () => {
           setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), statusMsg] }));
         }
         return true;
+      case '/usage':
+        if (activeChatId) {
+          const { getUsageTracker, estimateCost } = await import('./services/usageTracker');
+          const usage = await getUsageTracker();
+          const cost = estimateCost(settings.provider, usage.sessionTokens);
+          const usageText = [
+            `**Usage Statistics**`,
+            `Provider: ${settings.provider}`,
+            `Session tokens: ${usage.sessionTokens.toLocaleString()}`,
+            `Session cost: ${cost}`,
+            `Total tokens (all time): ${usage.totalTokens.toLocaleString()}`,
+            `Messages this session: ${usage.messageCount}`,
+          ].join('\n');
+          const usageMsg: Message = { id: `usage-${Date.now()}`, text: usageText, sender: 'bot' };
+          setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), usageMsg] }));
+        }
+        return true;
       case '/think':
         if (args[0] && ['light', 'medium', 'deep'].includes(args[0])) {
           setThinkingDepth(args[0] as ThinkingDepth);
