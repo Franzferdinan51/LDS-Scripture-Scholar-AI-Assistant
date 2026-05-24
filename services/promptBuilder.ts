@@ -69,7 +69,8 @@ export function buildSystemPrompt(
   profile?: UserProfile | null,
   memories?: Memory[],
   activeSkill?: Skill | null,
-  readingContext?: string
+  readingContext?: string,
+  options?: { verbose?: boolean }
 ): string {
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -109,6 +110,11 @@ export function buildSystemPrompt(
   // Append reading context
   if (readingContext) {
     sections.push(`\n**Current Reading Context:** The user is currently reading: ${readingContext}. When answering questions, consider this context and reference the relevant passages.`);
+  }
+
+  // Append verbose mode instruction
+  if (options?.verbose) {
+    sections.push(`\n**Verbose Mode:** Provide detailed, comprehensive responses. Include historical context, cross-references, scholarly insights, and practical applications. Do not be brief.`);
   }
 
   return sections.join('\n\n');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import type { Message, ChatMode, ViewMode, GroundingChunk, StudyPlan, MultiQuiz, Note, JournalEntry, UserProfile, Memory as MemoryType, Skill, StudySession, Reminder, ThinkingDepth } from './types';
+import type { Message, ChatMode, ViewMode, GroundingChunk, StudyPlan, MultiQuiz, Note, JournalEntry, UserProfile, Memory as MemoryType, Skill, StudySession, Reminder, ThinkingDepth, ToolCall } from './types';
 import type { Session, LiveServerMessage, GenerateContentResponse, Content } from '@google/genai';
 import { createChatService, createChatServiceWithFailover, connectLive, generateSpeech, getJournalInsights, getProactiveSuggestion, getWikimediaImageUrl } from './services/geminiService';
 import type { ChatServiceOptions } from './services/geminiService';
@@ -583,12 +583,14 @@ const App: React.FC = () => {
     try {
       const responseStream = await chatService.sendMessageStream({ message: messageToSend });
       let groundingChunks: GroundingChunk[] | undefined = undefined;
-      
+      let lastGoogleResponse: GenerateContentResponse | null = null;
+
       for await (const chunk of responseStream) {
         accumulatedText += chunk.text;
 
         if (settings.provider === 'google') {
           const fullResponse = chunk as GenerateContentResponse;
+          lastGoogleResponse = fullResponse;
           const newGrounding = fullResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
           if (newGrounding) groundingChunks = newGrounding;
         }
@@ -651,12 +653,34 @@ const App: React.FC = () => {
         }
       }
 
+      // Handle tool calls if present (Google Gemini function calling)
+      const toolCallResults: ToolCall[] = [];
+      if (lastGoogleResponse && settings.provider === 'google' && chatService.handleToolCalls) {
+        try {
+          const followUpResponse = await chatService.handleToolCalls(lastGoogleResponse);
+          if (followUpResponse) {
+            // Get the tool calls that were executed
+            if (chatService.getToolCalls) {
+              toolCallResults.push(...chatService.getToolCalls());
+            }
+            // Accumulate the follow-up response text
+            const followUpText = followUpResponse.text || '';
+            if (followUpText) {
+              accumulatedText += '\n\n' + followUpText;
+              finalVisibleText += '\n\n' + followUpText;
+            }
+          }
+        } catch (toolErr) {
+          console.error("Tool execution failed:", toolErr);
+        }
+      }
+
       setChatHistory(prev => ({
           ...prev,
           [activeChatId]: prev[activeChatId]?.map(msg => {
             if (msg.id !== botMessageId) return msg;
-            
-            let finalMsg = { ...msg, text: finalVisibleText, thinking: finalThinkingText, groundingChunks };
+
+            let finalMsg = { ...msg, text: finalVisibleText, thinking: finalThinkingText, groundingChunks, toolCalls: toolCallResults.length > 0 ? toolCallResults : undefined };
             const currentMode = effectiveMode;
             if (currentMode === 'study-plan' || currentMode === 'multi-quiz') {
                 try {
