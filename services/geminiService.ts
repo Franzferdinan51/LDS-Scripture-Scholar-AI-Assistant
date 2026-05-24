@@ -215,7 +215,7 @@ export const createChatService = (
                 options.memories,
                 options.activeSkill,
                 options.readingContext,
-                { verbose: options.verbose }
+                { verbose: options.verbose, persona: options.persona }
             );
 
             const messages = [
