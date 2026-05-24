@@ -38,6 +38,7 @@ import { BUILTIN_SKILLS, initializeSkills } from './services/skills';
 import { checkDueReminders } from './services/reminders';
 // Agent router
 import { routeToAgent } from './services/agentRouter';
+import type { AgentPhase } from './components/AgentIndicator';
 // Context compression
 import { needsCompression, compressContext } from './services/contextCompressor';
 // Conversation search
@@ -112,6 +113,8 @@ const App: React.FC = () => {
   const [isSkillSelectorOpen, setIsSkillSelectorOpen] = useState(false);
   const [thinkingDepth, setThinkingDepth] = useState<ThinkingDepth>('medium');
   const [activeAgentName, setActiveAgentName] = useState<string | null>(null);
+  const [agentPhase, setAgentPhase] = useState<AgentPhase>('idle');
+  const [toolCallsInProgress, setToolCallsInProgress] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [verboseMode, setVerboseMode] = useState(false);
   const [persona, setPersona] = useState<string>('');
@@ -1077,6 +1080,8 @@ const App: React.FC = () => {
             onRetry={handleRetry}
             onDeleteMessage={handleDeleteMessage}
             activeAgentName={activeAgentName}
+            agentPhase={agentPhase}
+            toolCallsInProgress={toolCallsInProgress}
             thinkingDepth={thinkingDepth}
             onThinkingDepthChange={setThinkingDepth}
             activeSkill={activeSkill}

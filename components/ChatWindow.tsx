@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import type { Message, ChatMode, Skill, ThinkingDepth } from '../types';
 import MessageBubble from './MessageBubble';
 import ChatInput from './ChatInput';
-import AgentIndicator from './AgentIndicator';
+import AgentIndicator, { type AgentPhase } from './AgentIndicator';
 
 interface AudioPlaybackState {
   messageId: string | null;
@@ -27,6 +27,8 @@ interface ChatWindowProps {
   onRetry: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
   activeAgentName?: string | null;
+  agentPhase?: AgentPhase;
+  toolCallsInProgress?: number;
   thinkingDepth?: ThinkingDepth;
   onThinkingDepthChange?: (depth: ThinkingDepth) => void;
   activeSkill?: Skill | null;
@@ -57,6 +59,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onRetry,
   onDeleteMessage,
   activeAgentName,
+  agentPhase = 'idle',
+  toolCallsInProgress = 0,
   thinkingDepth = 'medium',
   onThinkingDepthChange,
   activeSkill,
@@ -76,7 +80,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     <div className="flex flex-col h-full max-w-4xl mx-auto w-full">
       {/* Header bar with agent indicator, thinking depth, and skill */}
       <div className="flex-shrink-0 px-4 py-2 flex items-center gap-2 border-b border-white/5 bg-slate-900/40 backdrop-blur-sm">
-        <AgentIndicator agentName={activeAgentName} isRunning={isLoading && !!activeAgentName} />
+        <AgentIndicator
+          agentName={activeAgentName}
+          isRunning={isLoading && !!activeAgentName}
+          phase={agentPhase}
+          toolCallsInProgress={toolCallsInProgress}
+        />
 
         {activeSkill && (
           <button
