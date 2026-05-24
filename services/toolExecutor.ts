@@ -1,9 +1,9 @@
-import { GoogleGenAI } from '@google/genai';
-import type { ToolResult } from '../types';
+import type { ApiProviderSettings, ToolResult } from '../types';
 import {
   getScriptureText as lookupScriptureText,
   searchScriptureCorpus,
 } from './scriptureCorpus';
+import { getCrossReferencesForSettings } from './crossReferenceService';
 
 // --- Wikimedia helper (inlined to avoid circular dependency) ---
 
@@ -122,30 +122,16 @@ async function getScriptureText(params: { reference: string }): Promise<ToolResu
   };
 }
 
-// --- Cross References (direct Gemini call, no circular dependency) ---
-
-const CROSS_REF_PROMPT = `You are an expert scripture cross-referencing tool. Find and explain related scriptures.
-Respond with ONLY a valid JSON object:
-{
-  "mainScripture": "User's scripture reference",
-  "references": [
-    { "scripture": "Reference", "explanation": "How it relates" },
-    { "scripture": "Reference", "explanation": "How it relates" },
-    { "scripture": "Reference", "explanation": "How it relates" }
-  ]
-}`;
-
-async function handleCrossReferences(params: { scripture: string }, apiKey?: string): Promise<ToolResult> {
-  if (!apiKey) return { success: false, data: null, error: 'API key required for cross-references' };
+async function handleCrossReferences(
+  params: { scripture: string },
+  settings?: ApiProviderSettings
+): Promise<ToolResult> {
+  if (!settings) {
+    return { success: false, data: null, error: 'Cross-references require configured provider settings.' };
+  }
   try {
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
-      contents: params.scripture,
-      config: { systemInstruction: CROSS_REF_PROMPT, responseMimeType: 'application/json' },
-    });
-    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return { success: true, data: JSON.parse(jsonText), source: 'ai-generated' };
+    const data = await getCrossReferencesForSettings(settings, params.scripture);
+    return { success: true, data, source: settings.provider === 'google' ? 'google-genai' : settings.provider };
   } catch (e) {
     return { success: false, data: null, error: String(e) };
   }
@@ -184,7 +170,7 @@ async function searchWeb(): Promise<ToolResult> {
 export async function executeTool(
   name: string,
   parameters: Record<string, any>,
-  apiKey?: string
+  settings?: ApiProviderSettings
 ): Promise<ToolResult> {
   switch (name) {
     case 'searchScriptures':
@@ -192,7 +178,7 @@ export async function executeTool(
     case 'getScriptureText':
       return getScriptureText(parameters as any);
     case 'getCrossReferences':
-      return handleCrossReferences(parameters as any, apiKey);
+      return handleCrossReferences(parameters as any, settings);
     case 'searchWikimediaImage':
       return searchWikimediaImage(parameters as any);
     case 'searchWeb':

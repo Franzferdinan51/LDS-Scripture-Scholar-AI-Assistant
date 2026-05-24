@@ -3,6 +3,7 @@ import { ApiProviderSettings, ChatMode, Model, Message, ThinkingDepth, THINKING_
 import { buildSystemPrompt } from "./promptBuilder";
 import { SCRIPTURE_TOOLS, getGeminiToolDeclarations, getOpenAIToolDeclarations } from "./tools";
 import { executeTool } from "./toolExecutor";
+import { getCrossReferences as getCrossReferencesCompat } from './crossReferenceService';
 import { parseJSON } from "../utils/jsonRepair";
 
 // ============================================================================
@@ -257,7 +258,7 @@ const DEFAULT_MAX_RETRIES = 2;
 export async function executeToolWithRetry(
   toolName: string,
   args: Record<string, unknown>,
-  apiKey: string,
+  settings: ApiProviderSettings,
   options: ToolExecutionOptions = {}
 ): Promise<{ success: boolean; data: any; error?: string }> {
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
@@ -271,7 +272,7 @@ export async function executeToolWithRetry(
 
       // Execute with timeout
       const result = await Promise.race([
-        executeTool(toolName, args, apiKey),
+        executeTool(toolName, args, settings),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new ToolTimeoutError(toolName, timeout)), timeout)
         )
@@ -388,25 +389,6 @@ const JOURNAL_SUMMARY_SYSTEM_INSTRUCTION = `You are an insightful and gentle gos
   "summary": "A concise, one-paragraph summary of the user's main thoughts.",
   "principles": ["A list of 2-3 key gospel principles or themes identified in the entry."],
   "suggestedScripture": "A single, relevant scripture reference (e.g., 'Alma 32:21') that relates to their journal entry, for their further study."
-}`;
-
-const CROSS_REFERENCE_SYSTEM_INSTRUCTION = `You are an expert scripture cross-referencing tool for members of The Church of Jesus Christ of Latter-day Saints. Your task is to find and explain related scriptures for a given verse. When analyzing, consider:
-1. Doctrinal parallels - scriptures that teach the same principle
-2. Historical context - related events or time periods
-3. Thematic connections - shared themes like faith, atonement, covenant, etc.
-4. Prophetic commentary - where prophets reference or expand on the same ideas
-5. Cross-standard work connections - links between Book of Mormon, Bible, D&C, and Pearl of Great Price
-
-You must respond with ONLY a valid JSON object. Do not add any other text. The JSON response must follow this schema:
-{
-  "mainScripture": "The user's provided scripture reference",
-  "context": "Brief historical or doctrinal context for the main scripture",
-  "references": [
-    { "scripture": "Reference string", "explanation": "A brief explanation of how this scripture relates to the main one.", "connectionType": "doctrinal|historical|thematic|prophetic" },
-    { "scripture": "Reference string", "explanation": "Another brief explanation.", "connectionType": "doctrinal|historical|thematic|prophetic" },
-    { "scripture": "Reference string", "explanation": "A third brief explanation.", "connectionType": "doctrinal|historical|thematic|prophetic" }
-  ],
-  "studySuggestions": ["One or two suggestions for deeper study of this topic"]
 }`;
 
 // ============================================================================
@@ -575,7 +557,7 @@ function createGoogleChatService(
                   const result = await executeToolWithRetry(
                     fc.name,
                     fc.args || {},
-                    settings.googleApiKey,
+                    settings,
                     {
                       onStart: (name) => console.log(`[Tool] Starting: ${name}`),
                       onComplete: (name, res) => console.log(`[Tool] Completed: ${name}`),
@@ -778,7 +760,7 @@ function createOpenAICompatibleChatService(
                                   const result = await executeToolWithRetry(
                                     tc.name,
                                     tc.parameters,
-                                    apiKey,
+                                    settings,
                                     {
                                       onStart: (name) => console.log(`[Tool] Starting: ${name}`),
                                       onError: (name, err) => console.error(`[Tool] Error: ${name}`, err),
@@ -1108,16 +1090,4 @@ export const testMCPConnection = async (baseUrl: string): Promise<{ success: boo
     }
 };
 
-export const getCrossReferences = async (apiKey: string, scripture: string): Promise<any> => {
-    if (!apiKey) throw new Error("Google API Key is not set for Cross-References.");
-    const ai = new GoogleGenAI({ apiKey });
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro",
-        contents: scripture,
-        config: {
-            systemInstruction: CROSS_REFERENCE_SYSTEM_INSTRUCTION,
-            responseMimeType: 'application/json'
-        },
-    });
-    return parseJSON(response.text);
-};
+export const getCrossReferences = getCrossReferencesCompat;

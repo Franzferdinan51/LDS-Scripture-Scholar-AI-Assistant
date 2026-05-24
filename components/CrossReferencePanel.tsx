@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { getCrossReferences } from '../services/geminiService';
+import { getCrossReferencesForSettings } from '../services/crossReferenceService';
 import LoadingDots from './LoadingDots';
 
 interface CrossReferenceResult {
@@ -26,8 +26,12 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scripture.trim()) return;
-    if (!settings.googleApiKey) {
+    if (settings.provider === 'google' && !settings.googleApiKey) {
         setError("Google API Key is required for this feature. Please set it in settings.");
+        return;
+    }
+    if (settings.provider !== 'google' && !settings.model) {
+        setError("Please select a model in settings before using cross-references.");
         return;
     }
     
@@ -36,11 +40,11 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
     setResult(null);
 
     try {
-        const data = await getCrossReferences(settings.googleApiKey, scripture);
+        const data = await getCrossReferencesForSettings(settings, scripture);
         setResult(data);
     } catch (err) {
         console.error("Cross-reference error:", err);
-        setError("Sorry, I couldn't find cross-references for that scripture. Please try again.");
+        setError(err instanceof Error ? err.message : "Sorry, I couldn't find cross-references for that scripture. Please try again.");
     } finally {
         setIsLoading(false);
     }
@@ -49,6 +53,9 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
   return (
     <div className="h-full flex flex-col max-w-4xl mx-auto w-full p-4 text-gray-200">
       <h2 className="text-2xl font-bold mb-4">Scripture Cross-Referencer</h2>
+      <p className="mb-4 text-sm text-gray-400">
+        Uses the AI provider and model configured in Settings to find related scriptures.
+      </p>
       <form onSubmit={handleSubmit} className="mb-4">
         <input
           type="text"

@@ -245,7 +245,7 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
       this.toolCallManager.addToolCall(toolCall);
 
       try {
-        const result = await executeToolWithRetry(name, args, this.settings.googleApiKey);
+        const result = await executeToolWithRetry(name, args, this.settings);
         toolCall.status = 'completed';
         toolCall.result = result;
         this.toolCallManager.completeToolCall(toolCall.id, result);
