@@ -220,6 +220,101 @@ export async function consolidateMemories(): Promise<void> {
   }
 }
 
+// --- Proactive Memory Extraction (Hermes-inspired B2) ---
+// After conversations, check for important user-mentioned facts that weren't captured
+
+const PROACTIVE_EXTRACTION_PROMPT = `You are a proactive memory extraction system for a scripture study assistant.
+Your job is to identify IMPORTANT facts the user has mentioned about themselves
+that should be remembered for future interactions.
+
+Look for:
+- Identity: who the user is (mission call, job, role like "seminary teacher", "bishop", "missionary")
+- Goals: what they're working towards (preparing a talk, mission prep, study goals)
+- Life events: baptism, marriage, mission, moving, recent experiences
+- Relationships: family context ("my wife and I", "teaching my children", "studying with my spouse")
+- Study context: specific scriptures they're reading, topics they're exploring
+
+Important: Only capture significant facts that would meaningfully improve future assistance.
+Do NOT capture: casual comments, obvious one-off questions, generic statements.
+
+Respond with ONLY a JSON array of objects with these fields:
+- type: "episodic" | "semantic" | "preference"
+- content: The fact (clear, specific, 1-2 sentences max)
+- category: "identity" | "goal" | "life_event" | "relationship" | "study_context"
+
+If no important facts found, return an empty array: []`;
+
+export async function extractProactiveMemories(
+  messages: Message[],
+  settings: ApiProviderSettings
+): Promise<Memory[]> {
+  if (!settings || messages.length < 2) return [];
+
+  // Get recent user messages (last 6, excluding suggestions)
+  const recentMessages = messages
+    .filter(m => !m.isSuggestion && m.id !== 'initial-message')
+    .slice(-6);
+
+  if (recentMessages.length < 2) return [];
+
+  // Only look at user messages for proactive capture
+  const userMessages = recentMessages.filter(m => m.sender === 'user');
+  if (userMessages.length < 1) return [];
+
+  const conversationText = userMessages
+    .map(m => `User: ${m.text}`)
+    .join('\n');
+
+  if (conversationText.length < 30) return [];
+
+  try {
+    const existing = await getAllMemories();
+    const existingContents = new Set(existing.map(e => e.content.toLowerCase().trim()));
+
+    const extracted = await generateJsonWithSettings<any[]>(settings, conversationText, {
+      systemInstruction: PROACTIVE_EXTRACTION_PROMPT,
+      temperature: 0.3,
+      model: settings.model || undefined,
+    });
+
+    if (!Array.isArray(extracted) || extracted.length === 0) return [];
+
+    const newMemories: Memory[] = [];
+    for (const item of extracted) {
+      const content = item.content?.trim();
+      if (!content) continue;
+
+      // Skip if we already have something similar
+      if (existingContents.has(content.toLowerCase())) continue;
+      if (existing.some(e => similarity(e.content, content) > 0.8)) continue;
+
+      newMemories.push({
+        id: `proactive-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: item.type || 'episodic',
+        content,
+        source: 'proactive',
+        relevance: 0.95, // High relevance for proactive captures
+        timestamp: Date.now(),
+        lastAccessed: Date.now(),
+        accessCount: 0,
+        category: item.category || 'general',
+      });
+    }
+
+    if (newMemories.length > 0) {
+      for (const mem of newMemories) {
+        await saveMemory(mem);
+      }
+      console.log(`[ProactiveMemory] Captured ${newMemories.length} new facts`);
+    }
+
+    return newMemories;
+  } catch (e) {
+    console.error('Proactive memory extraction failed:', e);
+    return [];
+  }
+}
+
 // --- Utility: Simple string similarity ---
 
 function similarity(a: string, b: string): number {

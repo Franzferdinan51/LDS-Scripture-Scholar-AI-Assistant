@@ -31,11 +31,12 @@ import {
   getUserProfile, saveUserProfile,
 } from './services/storage';
 // Memory system
-import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfileFromConversation, consolidateMemories } from './services/memory';
+import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfileFromConversation, consolidateMemories, extractProactiveMemories } from './services/memory';
 // Skills
 import { BUILTIN_SKILLS, initializeSkills } from './services/skills';
 // Reminders
-import { checkDueReminders } from './services/reminders';
+import { checkDueReminders, suggestReminders, createReminderFromSuggestion } from './services/reminders';
+import type { SuggestedReminder } from './services/reminders';
 // Study progress tracking
 import { recordConversation } from './services/studyProgress';
 // Agent router
@@ -112,6 +113,7 @@ const App: React.FC = () => {
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [activeReminder, setActiveReminder] = useState<Reminder | null>(null);
+  const [suggestedReminders, setSuggestedReminders] = useState<SuggestedReminder[]>([]);
   const [isSkillSelectorOpen, setIsSkillSelectorOpen] = useState(false);
   const [thinkingDepth, setThinkingDepth] = useState<ThinkingDepth>('medium');
   const [activeAgentName, setActiveAgentName] = useState<string | null>(null);
@@ -790,6 +792,14 @@ const App: React.FC = () => {
                 }
               })
               .catch(() => {});
+            // Suggest reminders based on conversation context (async, non-blocking)
+            suggestReminders(text, settings)
+              .then(suggestions => {
+                if (suggestions.length > 0) {
+                  setSuggestedReminders(suggestions);
+                }
+              })
+              .catch(() => {});
             // Update user profile from conversation
             updateProfileFromConversation(currentMessages, settings)
               .then(async () => {
@@ -1104,6 +1114,20 @@ const App: React.FC = () => {
     setActiveReminder(null);
     handleNewChat();
     setActiveView('chat');
+  };
+
+  const handleAcceptSuggestedReminder = async (suggestion: SuggestedReminder) => {
+    try {
+      const reminder = await createReminderFromSuggestion(suggestion);
+      setReminders(prev => [...prev, reminder]);
+      setSuggestedReminders(prev => prev.filter(r => r !== suggestion));
+    } catch (err) {
+      console.error('Failed to create reminder:', err);
+    }
+  };
+
+  const handleDismissSuggestedReminder = (suggestion: SuggestedReminder) => {
+    setSuggestedReminders(prev => prev.filter(r => r !== suggestion));
   };
 
   const renderActiveView = () => {

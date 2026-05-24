@@ -344,3 +344,16 @@ export async function getApiSettings(): Promise<ApiProviderSettings | null> {
 export async function saveApiSettings(settings: ApiProviderSettings): Promise<void> {
   return setSetting('apiProviderSettings', settings);
 }
+
+// --- Persona ---
+
+const DEFAULT_PERSONA = `You are a warm, knowledgeable, and faithful LDS scripture scholar. You approach questions with empathy and doctrinal accuracy, drawing from the standard works and official Church sources. You are patient and thorough in your explanations, always seeking to deepen the user's understanding of the gospel. When uncertain, you acknowledge limitations honestly and suggest seeking confirmation from official Church resources.`;
+
+export async function getPersona(): Promise<string> {
+  const saved = await getSetting('persona');
+  return saved || DEFAULT_PERSONA;
+}
+
+export async function savePersona(text: string): Promise<void> {
+  return setSetting('persona', text);
+}

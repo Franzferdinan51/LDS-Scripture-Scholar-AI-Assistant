@@ -1,5 +1,40 @@
-import type { Reminder } from '../types';
+import type { Reminder, ApiProviderSettings } from '../types';
 import { getAllReminders, saveReminder } from './storage';
+import { generateJsonWithSettings } from './llmService';
+
+interface SuggestedReminder {
+  title: string;
+  message: string;
+  type: 'daily-reading' | 'study-plan' | 'custom';
+  schedule: {
+    time: string;
+    days: string[];
+  };
+}
+
+const REMINDER_SUGGESTION_PROMPT = `You are a reminder assistant for an LDS scripture study app. Analyze the conversation context and suggest relevant reminders.
+
+Return a JSON array of suggested reminders. Each reminder should have:
+- title: short title (max 50 chars)
+- message: helpful message encouraging action (max 200 chars)
+- type: "daily-reading", "study-plan", or "custom"
+- schedule: with time (HH:MM 24hr format) and days array
+
+Return empty array [] if no reminders are warranted.
+
+Examples of suggestion-worthy context:
+- User wants to study something regularly (e.g., "I want to study the Book of Mormon more")
+- User has an upcoming event/assignment/talk/lesson (e.g., "I have a talk in 2 weeks", "I'm preparing a lesson for Sunday")
+- User expressed commitment to build a habit (e.g., "I need to be more consistent with my scripture study")
+
+Examples of NOT suggestion-worthy:
+- General questions about doctrine or scripture
+- Casual conversation
+- Questions about church history
+
+Current date: ${new Date().toISOString().split('T')[0]}
+
+Respond only with valid JSON array.`;
 
 export const PRESET_REMINDERS: Omit<Reminder, 'id' | 'enabled' | 'lastTriggered' | 'createdAt'>[] = [
   {
@@ -94,4 +129,45 @@ function showReminderNotification(reminder: Reminder): void {
 
   // Dispatch custom event for in-app toast
   window.dispatchEvent(new CustomEvent('study-reminder', { detail: reminder }));
+}
+
+export async function suggestReminders(
+  conversationContext: string,
+  settings: ApiProviderSettings
+): Promise<SuggestedReminder[]> {
+  if (!conversationContext.trim()) return [];
+
+  try {
+    const suggestions = await generateJsonWithSettings<SuggestedReminder[]>(
+      settings,
+      conversationContext,
+      {
+        systemInstruction: REMINDER_SUGGESTION_PROMPT,
+        temperature: 0.3,
+        responseMimeType: 'application/json',
+      }
+    );
+
+    return Array.isArray(suggestions) ? suggestions : [];
+  } catch (err) {
+    console.error('Failed to suggest reminders:', err);
+    return [];
+  }
+}
+
+export async function createReminderFromSuggestion(
+  suggestion: SuggestedReminder
+): Promise<Reminder> {
+  const reminder: Reminder = {
+    id: `reminder-${Date.now()}`,
+    type: suggestion.type,
+    title: suggestion.title,
+    message: suggestion.message,
+    schedule: suggestion.schedule,
+    enabled: true,
+    createdAt: Date.now(),
+  };
+
+  await saveReminder(reminder);
+  return reminder;
 }
