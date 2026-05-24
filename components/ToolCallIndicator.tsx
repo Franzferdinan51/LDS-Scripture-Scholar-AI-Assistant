@@ -62,7 +62,7 @@ const SingleToolCall: React.FC<{ toolCall: ToolCall }> = ({ toolCall }) => {
           <div className="mt-2">
             <p className="text-xs font-semibold opacity-60 uppercase mb-1">Parameters</p>
             <pre className="text-xs bg-black/20 rounded p-2 overflow-x-auto">
-              {JSON.stringify(toolCall.parameters, null, 2)}
+              {JSON.stringify(toolCall.parameters ?? {}, null, 2)}
             </pre>
           </div>
 
@@ -74,10 +74,10 @@ const SingleToolCall: React.FC<{ toolCall: ToolCall }> = ({ toolCall }) => {
                   {toolCall.result.source && (
                     <p className="text-xs opacity-50 mb-1">Source: {toolCall.result.source}</p>
                   )}
-                  <pre>{JSON.stringify(toolCall.result.data, null, 2)}</pre>
+                  <pre>{JSON.stringify(toolCall.result.data ?? null, null, 2)}</pre>
                 </div>
               ) : (
-                <p className="text-xs text-red-300">{toolCall.result.error}</p>
+                <p className="text-xs text-red-300">{toolCall.result.error ?? 'Unknown error occurred'}</p>
               )}
             </div>
           )}

@@ -28,9 +28,10 @@ interface MessageBubbleProps {
   onAnswerQuiz: (messageId: string, questionIndex: number, answerIndex: number) => void;
   onExplainVerse: (verse: string) => void;
   onRetry: (messageId: string) => void;
+  onDelete?: (messageId: string) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = false, onToggleAudio, audioPlaybackState, onAnswerQuiz, onExplainVerse, onRetry }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = false, onToggleAudio, audioPlaybackState, onAnswerQuiz, onExplainVerse, onRetry, onDelete }) => {
   const isUser = message.sender === 'user';
   const [copied, setCopied] = useState(false);
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -75,7 +76,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
 
   const bubbleClasses = isUser
     ? 'bg-blue-600 text-white rounded-br-none'
-    : 'bg-slate-800/70 backdrop-blur-sm text-gray-100 rounded-bl-none';
+    : `bg-slate-800/70 backdrop-blur-sm text-gray-100 rounded-bl-none ${isStreaming ? 'streaming-bubble' : ''}`;
   
   const containerClasses = isUser ? 'justify-end' : 'justify-start';
 
@@ -245,9 +246,19 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
               {copied ? <CheckIcon className="w-5 h-5 text-green-400" /> : <CopyIcon className="w-5 h-5" />}
             </button>
         )}
+        {onDelete && !message.isSuggestion && (
+             <button
+              onClick={() => onDelete(message.id)}
+              className="p-1.5 rounded-full text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+              aria-label="Delete message"
+              title="Delete message"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+        )}
         {shouldRenderAudioButton && (
-            <button 
-            onClick={handleAudioToggle} 
+            <button
+            onClick={handleAudioToggle}
             disabled={isCurrentMessageLoading}
             className="p-1.5 rounded-full text-gray-400 hover:bg-white/10 disabled:opacity-50 disabled:cursor-wait transition-colors"
             aria-label={isCurrentMessagePlaying ? "Pause audio" : "Play message audio"}

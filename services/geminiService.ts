@@ -3,6 +3,7 @@ import { ApiProviderSettings, ChatMode, Model, Message, ThinkingDepth, THINKING_
 import { buildSystemPrompt } from "./promptBuilder";
 import { SCRIPTURE_TOOLS, getGeminiToolDeclarations, getOpenAIToolDeclarations } from "./tools";
 import { executeTool } from "./toolExecutor";
+import { parseJSON } from "../utils/jsonRepair";
 
 // --- Enhanced Error Types ---
 export class AgentError extends Error {
@@ -480,8 +481,7 @@ export const getJournalInsights = async (apiKey: string, text: string): Promise<
             responseMimeType: 'application/json'
         },
     });
-    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(jsonText);
+    return parseJSON(response.text);
 };
 
 export const getProactiveSuggestion = async (apiKey: string, history: Content[]): Promise<string | null> => {
@@ -628,6 +628,5 @@ export const getCrossReferences = async (apiKey: string, scripture: string): Pro
             responseMimeType: 'application/json'
         },
     });
-    const jsonText = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    return JSON.parse(jsonText);
+    return parseJSON(response.text);
 };

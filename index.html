@@ -49,6 +49,18 @@
     ::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.5);
     }
+
+    /* Streaming cursor for bot messages */
+    .streaming-bubble::after {
+      content: '▊';
+      display: inline-block;
+      animation: blink 0.8s step-end infinite;
+      color: #60a5fa;
+      margin-left: 2px;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
   </style>
 </head>
   <body class="text-gray-200">

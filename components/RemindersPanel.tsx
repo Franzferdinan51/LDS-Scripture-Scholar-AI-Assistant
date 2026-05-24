@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { Reminder } from '../types';
-import { getAllReminders, saveReminder, deleteReminder } from '../services/storage';
 import { formatReminderTime, PRESET_REMINDERS } from '../services/reminders';
 
 interface RemindersPanelProps {

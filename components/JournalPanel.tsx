@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import type { JournalEntry } from '../types';
 import type { LiveServerMessage, Session } from '@google/genai';
 import { connectLive } from '../services/geminiService';
-import { createBlob, decode, decodeAudioData } from '../utils/audio';
+import { createBlob } from '../utils/audio';
 
 interface JournalPanelProps {
   entries: JournalEntry[];
@@ -86,7 +86,22 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
 
   const stopJournaling = async () => {
     stopVoiceSession();
-    
+
+    // Clean up audio resources
+    if (scriptProcessorRef.current) {
+      scriptProcessorRef.current.disconnect();
+      scriptProcessorRef.current = null;
+    }
+    if (inputAudioContextRef.current) {
+      await inputAudioContextRef.current.close().catch(() => {});
+      inputAudioContextRef.current = null;
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+    sessionRef.current = null;
+
     if (transcriptionRef.current.trim()) {
         const newEntry: JournalEntry = {
             id: `journal-${Date.now()}`,
@@ -94,7 +109,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
             timestamp: Date.now()
         };
         setEntries(prev => [newEntry, ...prev]);
-        
+
         // Start summarization
         setIsSummarizing(newEntry.id);
         try {

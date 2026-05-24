@@ -757,13 +757,53 @@ const App: React.FC = () => {
               .catch(() => {});
             // Update user profile from conversation
             updateProfileFromConversation(currentMessages, settings.googleApiKey)
-              .then(() => getUserProfile().then(setUserProfile))
+              .then(async () => {
+                const updated = await getUserProfile();
+                if (updated) {
+                  // Update study streak
+                  const today = new Date().toISOString().split('T')[0];
+                  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                  if (updated.lastStudyDate !== today) {
+                    updated.streakDays = updated.lastStudyDate === yesterday
+                      ? (updated.streakDays || 0) + 1
+                      : 1;
+                    updated.longestStreak = Math.max(updated.longestStreak || 0, updated.streakDays);
+                    updated.lastStudyDate = today;
+                  }
+                  updated.totalStudySessions = (updated.totalStudySessions || 0) + 1;
+                  updated.lastActiveDate = today;
+                  await saveUserProfile(updated);
+                  setUserProfile(updated);
+                }
+              })
               .catch(() => {});
+
+            // Record study session
+            const topics = text.toLowerCase().match(/\b(faith|repentance|baptism|prayer|scripture|prophet|atonement|temple|covenant|priesthood|testimony|missionary|charity|hope|grace|revelation|restoration|plan of salvation|word of wisdom|tithing|fasting)\b/g);
+            const session: StudySession = {
+              id: `session-${Date.now()}`,
+              chatId: activeChatId,
+              date: new Date().toISOString().split('T')[0],
+              topic: [...new Set(topics || [])].join(', ') || 'general study',
+              messageCount: currentMessages.length,
+              toolsUsed: [],
+              skillsUsed: activeSkill ? [activeSkill.id] : [],
+            };
+            saveStudySession(session).catch(() => {});
+            setStudySessions(prev => [...prev, session]);
           }
       }
     }
   };
   
+  const handleDeleteMessage = (messageId: string) => {
+    if (!activeChatId) return;
+    setChatHistory(prev => ({
+      ...prev,
+      [activeChatId]: (prev[activeChatId] || []).filter(m => m.id !== messageId),
+    }));
+  };
+
   const handleRetry = async (botMessageId: string) => {
     if (isLoading || !activeChatId) return;
 
@@ -1035,6 +1075,7 @@ const App: React.FC = () => {
             onAnswerQuiz={handleAnswerQuiz}
             onExplainVerse={handleExplainVerse}
             onRetry={handleRetry}
+            onDeleteMessage={handleDeleteMessage}
             activeAgentName={activeAgentName}
             thinkingDepth={thinkingDepth}
             onThinkingDepthChange={setThinkingDepth}

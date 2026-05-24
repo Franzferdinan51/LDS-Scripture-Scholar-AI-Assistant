@@ -25,6 +25,7 @@ interface ChatWindowProps {
   onAnswerQuiz: (messageId: string, questionIndex: number, answerIndex: number) => void;
   onExplainVerse: (verse: string) => void;
   onRetry: (messageId: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
   activeAgentName?: string | null;
   thinkingDepth?: ThinkingDepth;
   onThinkingDepthChange?: (depth: ThinkingDepth) => void;
@@ -54,6 +55,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onAnswerQuiz,
   onExplainVerse,
   onRetry,
+  onDeleteMessage,
   activeAgentName,
   thinkingDepth = 'medium',
   onThinkingDepthChange,
@@ -109,15 +111,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
         {messages.map((msg, index) => (
-          <MessageBubble 
-            key={msg.id} 
+          <MessageBubble
+            key={msg.id}
             message={msg}
             isStreaming={isLoading && msg.sender === 'bot' && index === messages.length - 1}
-            onToggleAudio={onToggleAudio} 
+            onToggleAudio={onToggleAudio}
             audioPlaybackState={audioPlaybackState}
             onAnswerQuiz={onAnswerQuiz}
             onExplainVerse={onExplainVerse}
             onRetry={onRetry}
+            onDelete={onDeleteMessage}
           />
         ))}
         {isLoading && messages[messages.length - 1]?.sender === 'user' && (

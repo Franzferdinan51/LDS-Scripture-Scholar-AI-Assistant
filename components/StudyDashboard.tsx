@@ -109,6 +109,44 @@ const StudyDashboard: React.FC<StudyDashboardProps> = ({
         })()}
       </div>
 
+      {/* Usage Analytics */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-white mb-2">Usage Analytics</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-white">{studySessions.reduce((s, ss) => s + ss.messageCount, 0)}</p>
+            <p className="text-xs text-gray-400">Total Messages</p>
+          </div>
+          <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-white">{studySessions.length}</p>
+            <p className="text-xs text-gray-400">Study Sessions</p>
+          </div>
+          <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-white">{(() => {
+              const dayCounts: Record<number, number> = {};
+              studySessions.forEach(ss => {
+                const day = new Date(ss.date).getDay();
+                dayCounts[day] = (dayCounts[day] || 0) + 1;
+              });
+              const top = Object.entries(dayCounts).sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+              const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+              return top ? days[Number(top[0])] : '-';
+            })()}</p>
+            <p className="text-xs text-gray-400">Most Active Day</p>
+          </div>
+          <div className="bg-gray-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-white">{(() => {
+              const thisWeek = studySessions.filter(ss => {
+                const d = new Date(ss.date).getTime();
+                return Date.now() - d < 7 * 86400000;
+              });
+              return thisWeek.length;
+            })()}</p>
+            <p className="text-xs text-gray-400">This Week</p>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white mb-2">Quick Actions</h3>

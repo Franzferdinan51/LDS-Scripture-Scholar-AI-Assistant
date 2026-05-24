@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface DisclaimerModalProps {
   isOpen: boolean;
@@ -7,6 +7,10 @@ interface DisclaimerModalProps {
 
 const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) => {
   const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setDontShowAgain(false);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

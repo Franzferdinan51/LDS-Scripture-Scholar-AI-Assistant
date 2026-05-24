@@ -5,6 +5,7 @@ interface MultiQuizViewProps {
   quiz: MultiQuiz;
   messageId: string;
   onAnswer: (messageId: string, questionIndex: number, answerIndex: number) => void;
+  onReset?: (messageId: string) => void;
 }
 
 const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer }) => {
