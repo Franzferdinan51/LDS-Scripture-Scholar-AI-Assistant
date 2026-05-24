@@ -5,6 +5,35 @@ import { SCRIPTURE_TOOLS, getGeminiToolDeclarations, getOpenAIToolDeclarations }
 import { executeTool } from "./toolExecutor";
 import { parseJSON } from "../utils/jsonRepair";
 
+// ============================================================================
+// HERMES/OPENCLAW ENHANCED AGENT PATTERNS
+// ============================================================================
+
+// --- Agent Instruction System ---
+export interface AgentInstruction {
+  id: string;
+  name: string;
+  description: string;
+  instruction: string;
+  triggerKeywords?: string[];
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface ToolSchema {
+  name: string;
+  description: string;
+  parameters: {
+    type: string;
+    properties: Record<string, { type: string; description: string; default?: any }>;
+    required?: string[];
+  };
+  resultSchema?: {
+    success: { type: string; description: string };
+    data: { type: string; description: string };
+    error?: { type: string; description: string };
+  };
+}
+
 // --- Enhanced Error Types ---
 export class AgentError extends Error {
   constructor(
@@ -18,6 +47,341 @@ export class AgentError extends Error {
   }
 }
 
+export class ToolExecutionError extends AgentError {
+  constructor(
+    public toolName: string,
+    message: string,
+    public originalError?: unknown,
+    recoverable: boolean = true
+  ) {
+    super(message, 'TOOL_EXECUTION_ERROR', recoverable);
+    this.name = 'ToolExecutionError';
+  }
+}
+
+export class ToolTimeoutError extends ToolExecutionError {
+  constructor(toolName: string, timeout: number) {
+    super(toolName, `Tool '${toolName}' execution timed out after ${timeout}ms`, undefined, true);
+    this.code = 'TOOL_TIMEOUT';
+    this.name = 'ToolTimeoutError';
+  }
+}
+
+// --- Slash Command System ---
+export interface SlashCommand {
+  name: string;
+  description: string;
+  usage: string;
+  example?: string;
+  agentMode?: ChatMode; // Which chat mode this command activates
+  instruction?: string; // Additional instruction when command is triggered
+}
+
+export const SLASH_COMMANDS: SlashCommand[] = [
+  {
+    name: 'study',
+    description: 'Start a deep study session on a topic or scripture',
+    usage: '/study <topic or scripture>',
+    example: '/study Alma 32',
+    agentMode: 'chat'
+  },
+  {
+    name: 'quiz',
+    description: 'Start an interactive quiz on scripture knowledge',
+    usage: '/quiz',
+    example: '/quiz',
+    agentMode: 'multi-quiz'
+  },
+  {
+    name: 'explain',
+    description: 'Get a detailed explanation of a verse or concept',
+    usage: '/explain <verse or concept>',
+    example: '/explain John 3:16',
+    agentMode: 'chat'
+  },
+  {
+    name: 'cross-ref',
+    description: 'Find cross-references for a scripture',
+    usage: '/cross-ref <scripture>',
+    example: '/cross-ref 2 Nephi 2:25',
+    agentMode: 'chat'
+  },
+  {
+    name: 'search',
+    description: 'Search scriptures for a topic or phrase',
+    usage: '/search <query>',
+    example: '/search faith',
+    agentMode: 'chat'
+  },
+  {
+    name: 'image',
+    description: 'Find historical images related to a topic',
+    usage: '/image <query>',
+    example: '/image Salt Lake Temple',
+    agentMode: 'chat'
+  },
+  {
+    name: 'think',
+    description: 'Use deep thinking mode for complex analysis',
+    usage: '/think <question>',
+    example: '/think Why do we need the Atonement?',
+    agentMode: 'thinking'
+  },
+  {
+    name: 'lesson',
+    description: 'Prepare a lesson on a topic',
+    usage: '/lesson <topic>',
+    example: '/lesson faith',
+    agentMode: 'lesson-prep'
+  },
+  {
+    name: 'fhe',
+    description: 'Plan a family home evening lesson',
+    usage: '/fhe <topic>',
+    example: '/fhe temple covenants',
+    agentMode: 'fhe-planner'
+  },
+  {
+    name: 'plan',
+    description: 'Create a study plan for a topic',
+    usage: '/plan <topic>',
+    example: '/plan Book of Mormon',
+    agentMode: 'study-plan'
+  },
+];
+
+// Parse slash command from message
+export function parseSlashCommand(message: string): { command: SlashCommand; args: string } | null {
+  const trimmed = message.trim();
+  if (!trimmed.startsWith('/')) return null;
+
+  const spaceIdx = trimmed.indexOf(' ');
+  const cmdName = spaceIdx === -1 ? trimmed.slice(1).toLowerCase() : trimmed.slice(1, spaceIdx).toLowerCase();
+  const args = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1);
+
+  const command = SLASH_COMMANDS.find(c => c.name === cmdName);
+  return command ? { command, args } : null;
+}
+
+// --- Agent Instructions for different scenarios ---
+const AGENT_INSTRUCTIONS: AgentInstruction[] = [
+  {
+    id: 'tool-use-guidance',
+    name: 'Tool Use Guidance',
+    description: 'Guidelines for when and how to use tools',
+    instruction: `When handling tool calls:
+1. Execute tools in order of dependency (tools that others depend on first)
+2. If a tool fails, report the error clearly and suggest alternatives
+3. Wait for all tool results before formulating final response
+4. For multi-tool requests, acknowledge each tool call as it starts
+5. Combine tool results into a coherent response`,
+    triggerKeywords: ['search', 'find', 'look up', 'get scripture', 'cross-reference'],
+    priority: 'high'
+  },
+  {
+    id: 'scripture-context',
+    name: 'Scripture Study Guidance',
+    description: 'How to present scripture information',
+    instruction: `When presenting scripture:
+1. Always cite the complete reference (Book, Chapter:Verse)
+2. Provide context about who wrote it and when
+3. Connect to doctrinal principles
+4. If multiple verses, explain the relationship between them
+5. Suggest related topics for further study`,
+    triggerKeywords: ['scripture', 'verse', 'chapter', 'book of mormon', 'bible', 'd&c'],
+    priority: 'medium'
+  },
+  {
+    id: 'error-recovery',
+    name: 'Error Recovery',
+    description: 'How to handle and recover from errors',
+    instruction: `When an error occurs:
+1. Acknowledge the error honestly
+2. Explain what went wrong in user-friendly terms
+3. Provide an alternative approach if possible
+4. If tool failed, suggest manual alternatives
+5. Never blame the user or external systems`,
+    triggerKeywords: ['error', 'failed', 'cannot', 'unable', 'timeout'],
+    priority: 'high'
+  }
+];
+
+// --- Tool Schema Builder (Hermes/OpenClaw pattern) ---
+export function buildToolSchemas(): ToolSchema[] {
+  return SCRIPTURE_TOOLS.map(tool => ({
+    name: tool.name,
+    description: tool.description,
+    parameters: {
+      type: 'object',
+      properties: tool.parameters.properties
+        ? Object.entries(tool.parameters.properties).reduce((acc, [key, prop]: [string, any]) => {
+            acc[key] = {
+              type: geminiTypeToString(prop.type),
+              description: prop.description || '',
+              default: prop.default
+            };
+            return acc;
+          }, {} as Record<string, { type: string; description: string; default?: any }>)
+        : {},
+      required: tool.parameters.required || []
+    },
+    resultSchema: {
+      success: { type: 'boolean', description: 'Whether the tool executed successfully' },
+      data: { type: 'object', description: 'The data returned by the tool' },
+      error: { type: 'string', description: 'Error message if tool failed' }
+    }
+  }));
+}
+
+function geminiTypeToString(type: any): string {
+  if (type === Type.STRING || type === 'STRING') return 'string';
+  if (type === Type.NUMBER || type === 'NUMBER') return 'number';
+  if (type === Type.BOOLEAN || type === 'BOOLEAN') return 'boolean';
+  if (type === Type.OBJECT || type === 'OBJECT') return 'object';
+  if (type === Type.ARRAY || type === 'ARRAY') return 'array';
+  return 'string';
+}
+
+// --- Tool Execution with Retry and Error Handling ---
+export interface ToolExecutionOptions {
+  maxRetries?: number;
+  timeout?: number;
+  onStart?: (toolName: string) => void;
+  onComplete?: (toolName: string, result: any) => void;
+  onError?: (toolName: string, error: Error) => void;
+}
+
+const DEFAULT_TOOL_TIMEOUT = 30000; // 30 seconds
+const DEFAULT_MAX_RETRIES = 2;
+
+export async function executeToolWithRetry(
+  toolName: string,
+  args: Record<string, unknown>,
+  apiKey: string,
+  options: ToolExecutionOptions = {}
+): Promise<{ success: boolean; data: any; error?: string }> {
+  const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+  const timeout = options.timeout ?? DEFAULT_TOOL_TIMEOUT;
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Track tool start
+      options.onStart?.(toolName);
+
+      // Execute with timeout
+      const result = await Promise.race([
+        executeTool(toolName, args, apiKey),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new ToolTimeoutError(toolName, timeout)), timeout)
+        )
+      ]);
+
+      // Track completion
+      options.onComplete?.(toolName, result);
+
+      return result;
+    } catch (e) {
+      lastError = e as Error;
+
+      // Track error
+      options.onError?.(toolName, lastError);
+
+      // Don't retry if it's a timeout or non-recoverable error
+      if (lastError instanceof ToolTimeoutError || !isRetryableError(lastError)) {
+        break;
+      }
+
+      // Wait before retry (exponential backoff)
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+      }
+    }
+  }
+
+  // All retries exhausted
+  return {
+    success: false,
+    data: null,
+    error: lastError?.message || 'Tool execution failed after multiple retries'
+  };
+}
+
+function isRetryableError(error: Error): boolean {
+  // Network errors and temporary failures are retryable
+  const retryableCodes = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ECONNREFUSED'];
+  const retryableMessages = ['network', 'timeout', 'connection', 'temporarily unavailable'];
+
+  const msg = error.message.toLowerCase();
+  return retryableCodes.some(code => msg.includes(code.toLowerCase())) ||
+         retryableMessages.some(m => msg.includes(m));
+}
+
+// --- Tool Call Manager for tracking multi-turn conversations ---
+export class ToolCallManager {
+  private toolCalls: Map<string, ToolCall> = new Map();
+  private conversationToolCalls: ToolCall[] = [];
+
+  createToolCall(name: string, parameters: Record<string, unknown>): ToolCall {
+    const id = `tc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const toolCall: ToolCall = {
+      id,
+      name,
+      parameters,
+      status: 'pending'
+    };
+    this.toolCalls.set(id, toolCall);
+    return toolCall;
+  }
+
+  updateToolCall(id: string, update: Partial<ToolCall>): void {
+    const tc = this.toolCalls.get(id);
+    if (tc) {
+      this.toolCalls.set(id, { ...tc, ...update });
+    }
+  }
+
+  completeToolCall(id: string, result: any): void {
+    this.updateToolCall(id, { status: 'completed', result });
+  }
+
+  failToolCall(id: string, error: string): void {
+    this.updateToolCall(id, { status: 'error', result: { success: false, data: null, error } });
+  }
+
+  getToolCall(id: string): ToolCall | undefined {
+    return this.toolCalls.get(id);
+  }
+
+  getAllToolCalls(): ToolCall[] {
+    return [...this.toolCalls.values()];
+  }
+
+  getPendingToolCalls(): ToolCall[] {
+    return this.getAllToolCalls().filter(tc => tc.status === 'pending' || tc.status === 'running');
+  }
+
+  getCompletedToolCalls(): ToolCall[] {
+    return this.getAllToolCalls().filter(tc => tc.status === 'completed');
+  }
+
+  recordInConversation(toolCall: ToolCall): void {
+    this.conversationToolCalls.push(toolCall);
+  }
+
+  getConversationToolCalls(): ToolCall[] {
+    return [...this.conversationToolCalls];
+  }
+
+  clear(): void {
+    this.toolCalls.clear();
+    this.conversationToolCalls = [];
+  }
+}
+
+// ============================================================================
+// SYSTEM INSTRUCTIONS
+// ============================================================================
 
 const JOURNAL_SUMMARY_SYSTEM_INSTRUCTION = `You are an insightful and gentle gospel assistant. A user has just finished a voice journal entry. Your task is to analyze their transcribed thoughts and provide helpful insights. You must respond with ONLY a valid JSON object. Do not add any other text. The JSON response must follow this schema:
 {
@@ -45,11 +409,15 @@ You must respond with ONLY a valid JSON object. Do not add any other text. The J
   "studySuggestions": ["One or two suggestions for deeper study of this topic"]
 }`;
 
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
 const toGeminiHistory = (history: Message[]): Content[] => {
     const relevantMessages = history.filter(m => !m.isSuggestion && m.id !== 'initial-message');
     return relevantMessages.map(msg => {
         const parts: any[] = [{ text: msg.text }];
-        // If message has tool calls with results, include them
+        // If message has tool calls with results, include them (Hermes pattern)
         if (msg.toolCalls && msg.toolCalls.length > 0) {
             for (const tc of msg.toolCalls) {
                 if (tc.status === 'completed' && tc.result) {
@@ -79,7 +447,37 @@ export interface ChatServiceOptions {
   thinkingDepth?: ThinkingDepth;
   verbose?: boolean;
   persona?: string;
+  toolCallManager?: ToolCallManager;
+  enableSlashCommands?: boolean;
 }
+
+// --- Build Enhanced System Instruction with Agent Guidance ---
+function buildEnhancedSystemInstruction(
+  chatMode: ChatMode,
+  profile: UserProfile | null,
+  memories: Memory[] | undefined,
+  activeSkill: Skill | null | undefined,
+  readingContext: string | undefined,
+  options: { verbose?: boolean; persona?: string }
+): string {
+  let baseInstruction = buildSystemPrompt(chatMode, profile, memories, activeSkill, readingContext, options);
+
+  // Add agent instruction guidance for chat mode
+  if (chatMode === 'chat' || chatMode === 'thinking') {
+    const instructionGuidance = AGENT_INSTRUCTIONS
+      .filter(i => i.priority === 'high')
+      .map(i => i.instruction)
+      .join('\n\n');
+
+    baseInstruction += `\n\n=== AGENT GUIDELINES ===\n${instructionGuidance}`;
+  }
+
+  return baseInstruction;
+}
+
+// ============================================================================
+// CHAT SERVICE FACTORY
+// ============================================================================
 
 export const createChatService = (
     settings: ApiProviderSettings,
@@ -87,313 +485,404 @@ export const createChatService = (
     history: Message[],
     options: ChatServiceOptions = {}
 ) => {
+    // Handle slash commands if enabled
+    if (options.enableSlashCommands !== false) {
+      const slashResult = parseSlashCommand(history[history.length - 1]?.text || '');
+      if (slashResult) {
+        // Route to appropriate chat mode based on command
+        if (slashResult.command.agentMode && slashResult.command.agentMode !== chatMode) {
+          // Would need to switch modes - for now just prepend instruction
+        }
+      }
+    }
+
     if (settings.provider === 'google') {
-        if (!settings.googleApiKey) throw new Error("Google API Key is not set.");
-        const ai = new GoogleGenAI({ apiKey: settings.googleApiKey });
-
-        const modelName = ['study-plan', 'multi-quiz', 'lesson-prep', 'fhe-planner'].includes(chatMode)
-            ? 'gemini-2.5-pro'
-            : settings.model || 'gemini-flash-lite-latest';
-
-        const systemInstruction = buildSystemPrompt(
-            chatMode,
-            options.profile,
-            options.memories,
-            options.activeSkill,
-            options.readingContext,
-            { verbose: options.verbose, persona: options.persona }
-        );
-
-        // Build tools config
-        const tools: any[] = [{ googleSearch: {} }];
-        // Add function declarations for chat mode
-        if (chatMode === 'chat' || chatMode === 'thinking') {
-            const functionDeclarations = getGeminiToolDeclarations();
-            if (functionDeclarations.length > 0) {
-                tools.push({ functionDeclarations });
-            }
-        }
-
-        // Build config
-        const config: any = {
-            systemInstruction,
-            tools,
-        };
-
-        // Add thinking budget for thinking mode
-        if (chatMode === 'thinking' && options.thinkingDepth) {
-            config.thinkingConfig = {
-                thinkingBudget: THINKING_BUDGETS[options.thinkingDepth],
-            };
-        }
-
-        const chat = ai.chats.create({
-            model: modelName,
-            history: toGeminiHistory(history),
-            config,
-        });
-
-        // Track tool calls for this conversation turn
-        const toolCalls: ToolCall[] = [];
-
-        return {
-            sendMessageStream: async ({ message }: { message: string }) => {
-                return chat.sendMessageStream({ message });
-            },
-            handleToolCalls: async (response: GenerateContentResponse): Promise<GenerateContentResponse | null> => {
-                // Check if response contains function calls
-                const functionCalls = response.functionCalls;
-                if (!functionCalls || functionCalls.length === 0) return null;
-
-                // Execute each tool call
-                const functionResponses: FunctionResponse[] = [];
-
-                for (const fc of functionCalls) {
-                    const tcId = `tc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-                    const toolCall: ToolCall = {
-                        id: tcId,
-                        name: fc.name,
-                        parameters: fc.args || {},
-                        status: 'running',
-                    };
-                    toolCalls.push(toolCall);
-
-                    try {
-                        const result = await executeTool(fc.name, fc.args || {}, settings.googleApiKey);
-                        toolCall.status = 'completed';
-                        toolCall.result = result;
-
-                        functionResponses.push({
-                            name: fc.name,
-                            response: result as unknown as Record<string, unknown>,
-                        });
-                    } catch (e) {
-                        toolCall.status = 'error';
-                        toolCall.result = { success: false, data: null, error: String(e) };
-
-                        functionResponses.push({
-                            name: fc.name,
-                            response: { error: String(e) },
-                        });
-                    }
-                }
-
-                // Send function responses back to model
-                const followUp = await chat.sendMessageStream({
-                    message: functionResponses.map(fr => ({
-                        functionResponse: fr,
-                    }) as any),
-                } as any);
-
-                return followUp as any;
-            },
-            getToolCalls: () => [...toolCalls],
-        };
+        return createGoogleChatService(settings, chatMode, history, options);
     } else {
-        // Non-Google providers (OpenAI-compatible)
-        let baseUrl = '';
-        let apiKey = '';
-        switch(settings.provider) {
-            case 'lmstudio':
-                baseUrl = settings.lmStudioBaseUrl;
-                apiKey = settings.lmStudioApiKey || '';
-                break;
-            case 'openrouter':
-                baseUrl = settings.openRouterBaseUrl;
-                apiKey = settings.openRouterApiKey;
-                break;
-            case 'mcp': baseUrl = settings.mcpBaseUrl; break;
-            case 'minimax':
-                baseUrl = settings.minimaxBaseUrl || 'https://api.minimax.chat/v1';
-                apiKey = settings.minimaxApiKey || '';
-                break;
-        }
-
-        const toolCallsMap = new Map<string, ToolCall>();
-
-        const sendMessageStream = async function* ({ message }: { message: string }): AsyncGenerator<GenerateContentResponse> {
-            const systemInstruction = buildSystemPrompt(
-                chatMode,
-                options.profile,
-                options.memories,
-                options.activeSkill,
-                options.readingContext,
-                { verbose: options.verbose, persona: options.persona }
-            );
-
-            const msgs = [
-                { role: 'system', content: systemInstruction },
-                ...history.filter(m => m.id !== 'initial-message' && m.text).map(m => ({
-                    role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
-                    content: m.text
-                })),
-                { role: 'user' as const, content: message }
-            ];
-
-            // Build OpenAI-format tools from our tool definitions
-            const openaiTools = chatMode === 'chat' || chatMode === 'thinking'
-                ? SCRIPTURE_TOOLS.map(t => ({
-                    type: 'function',
-                    function: {
-                        name: t.name,
-                        description: t.description,
-                        parameters: t.parameters,
-                    }
-                }))
-                : undefined;
-
-            const body: any = {
-                model: settings.model,
-                messages: msgs,
-                stream: true,
-            };
-            if (openaiTools && openaiTools.length > 0) {
-                body.tools = openaiTools;
-            }
-
-            const response = await fetch(`${baseUrl}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
-                },
-                body: JSON.stringify(body)
-            });
-
-            if (!response.body) throw new Error("Response body is null");
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const jsonStr = line.substring(6);
-                        if (jsonStr.trim() === '[DONE]') {
-                            return;
-                        }
-                        try {
-                            const chunk = JSON.parse(jsonStr);
-                            const delta = chunk.choices?.[0]?.delta;
-
-                            // Handle text content
-                            const text = delta?.content || '';
-                            if (text) {
-                                yield { text } as any;
-                            }
-
-                            // Handle tool calls from OpenAI format
-                            if (delta?.tool_calls) {
-                                for (const tc of delta.tool_calls) {
-                                    const idx = tc.index ?? 0;
-                                    const id = tc.id || `tc-${idx}`;
-                                    if (tc.function?.name) {
-                                        toolCallsMap.set(String(idx), {
-                                            id,
-                                            name: tc.function.name,
-                                            parameters: {},
-                                            status: 'pending',
-                                        });
-                                    }
-                                    if (tc.function?.arguments) {
-                                        const existing = toolCallsMap.get(String(idx));
-                                        if (existing) {
-                                            // Accumulate arguments (they come in chunks)
-                                            try {
-                                                existing.parameters = JSON.parse(tc.function.arguments);
-                                            } catch {
-                                                // Arguments may be partial, ignore parse errors
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Handle finish_reason for tool calls
-                            const finishReason = chunk.choices?.[0]?.finish_reason;
-                            if (finishReason === 'tool_calls') {
-                                // Execute all tool calls and send results back
-                                for (const tc of toolCallsMap.values()) {
-                                    tc.status = 'running';
-                                    try {
-                                        const result = await executeTool(tc.name, tc.parameters, apiKey);
-                                        tc.status = result.success ? 'completed' : 'error';
-                                        tc.result = result;
-                                    } catch (e) {
-                                        tc.status = 'error';
-                                        tc.result = { success: false, data: null, error: String(e) };
-                                    }
-                                }
-
-                                // Build function call messages and send follow-up
-                                const toolMsgs = [...msgs];
-                                // Add assistant message with tool calls
-                                toolMsgs.push({
-                                    role: 'assistant' as const,
-                                    content: null as any,
-                                    tool_calls: [...toolCallsMap.values()].map(tc => ({
-                                        id: tc.id,
-                                        type: 'function',
-                                        function: {
-                                            name: tc.name,
-                                            arguments: JSON.stringify(tc.parameters),
-                                        }
-                                    }))
-                                } as any);
-                                // Add tool results
-                                for (const tc of toolCallsMap.values()) {
-                                    toolMsgs.push({
-                                        role: 'tool' as any,
-                                        tool_call_id: tc.id,
-                                        content: JSON.stringify(tc.result || { error: 'No result' }),
-                                    } as any);
-                                }
-
-                                // Send follow-up request (non-streaming for simplicity)
-                                const followUpBody = {
-                                    model: settings.model,
-                                    messages: toolMsgs,
-                                    stream: false,
-                                };
-                                const followUpResp = await fetch(`${baseUrl}/chat/completions`, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
-                                    },
-                                    body: JSON.stringify(followUpBody)
-                                });
-                                if (followUpResp.ok) {
-                                    const followUpData = await followUpResp.json();
-                                    const followUpText = followUpData.choices?.[0]?.message?.content || '';
-                                    if (followUpText) {
-                                        yield { text: followUpText } as any;
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            console.error('Error parsing stream chunk:', e, jsonStr);
-                        }
-                    }
-                }
-            }
-        };
-
-        return {
-            sendMessageStream,
-            handleToolCalls: async () => null,
-            getToolCalls: () => [...toolCallsMap.values()],
-        };
+        return createOpenAICompatibleChatService(settings, chatMode, history, options);
     }
 };
+
+// --- Google (Gemini) Chat Service ---
+function createGoogleChatService(
+  settings: ApiProviderSettings,
+  chatMode: ChatMode,
+  history: Message[],
+  options: ChatServiceOptions
+) {
+  if (!settings.googleApiKey) throw new Error("Google API Key is not set.");
+
+  const ai = new GoogleGenAI({ apiKey: settings.googleApiKey });
+  const toolCallManager = options.toolCallManager || new ToolCallManager();
+
+  const modelName = ['study-plan', 'multi-quiz', 'lesson-prep', 'fhe-planner'].includes(chatMode)
+      ? 'gemini-2.5-pro'
+      : settings.model || 'gemini-flash-lite-latest';
+
+  const systemInstruction = buildEnhancedSystemInstruction(
+      chatMode,
+      options.profile,
+      options.memories,
+      options.activeSkill,
+      options.readingContext,
+      { verbose: options.verbose, persona: options.persona }
+  );
+
+  // Build tools config with proper schema
+  const tools: any[] = [{ googleSearch: {} }];
+
+  if (chatMode === 'chat' || chatMode === 'thinking') {
+      const functionDeclarations = getGeminiToolDeclarations();
+      if (functionDeclarations.length > 0) {
+          tools.push({ functionDeclarations });
+      }
+  }
+
+  const config: any = {
+      systemInstruction,
+      tools,
+  };
+
+  if (chatMode === 'thinking' && options.thinkingDepth) {
+      config.thinkingConfig = {
+          thinkingBudget: THINKING_BUDGETS[options.thinkingDepth],
+      };
+  }
+
+  const chat = ai.chats.create({
+      model: modelName,
+      history: toGeminiHistory(history),
+      config,
+  });
+
+  return {
+      sendMessageStream: async ({ message }: { message: string }) => {
+          return chat.sendMessageStream({ message });
+      },
+
+      handleToolCalls: async (response: GenerateContentResponse): Promise<GenerateContentResponse | null> => {
+          const functionCalls = response.functionCalls;
+          if (!functionCalls || functionCalls.length === 0) return null;
+
+          const functionResponses: FunctionResponse[] = [];
+
+          for (const fc of functionCalls) {
+              const toolCall = toolCallManager.createToolCall(fc.name, fc.args || {});
+              toolCallManager.updateToolCall(toolCall.id, { status: 'running' });
+              toolCallManager.recordInConversation(toolCall);
+
+              try {
+                  const result = await executeToolWithRetry(
+                    fc.name,
+                    fc.args || {},
+                    settings.googleApiKey,
+                    {
+                      onStart: (name) => console.log(`[Tool] Starting: ${name}`),
+                      onComplete: (name, res) => console.log(`[Tool] Completed: ${name}`),
+                      onError: (name, err) => console.error(`[Tool] Error: ${name}`, err),
+                    }
+                  );
+
+                  toolCallManager.completeToolCall(toolCall.id, result);
+
+                  functionResponses.push({
+                      name: fc.name,
+                      response: result as unknown as Record<string, unknown>,
+                  });
+              } catch (e) {
+                  const errorResult = { success: false, data: null, error: String(e) };
+                  toolCallManager.failToolCall(toolCall.id, String(e));
+
+                  functionResponses.push({
+                      name: fc.name,
+                      response: errorResult,
+                  });
+              }
+          }
+
+          // Send function responses back to model for continued conversation
+          const followUp = await chat.sendMessageStream({
+              message: functionResponses.map(fr => ({
+                  functionResponse: fr,
+              }) as any),
+          } as any);
+
+          return followUp as any;
+      },
+
+      getToolCalls: () => toolCallManager.getConversationToolCalls(),
+
+      getToolCallManager: () => toolCallManager,
+  };
+}
+
+// --- OpenAI Compatible Chat Service ---
+function createOpenAICompatibleChatService(
+  settings: ApiProviderSettings,
+  chatMode: ChatMode,
+  history: Message[],
+  options: ChatServiceOptions
+) {
+  let baseUrl = '';
+  let apiKey = '';
+
+  switch(settings.provider) {
+      case 'lmstudio':
+          baseUrl = settings.lmStudioBaseUrl;
+          apiKey = settings.lmStudioApiKey || '';
+          break;
+      case 'openrouter':
+          baseUrl = settings.openRouterBaseUrl;
+          apiKey = settings.openRouterApiKey;
+          break;
+      case 'mcp': baseUrl = settings.mcpBaseUrl; break;
+      case 'minimax':
+          baseUrl = settings.minimaxBaseUrl || 'https://api.minimax.chat/v1';
+          apiKey = settings.minimaxApiKey || '';
+          break;
+  }
+
+  const toolCallManager = options.toolCallManager || new ToolCallManager();
+
+  const sendMessageStream = async function* ({ message }: { message: string }): AsyncGenerator<any> {
+      const systemInstruction = buildEnhancedSystemInstruction(
+          chatMode,
+          options.profile,
+          options.memories,
+          options.activeSkill,
+          options.readingContext,
+          { verbose: options.verbose, persona: options.persona }
+      );
+
+      const msgs = [
+          { role: 'system', content: systemInstruction },
+          ...history.filter(m => m.id !== 'initial-message' && m.text).map(m => ({
+              role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
+              content: m.text
+          })),
+          { role: 'user' as const, content: message }
+      ];
+
+      // Build OpenAI-format tools with enhanced schema
+      const openaiTools = chatMode === 'chat' || chatMode === 'thinking'
+          ? SCRIPTURE_TOOLS.map(t => ({
+              type: 'function',
+              function: {
+                  name: t.name,
+                  description: t.description,
+                  parameters: convertGeminiParamsToOpenAI(t.parameters),
+              }
+          }))
+          : undefined;
+
+      const body: any = {
+          model: settings.model,
+          messages: msgs,
+          stream: true,
+      };
+
+      if (openaiTools && openaiTools.length > 0) {
+          body.tools = openaiTools;
+          // Enhanced tool calling configuration (OpenClaw pattern)
+          body.tool_choice = 'auto';
+      }
+
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
+          },
+          body: JSON.stringify(body)
+      });
+
+      if (!response.body) throw new Error("Response body is null");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedText = '';
+
+      while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                  const jsonStr = line.substring(6);
+                  if (jsonStr.trim() === '[DONE]') {
+                      return;
+                  }
+                  try {
+                      const chunk = JSON.parse(jsonStr);
+                      const delta = chunk.choices?.[0]?.delta;
+
+                      // Handle text content
+                      const text = delta?.content || '';
+                      if (text) {
+                          accumulatedText += text;
+                          yield { text, isDelta: true } as any;
+                      }
+
+                      // Handle tool calls with proper tracking (Hermes/OpenClaw pattern)
+                      if (delta?.tool_calls) {
+                          for (const tc of delta.tool_calls) {
+                              const idx = tc.index ?? 0;
+                              const id = tc.id || `tc-${Date.now()}-${idx}`;
+
+                              if (tc.function?.name) {
+                                  const toolCall = toolCallManager.createToolCall(tc.function.name, {});
+                                  toolCall.id = id;
+                                  toolCallManager.updateToolCall(id, { status: 'pending' });
+                                  yield { toolCall: { id, name: tc.function.name, status: 'pending' }, isToolCall: true } as any;
+                              }
+
+                              if (tc.function?.arguments) {
+                                  const existing = toolCallManager.getToolCall(id);
+                                  if (existing) {
+                                      try {
+                                          const args = JSON.parse(tc.function.arguments);
+                                          toolCallManager.updateToolCall(id, { parameters: args });
+                                      } catch {
+                                          // Arguments may be partial - accumulate
+                                          const currentParams = existing.parameters || {};
+                                          try {
+                                            const partialArgs = JSON.parse(tc.function.arguments);
+                                            toolCallManager.updateToolCall(id, {
+                                              parameters: { ...currentParams, ...partialArgs }
+                                            });
+                                          } catch {
+                                            // Ignore - will be complete on finish
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+
+                      // Handle finish_reason for tool calls
+                      const finishReason = chunk.choices?.[0]?.finish_reason;
+                      if (finishReason === 'tool_calls') {
+                          // Execute all pending tool calls with retry
+                          const pendingCalls = toolCallManager.getPendingToolCalls();
+
+                          for (const tc of pendingCalls) {
+                              toolCallManager.updateToolCall(tc.id, { status: 'running' });
+                              yield { toolCall: { id: tc.id, name: tc.name, status: 'running' }, isToolCall: true } as any;
+
+                              try {
+                                  const result = await executeToolWithRetry(
+                                    tc.name,
+                                    tc.parameters,
+                                    apiKey,
+                                    {
+                                      onStart: (name) => console.log(`[Tool] Starting: ${name}`),
+                                      onError: (name, err) => console.error(`[Tool] Error: ${name}`, err),
+                                    }
+                                  );
+
+                                  toolCallManager.completeToolCall(tc.id, result);
+                                  yield { toolCall: { id: tc.id, name: tc.name, status: 'completed', result }, isToolCallComplete: true } as any;
+                              } catch (e) {
+                                  const errorResult = { success: false, data: null, error: String(e) };
+                                  toolCallManager.failToolCall(tc.id, String(e));
+                                  yield { toolCall: { id: tc.id, name: tc.name, status: 'error', result: errorResult }, isToolCallComplete: true } as any;
+                              }
+                          }
+
+                          // Build function call messages for follow-up
+                          const toolMsgs = [...msgs];
+                          toolMsgs.push({
+                              role: 'assistant' as const,
+                              content: null as any,
+                              tool_calls: pendingCalls.map(tc => ({
+                                  id: tc.id,
+                                  type: 'function',
+                                  function: {
+                                      name: tc.name,
+                                      arguments: JSON.stringify(tc.parameters),
+                                  }
+                              }))
+                          } as any);
+
+                          for (const tc of pendingCalls) {
+                              toolMsgs.push({
+                                  role: 'tool' as any,
+                                  tool_call_id: tc.id,
+                                  content: JSON.stringify(tc.result || { error: 'No result' }),
+                              } as any);
+                          }
+
+                          // Record in conversation
+                          for (const tc of pendingCalls) {
+                            toolCallManager.recordInConversation(tc);
+                          }
+
+                          // Send follow-up request (non-streaming for tool results)
+                          const followUpBody = {
+                              model: settings.model,
+                              messages: toolMsgs,
+                              stream: false,
+                          };
+
+                          const followUpResp = await fetch(`${baseUrl}/chat/completions`, {
+                              method: 'POST',
+                              headers: {
+                                  'Content-Type': 'application/json',
+                                  ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
+                              },
+                              body: JSON.stringify(followUpBody)
+                          });
+
+                          if (followUpResp.ok) {
+                              const followUpData = await followUpResp.json();
+                              const followUpText = followUpData.choices?.[0]?.message?.content || '';
+                              if (followUpText) {
+                                  yield { text: followUpText, isFinal: true } as any;
+                              }
+                          }
+                      }
+                  } catch (e) {
+                      console.error('Error parsing stream chunk:', e, jsonStr);
+                  }
+              }
+          }
+      }
+  };
+
+  return {
+      sendMessageStream,
+      handleToolCalls: async () => null,
+      getToolCalls: () => toolCallManager.getConversationToolCalls(),
+      getToolCallManager: () => toolCallManager,
+  };
+}
+
+// --- Convert Gemini params to OpenAI format ---
+function convertGeminiParamsToOpenAI(params: any): any {
+  if (!params) return {};
+  const result: any = { type: 'object', properties: {}, required: params.required || [] };
+  if (params.properties) {
+      for (const [key, prop] of Object.entries(params.properties) as [string, any][]) {
+          let type = 'string';
+          if (prop.type === Type.STRING) type = 'string';
+          else if (prop.type === Type.NUMBER) type = 'number';
+          else if (prop.type === Type.BOOLEAN) type = 'boolean';
+          else if (prop.type === Type.OBJECT) type = 'object';
+          else if (prop.type === Type.ARRAY) type = 'array';
+
+          result.properties[key] = {
+              type,
+              description: prop.description || '',
+          };
+      }
+  }
+  return result;
+}
 
 // --- Multi-Provider Failover ---
 
@@ -420,7 +909,9 @@ export const createChatServiceWithFailover = (
     }
 };
 
-// --- Existing Exports (unchanged) ---
+// ============================================================================
+// EXISTING EXPORTS (unchanged)
+// ============================================================================
 
 export const connectLive = (apiKey: string, callbacks: any, systemInstruction?: string): Promise<Session> => {
     if (!apiKey) throw new Error("Google API Key is not set for Live Connect.");

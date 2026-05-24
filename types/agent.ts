@@ -54,6 +54,9 @@ export interface ToolCall {
   status: 'pending' | 'executing' | 'completed' | 'error';
   result?: unknown;
   error?: string;
+  startedAt?: number;
+  completedAt?: number;
+  failedAt?: number;
 }
 
 export interface ToolDefinition {
