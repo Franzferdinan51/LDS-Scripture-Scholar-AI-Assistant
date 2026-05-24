@@ -298,6 +298,7 @@ const App: React.FC = () => {
           activeSkill,
           readingContext: readingContext || undefined,
           thinkingDepth,
+          verbose: verboseMode,
         };
         const newChat = createChatServiceWithFailover(settings, chatMode, currentHistory, chatOptions);
         setChat(newChat);
@@ -492,21 +493,16 @@ const App: React.FC = () => {
           }
         }
         return true;
-      case '/verbose':
-        if (args[0] === 'on' || args[0] === 'off') {
-          const verboseMsg: Message = { id: `verbose-${Date.now()}`, text: `Verbose mode ${args[0]}. Responses will be ${args[0] === 'on' ? 'more detailed' : 'more concise'}.`, sender: 'bot' };
-          if (activeChatId) {
-            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), verboseMsg] }));
-          }
-          // Store verbose setting
-          await setSetting('verboseMode', args[0] === 'on');
-        } else {
-          const errMsg: Message = { id: `verbose-err-${Date.now()}`, text: 'Usage: `/verbose on` or `/verbose off`', sender: 'bot' };
-          if (activeChatId) {
-            setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), errMsg] }));
-          }
+      case '/verbose': {
+        const newVerbose = args[0] === 'on' ? true : args[0] === 'off' ? false : !verboseMode;
+        setVerboseMode(newVerbose);
+        const verboseMsg: Message = { id: `verbose-${Date.now()}`, text: `Verbose mode ${newVerbose ? 'enabled' : 'disabled'}. Responses will be ${newVerbose ? 'more detailed' : 'more concise'}.`, sender: 'bot' };
+        if (activeChatId) {
+          setChatHistory(prev => ({ ...prev, [activeChatId]: [...(prev[activeChatId] || []), verboseMsg] }));
         }
+        await setSetting('verboseMode', newVerbose);
         return true;
+      }
       default:
         return false;
     }
@@ -626,6 +622,28 @@ const App: React.FC = () => {
         }));
       }
       
+      // Handle tool calls from Google Gemini
+      let toolCallsForMessage: ToolCall[] = [];
+      if (settings.provider === 'google' && lastGoogleResponse) {
+        try {
+          const handleToolCalls = (chatService as any).handleToolCalls;
+          if (handleToolCalls) {
+            const toolResult = await handleToolCalls(lastGoogleResponse);
+            if (toolResult) {
+              // Tool calls were executed, get them
+              const getToolCalls = (chatService as any).getToolCalls;
+              if (getToolCalls) {
+                toolCallsForMessage = getToolCalls();
+              }
+              // If tool results came back, they were sent back to the model
+              // The accumulated text may need updating from the follow-up response
+            }
+          }
+        } catch (toolErr) {
+          console.warn('Tool call handling error:', toolErr);
+        }
+      }
+
       let finalVisibleText = accumulatedText;
       let finalThinkingText: string | undefined = undefined;
 
