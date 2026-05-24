@@ -113,6 +113,7 @@ const App: React.FC = () => {
   const [thinkingDepth, setThinkingDepth] = useState<ThinkingDepth>('medium');
   const [activeAgentName, setActiveAgentName] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [verboseMode, setVerboseMode] = useState(false);
 
   // Refs for audio processing
   const inputAudioContextRef = useRef<AudioContext | null>(null);

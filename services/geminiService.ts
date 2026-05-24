@@ -213,7 +213,8 @@ export const createChatService = (
                 options.profile,
                 options.memories,
                 options.activeSkill,
-                options.readingContext
+                options.readingContext,
+                { verbose: options.verbose }
             );
 
             const messages = [
