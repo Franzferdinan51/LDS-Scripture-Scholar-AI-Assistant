@@ -1,0 +1,7 @@
+{
+  "name": "LDS Scripture Scholar v0.1",
+  "description": "A chatbot designed to answer questions about the Book of Mormon and The Church of Jesus Christ of Latter-day Saints, providing information based on scripture and established church sources.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
