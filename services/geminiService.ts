@@ -76,6 +76,7 @@ export interface ChatServiceOptions {
   activeSkill?: Skill | null;
   readingContext?: string;
   thinkingDepth?: ThinkingDepth;
+  verbose?: boolean;
 }
 
 export const createChatService = (
@@ -97,7 +98,8 @@ export const createChatService = (
             options.profile,
             options.memories,
             options.activeSkill,
-            options.readingContext
+            options.readingContext,
+            { verbose: options.verbose }
         );
 
         // Build tools config
