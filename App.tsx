@@ -414,15 +414,34 @@ const App: React.FC = () => {
     }
 
     let chatService = chat;
+    let effectiveMode = overrideMode || chatMode;
+
+    // Auto-route to specialized mode if pattern matches (sub-agent routing)
+    if (!overrideMode && chatMode === 'chat') {
+        const matchedAgent = routeToAgent(trimmed, chatMode);
+        if (matchedAgent) {
+            setActiveAgentName(matchedAgent.name);
+            const modeMap: Record<string, ChatMode> = {
+                research: 'chat',
+                studyPlanner: 'study-plan',
+                quizMaster: 'multi-quiz',
+                lessonPrep: 'lesson-prep',
+            };
+            if (modeMap[matchedAgent.id]) {
+                effectiveMode = modeMap[matchedAgent.id];
+            }
+        }
+    }
+
     // Create a temporary service if an override is requested and it's different from the current mode
-    if (overrideMode && overrideMode !== chatMode) {
+    if (effectiveMode !== chatMode) {
         try {
             let currentHistory = chatHistory[activeChatId] || [];
             // Auto-compress if context is too large
             if (needsCompression(currentHistory) && settings.googleApiKey) {
               currentHistory = await compressContext(currentHistory, settings.googleApiKey);
             }
-            chatService = createChatService(settings, overrideMode, currentHistory);
+            chatService = createChatService(settings, effectiveMode, currentHistory);
         } catch (err: any) {
             console.error("Temporary chat service initialization error:", err);
             setError(`Could not initialize the chat for this request: ${err.message}`);
@@ -530,7 +549,7 @@ const App: React.FC = () => {
             if (msg.id !== botMessageId) return msg;
             
             let finalMsg = { ...msg, text: finalVisibleText, thinking: finalThinkingText, groundingChunks };
-            const currentMode = overrideMode || chatMode; // Use override if it exists
+            const currentMode = effectiveMode;
             if (currentMode === 'study-plan' || currentMode === 'multi-quiz') {
                 try {
                     const cleanedJsonText = finalVisibleText.replace(/```json/g, '').replace(/```/g, '').trim();
