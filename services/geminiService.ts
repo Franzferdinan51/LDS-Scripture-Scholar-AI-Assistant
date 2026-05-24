@@ -1,7 +1,7 @@
 import { GoogleGenAI, Chat, Session, LiveServerMessage, Modality, Type, GenerateContentResponse, Content, FunctionCall, FunctionResponse } from "@google/genai";
 import { ApiProviderSettings, ChatMode, Model, Message, ThinkingDepth, THINKING_BUDGETS, UserProfile, Memory, Skill, ToolCall } from "../types";
 import { buildSystemPrompt } from "./promptBuilder";
-import { SCRIPTURE_TOOLS, getGeminiToolDeclarations } from "./tools";
+import { SCRIPTURE_TOOLS, getGeminiToolDeclarations, getOpenAIToolDeclarations } from "./tools";
 import { executeTool } from "./toolExecutor";
 
 // --- Enhanced Error Types ---
@@ -208,6 +208,8 @@ export const createChatService = (
                 break;
         }
 
+        const toolCallsMap = new Map<string, ToolCall>();
+
         const sendMessageStream = async function* ({ message }: { message: string }): AsyncGenerator<GenerateContentResponse> {
             const systemInstruction = buildSystemPrompt(
                 chatMode,
@@ -218,7 +220,7 @@ export const createChatService = (
                 { verbose: options.verbose, persona: options.persona }
             );
 
-            const messages = [
+            const msgs = [
                 { role: 'system', content: systemInstruction },
                 ...history.filter(m => m.id !== 'initial-message' && m.text).map(m => ({
                     role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
@@ -227,17 +229,34 @@ export const createChatService = (
                 { role: 'user' as const, content: message }
             ];
 
+            // Build OpenAI-format tools from our tool definitions
+            const openaiTools = chatMode === 'chat' || chatMode === 'thinking'
+                ? SCRIPTURE_TOOLS.map(t => ({
+                    type: 'function',
+                    function: {
+                        name: t.name,
+                        description: t.description,
+                        parameters: t.parameters,
+                    }
+                }))
+                : undefined;
+
+            const body: any = {
+                model: settings.model,
+                messages: msgs,
+                stream: true,
+            };
+            if (openaiTools && openaiTools.length > 0) {
+                body.tools = openaiTools;
+            }
+
             const response = await fetch(`${baseUrl}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
                 },
-                body: JSON.stringify({
-                    model: settings.model,
-                    messages: messages,
-                    stream: true
-                })
+                body: JSON.stringify(body)
             });
 
             if (!response.body) throw new Error("Response body is null");
@@ -262,9 +281,102 @@ export const createChatService = (
                         }
                         try {
                             const chunk = JSON.parse(jsonStr);
-                            const text = chunk.choices[0]?.delta?.content || '';
+                            const delta = chunk.choices?.[0]?.delta;
+
+                            // Handle text content
+                            const text = delta?.content || '';
                             if (text) {
                                 yield { text } as any;
+                            }
+
+                            // Handle tool calls from OpenAI format
+                            if (delta?.tool_calls) {
+                                for (const tc of delta.tool_calls) {
+                                    const idx = tc.index ?? 0;
+                                    const id = tc.id || `tc-${idx}`;
+                                    if (tc.function?.name) {
+                                        toolCallsMap.set(String(idx), {
+                                            id,
+                                            name: tc.function.name,
+                                            parameters: {},
+                                            status: 'pending',
+                                        });
+                                    }
+                                    if (tc.function?.arguments) {
+                                        const existing = toolCallsMap.get(String(idx));
+                                        if (existing) {
+                                            // Accumulate arguments (they come in chunks)
+                                            try {
+                                                existing.parameters = JSON.parse(tc.function.arguments);
+                                            } catch {
+                                                // Arguments may be partial, ignore parse errors
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Handle finish_reason for tool calls
+                            const finishReason = chunk.choices?.[0]?.finish_reason;
+                            if (finishReason === 'tool_calls') {
+                                // Execute all tool calls and send results back
+                                for (const tc of toolCallsMap.values()) {
+                                    tc.status = 'running';
+                                    try {
+                                        const result = await executeTool(tc.name, tc.parameters, apiKey);
+                                        tc.status = result.success ? 'completed' : 'error';
+                                        tc.result = result;
+                                    } catch (e) {
+                                        tc.status = 'error';
+                                        tc.result = { success: false, data: null, error: String(e) };
+                                    }
+                                }
+
+                                // Build function call messages and send follow-up
+                                const toolMsgs = [...msgs];
+                                // Add assistant message with tool calls
+                                toolMsgs.push({
+                                    role: 'assistant' as const,
+                                    content: null as any,
+                                    tool_calls: [...toolCallsMap.values()].map(tc => ({
+                                        id: tc.id,
+                                        type: 'function',
+                                        function: {
+                                            name: tc.name,
+                                            arguments: JSON.stringify(tc.parameters),
+                                        }
+                                    }))
+                                } as any);
+                                // Add tool results
+                                for (const tc of toolCallsMap.values()) {
+                                    toolMsgs.push({
+                                        role: 'tool' as any,
+                                        tool_call_id: tc.id,
+                                        content: JSON.stringify(tc.result || { error: 'No result' }),
+                                    } as any);
+                                }
+
+                                // Send follow-up request (non-streaming for simplicity)
+                                const followUpBody = {
+                                    model: settings.model,
+                                    messages: toolMsgs,
+                                    stream: false,
+                                };
+                                const followUpResp = await fetch(`${baseUrl}/chat/completions`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        ...(apiKey && { 'Authorization': `Bearer ${apiKey}` })
+                                    },
+                                    body: JSON.stringify(followUpBody)
+                                });
+                                if (followUpResp.ok) {
+                                    const followUpData = await followUpResp.json();
+                                    const followUpText = followUpData.choices?.[0]?.message?.content || '';
+                                    if (followUpText) {
+                                        yield { text: followUpText } as any;
+                                    }
+                                }
                             }
                         } catch (e) {
                             console.error('Error parsing stream chunk:', e, jsonStr);
@@ -276,8 +388,8 @@ export const createChatService = (
 
         return {
             sendMessageStream,
-            handleToolCalls: async () => null, // No tool calling for non-Google
-            getToolCalls: () => [],
+            handleToolCalls: async () => null,
+            getToolCalls: () => [...toolCallsMap.values()],
         };
     }
 };

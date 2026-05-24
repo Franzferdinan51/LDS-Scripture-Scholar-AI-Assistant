@@ -1,8 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import VoiceButton from './VoiceButton';
 import { ChatMode } from '../types';
 import SendIcon from './SendIcon';
 import ThinkingIcon from './ThinkingIcon';
+
+const SLASH_COMMANDS = [
+  { cmd: '/new', desc: 'Start a new chat' },
+  { cmd: '/reset', desc: 'Reset current chat' },
+  { cmd: '/compact', desc: 'Compress context' },
+  { cmd: '/search', desc: 'Search conversations' },
+  { cmd: '/skill', desc: 'Activate a skill' },
+  { cmd: '/retry', desc: 'Re-send last message' },
+  { cmd: '/undo', desc: 'Remove last exchange' },
+  { cmd: '/status', desc: 'Show system status' },
+  { cmd: '/usage', desc: 'Show usage stats' },
+  { cmd: '/think', desc: 'Set thinking depth (light/medium/deep)' },
+  { cmd: '/verbose', desc: 'Toggle verbose mode (on/off)' },
+  { cmd: '/persona', desc: 'Set agent persona' },
+  { cmd: '/insights', desc: 'Show study insights' },
+  { cmd: '/dashboard', desc: 'Open study dashboard' },
+  { cmd: '/reminders', desc: 'Open reminders' },
+];
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -17,27 +35,109 @@ interface ChatInputProps {
 }
 
 
-const ChatInput: React.FC<ChatInputProps> = ({ 
-  onSendMessage, 
-  isLoading, 
-  isVoiceChatActive, 
-  isConnecting, 
+const ChatInput: React.FC<ChatInputProps> = ({
+  onSendMessage,
+  isLoading,
+  isVoiceChatActive,
+  isConnecting,
   onToggleVoiceChat,
   isVoiceChatAvailable,
   chatMode,
   setChatMode,
 }) => {
   const [text, setText] = useState('');
+  const [showCommands, setShowCommands] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredCommands = useMemo(() => {
+    if (!text.startsWith('/')) return [];
+    const query = text.toLowerCase();
+    return SLASH_COMMANDS.filter(c => c.cmd.startsWith(query));
+  }, [text]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+    setShowCommands(text.startsWith('/') && filteredCommands.length > 0);
+  }, [text, filteredCommands.length]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowCommands(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
     if (isLoading || isVoiceChatActive) return;
 
+    // If a command is selected from dropdown, use it
+    if (showCommands && filteredCommands[selectedIndex]) {
+      const selected = filteredCommands[selectedIndex];
+      // If the command needs an argument (like /skill, /think, /persona, /verbose),
+      // just insert the command and let user type the rest
+      if (['/skill', '/think', '/persona', '/verbose'].includes(selected.cmd) && text === selected.cmd) {
+        setText(selected.cmd + ' ');
+        setShowCommands(false);
+        inputRef.current?.focus();
+        return;
+      }
+    }
+
     onSendMessage(text);
     setText('');
+    setShowCommands(false);
   };
-  
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showCommands) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(i => (i + 1) % filteredCommands.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(i => (i - 1 + filteredCommands.length) % filteredCommands.length);
+    } else if (e.key === 'Tab' || (e.key === 'Enter' && showCommands)) {
+      if (filteredCommands[selectedIndex]) {
+        e.preventDefault();
+        const selected = filteredCommands[selectedIndex];
+        setText(selected.cmd + ' ');
+        setShowCommands(false);
+        // Don't submit for commands that need args
+        if (['/skill', '/think', '/persona', '/verbose'].includes(selected.cmd)) {
+          return;
+        }
+        // For no-arg commands, submit immediately
+        if (!['/skill', '/think', '/persona', '/verbose', '/search'].includes(selected.cmd)) {
+          onSendMessage(selected.cmd);
+          setText('');
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setShowCommands(false);
+    }
+  };
+
+  const selectCommand = (cmd: string) => {
+    if (['/skill', '/think', '/persona', '/verbose'].includes(cmd)) {
+      setText(cmd + ' ');
+      setShowCommands(false);
+      inputRef.current?.focus();
+    } else {
+      onSendMessage(cmd);
+      setText('');
+      setShowCommands(false);
+    }
+  };
+
   const getPlaceholder = () => {
     if (isVoiceChatActive) return "Listening...";
     if (chatMode === 'thinking') return "Ask a complex question...";
@@ -45,7 +145,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (chatMode === 'multi-quiz') return "Enter a quiz topic (e.g., The Book of Mormon)...";
     if (chatMode === 'lesson-prep') return "Topic, audience, and time for your lesson...";
     if (chatMode === 'fhe-planner') return "Topic for FHE (e.g., Gratitude, with young kids)...";
-    return "Ask Scripture Scholar...";
+    return "Ask Scripture Scholar... (type / for commands)";
   }
 
   const isInputDisabled = isLoading || isVoiceChatActive || isConnecting;
@@ -53,51 +153,74 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const isSpecialModeActive = chatMode !== 'chat' && chatMode !== 'thinking';
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700 rounded-2xl p-2 flex items-center space-x-2 shadow-2xl">
-      <button 
-        type="button" 
-        onClick={() => setChatMode(chatMode === 'thinking' ? 'chat' : 'thinking')}
-        disabled={isSpecialModeActive}
-        className={`flex items-center gap-2 px-3 py-2 sm:py-3 rounded-full text-sm font-medium transition-colors whitespace-nowrap
-          ${chatMode === 'thinking' 
-            ? 'bg-purple-600 text-white' 
-            : 'bg-slate-700/80 text-gray-300 hover:bg-slate-600/80'
-          }
-          ${isSpecialModeActive ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
-      >
-        <ThinkingIcon />
-        Thinking
-      </button>
-      
-      <form id="chat-form" onSubmit={handleSubmit} className="flex-1">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={getPlaceholder()}
-          className="w-full bg-transparent focus:outline-none text-gray-200 placeholder:text-gray-400 px-2 py-2 sm:py-3"
-          disabled={isInputDisabled}
-        />
-      </form>
-
-      <button
-        type="submit"
-        form="chat-form"
-        disabled={isSendDisabled}
-        className="bg-blue-600 text-white rounded-full p-2 sm:p-3 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 flex items-center justify-center"
-        aria-label="Send message"
-      >
-        <SendIcon />
-      </button>
-
-      {isVoiceChatAvailable && (
-        <VoiceButton
-          isActive={isVoiceChatActive}
-          isConnecting={isConnecting}
-          onClick={onToggleVoiceChat}
-        />
+    <div className="relative" ref={dropdownRef}>
+      {/* Slash command dropdown */}
+      {showCommands && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-50">
+          {filteredCommands.map((cmd, i) => (
+            <button
+              key={cmd.cmd}
+              onClick={() => selectCommand(cmd.cmd)}
+              onMouseEnter={() => setSelectedIndex(i)}
+              className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
+                i === selectedIndex ? 'bg-blue-600/30 text-white' : 'text-gray-300 hover:bg-slate-700'
+              }`}
+            >
+              <span className="font-mono text-sm font-medium">{cmd.cmd}</span>
+              <span className="text-xs text-gray-400 ml-3">{cmd.desc}</span>
+            </button>
+          ))}
+        </div>
       )}
+
+      <div className="bg-slate-800/50 backdrop-blur-lg border border-slate-700 rounded-2xl p-2 flex items-center space-x-2 shadow-2xl">
+        <button
+          type="button"
+          onClick={() => setChatMode(chatMode === 'thinking' ? 'chat' : 'thinking')}
+          disabled={isSpecialModeActive}
+          className={`flex items-center gap-2 px-3 py-2 sm:py-3 rounded-full text-sm font-medium transition-colors whitespace-nowrap
+            ${chatMode === 'thinking'
+              ? 'bg-purple-600 text-white'
+              : 'bg-slate-700/80 text-gray-300 hover:bg-slate-600/80'
+            }
+            ${isSpecialModeActive ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+        >
+          <ThinkingIcon />
+          Thinking
+        </button>
+
+        <form id="chat-form" onSubmit={handleSubmit} className="flex-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={getPlaceholder()}
+            className="w-full bg-transparent focus:outline-none text-gray-200 placeholder:text-gray-400 px-2 py-2 sm:py-3"
+            disabled={isInputDisabled}
+          />
+        </form>
+
+        <button
+          type="submit"
+          form="chat-form"
+          disabled={isSendDisabled}
+          className="bg-blue-600 text-white rounded-full p-2 sm:p-3 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:ring-offset-slate-900 flex items-center justify-center"
+          aria-label="Send message"
+        >
+          <SendIcon />
+        </button>
+
+        {isVoiceChatAvailable && (
+          <VoiceButton
+            isActive={isVoiceChatActive}
+            isConnecting={isConnecting}
+            onClick={onToggleVoiceChat}
+          />
+        )}
+      </div>
     </div>
   );
 };

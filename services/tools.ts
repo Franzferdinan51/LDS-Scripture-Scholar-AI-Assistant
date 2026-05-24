@@ -8,6 +8,53 @@ export interface ToolDefinition {
   parameters: any; // Gemini Schema
 }
 
+// --- Convert Gemini Type enum to OpenAI JSON Schema type strings ---
+
+function geminiTypeToOpenAI(type: any): string {
+  if (type === Type.STRING) return 'string';
+  if (type === Type.NUMBER) return 'number';
+  if (type === Type.BOOLEAN) return 'boolean';
+  if (type === Type.OBJECT) return 'object';
+  if (type === Type.ARRAY) return 'array';
+  return 'string';
+}
+
+function convertGeminiParamsToOpenAI(params: any): any {
+  if (!params) return {};
+  const result: any = { type: 'object', properties: {}, required: params.required || [] };
+  if (params.properties) {
+    for (const [key, prop] of Object.entries(params.properties) as [string, any][]) {
+      result.properties[key] = {
+        type: geminiTypeToOpenAI(prop.type),
+        description: prop.description || '',
+      };
+    }
+  }
+  return result;
+}
+
+// --- OpenAI Function Format ---
+
+export interface OpenAITool {
+  type: 'function';
+  function: {
+    name: string;
+    description: string;
+    parameters: any;
+  };
+}
+
+export function getOpenAIToolDeclarations(): OpenAITool[] {
+  return SCRIPTURE_TOOLS.map(tool => ({
+    type: 'function' as const,
+    function: {
+      name: tool.name,
+      description: tool.description,
+      parameters: convertGeminiParamsToOpenAI(tool.parameters),
+    },
+  }));
+}
+
 // --- Gemini Function Declarations ---
 
 export const SCRIPTURE_TOOLS: ToolDefinition[] = [
