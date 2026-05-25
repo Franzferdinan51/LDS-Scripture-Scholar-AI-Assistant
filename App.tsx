@@ -25,6 +25,7 @@ import ScriptureAgentSidebar from './components/ScriptureAgentSidebar';
 import {
   getAllChats, saveChat, deleteChat as deleteChatDB, clearAllChats,
   getAllNotes, saveNote, deleteNote as deleteNoteDB,
+  deleteMemory as deleteMemoryDB, updateSkillUsage,
   getAllJournalEntries, saveJournalEntry,
   getSetting, setSetting, migrateFromLocalStorage,
   getAllSkills, saveSkill as saveSkillDB,
@@ -36,7 +37,7 @@ import {
 // Memory system
 import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfileFromConversation, consolidateMemories, extractProactiveMemories } from './services/memory';
 // Skills
-import { BUILTIN_SKILLS, initializeSkills } from './services/skills';
+import { BUILTIN_SKILLS, initializeSkills, getSkillById } from './services/skills';
 // Reminders
 import { checkDueReminders, suggestReminders, createReminderFromSuggestion } from './services/reminders';
 import type { SuggestedReminder } from './services/reminders';
@@ -520,14 +521,13 @@ const App: React.FC = () => {
         return true;
       case '/skill':
         if (args[0]) {
-          const { getSkillById } = await import('./services/skills');
           const skill = getSkillById(args[0]);
           if (skill) {
             setActiveSkill(prev => {
               const next = prev?.id === skill.id ? null : skill;
               if (next) {
                 // Track skill usage when activated
-                import('./services/storage').then(s => s.updateSkillUsage(skill.id).catch(() => {}));
+                updateSkillUsage(skill.id).catch(() => {});
               }
               return next;
             });
@@ -1324,13 +1324,11 @@ const App: React.FC = () => {
             studySessions={studySessions}
             onNavigate={(view) => setActiveView(view as ViewMode)}
             onDeleteMemory={async (id: string) => {
-              const { deleteMemory: deleteMem } = await import('./services/storage');
-              await deleteMem(id);
+              await deleteMemoryDB(id);
               setMemories(prev => prev.filter(m => m.id !== id));
             }}
             onRefreshMemories={async () => {
-              const { retrieveRelevantMemories: retrieve } = await import('./services/memory');
-              const refreshed = await retrieve('', 20);
+              const refreshed = await retrieveRelevantMemories('', 20);
               setMemories(refreshed);
             }}
           />
@@ -1481,7 +1479,7 @@ const App: React.FC = () => {
                 const next = prev?.id === skill.id ? null : skill;
                 if (next) {
                   // Track skill usage when selected from UI
-                  import('./services/storage').then(s => s.updateSkillUsage(skill.id).catch(() => {}));
+                  updateSkillUsage(skill.id).catch(() => {});
                 }
                 return next;
               });
