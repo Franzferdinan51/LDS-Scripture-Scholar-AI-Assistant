@@ -1382,8 +1382,12 @@ const App: React.FC = () => {
               setReminders(prev => [...prev, r]);
             }}
             onUpdate={async (r) => {
-              await saveReminderDB(r);
-              setReminders(prev => prev.map(x => x.id === r.id ? r : x));
+              const existing = reminders.find(x => x.id === r.id);
+              const nextReminder = r.enabled && existing && !existing.enabled
+                ? { ...r, lastTriggered: undefined }
+                : r;
+              await saveReminderDB(nextReminder);
+              setReminders(prev => prev.map(x => x.id === nextReminder.id ? nextReminder : x));
             }}
             onDelete={async (id) => {
               await deleteReminderDB(id);
