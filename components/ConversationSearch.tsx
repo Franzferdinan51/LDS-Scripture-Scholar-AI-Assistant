@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { SearchResult } from '../types';
 import { searchConversations } from '../services/search';
 
@@ -11,18 +11,33 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const searchRequestIdRef = useRef(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
     if (q.length < 3) { setResults([]); return; }
     setIsSearching(true);
+    const requestId = ++searchRequestIdRef.current;
     try {
       const found = await searchConversations(q);
+      if (!isMountedRef.current || requestId !== searchRequestIdRef.current) return;
       setResults(found);
     } catch (e) {
-      console.error('Search failed:', e);
+      if (isMountedRef.current && requestId === searchRequestIdRef.current) {
+        console.error('Search failed:', e);
+      }
+    } finally {
+      if (isMountedRef.current && requestId === searchRequestIdRef.current) {
+        setIsSearching(false);
+      }
     }
-    setIsSearching(false);
   }, []);
 
   return (
