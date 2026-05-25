@@ -3,7 +3,7 @@ import type { Message, ChatMode, ViewMode, GroundingChunk, StudyPlan, MultiQuiz,
 import type { Session, LiveServerMessage, GenerateContentResponse, Content } from '@google/genai';
 import { createChatService, createChatServiceWithFailover, connectLive, generateSpeech, getJournalInsights, getProactiveSuggestion, getWikimediaImageUrl } from './services/aiService';
 import type { ChatServiceOptions } from './services/aiService';
-import { getUsageTracker, estimateCost } from './services/usageTracker';
+import { addUsage, getUsageTracker, estimateCost } from './services/usageTracker';
 import ChatWindow from './components/ChatWindow';
 import Sidebar from './components/Sidebar';
 import NotesPanel from './components/NotesPanel';
@@ -131,6 +131,13 @@ function cleanStreamText(text: string): string {
   return stripRawToolCalls(text)
     .trim();
 }
+
+function estimateTokenCount(text: string): number {
+  const normalized = text.trim();
+  if (!normalized) return 0;
+  return Math.max(1, Math.ceil(normalized.length / 4));
+}
+
 import type { AgentPhase } from './components/AgentIndicator';
 // Context compression
 import { needsCompression, compressContext } from './services/contextCompressor';
@@ -740,6 +747,7 @@ const App: React.FC = () => {
     
     let requestError = null;
     let accumulatedText = "";
+    let finalVisibleText = "";
     try {
       setAgentPhase('responding');
       const responseStream = await chatService.sendMessageStream({ message: messageToSend });
@@ -789,7 +797,7 @@ const App: React.FC = () => {
         }));
       }
       
-      let finalVisibleText = cleanStreamText(accumulatedText);
+      finalVisibleText = cleanStreamText(accumulatedText);
       let finalThinkingText: string | undefined = undefined;
 
       const thinkingRegex = /<thinking>([\s\S]*)<\/thinking>/;
@@ -894,6 +902,14 @@ const App: React.FC = () => {
       setToolCallsInProgress(0);
       setActiveAgentName(null);
       setAgentPhase('idle');
+      if (!requestError && activeChatId) {
+        const promptTokens = estimateTokenCount(messageToSend);
+        const completionTokens = estimateTokenCount(finalVisibleText);
+        const totalTokens = promptTokens + completionTokens;
+        if (totalTokens > 0) {
+          addUsage(settings.provider, totalTokens, 1).catch(() => {});
+        }
+      }
       if (chatMode === 'chat' && !requestError && activeChatId) {
           setTimeout(() => triggerProactiveSuggestion(), 2000);
           // Extract and store memories from the conversation (async, non-blocking)
