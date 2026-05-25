@@ -264,6 +264,12 @@ const App: React.FC = () => {
   }, [activeChatId]);
 
   useEffect(() => {
+    setCrossReferenceScripture('');
+    setSkillSaveOffer(null);
+    setSuggestedReminders([]);
+  }, [activeChatId]);
+
+  useEffect(() => {
     const previousActiveView = previousActiveViewRef.current;
     previousActiveViewRef.current = activeView;
 
