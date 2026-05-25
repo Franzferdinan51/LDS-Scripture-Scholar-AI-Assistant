@@ -32,7 +32,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>(MCP_TEST_INITIAL);
   const providerModelMemory = useRef<Partial<Record<ApiProvider, string>>>({});
+  const fetchModelsRequestIdRef = useRef(0);
+  const isMountedRef = useRef(true);
   const hasText = (value?: string) => Boolean(value?.trim());
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -46,6 +54,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   }, [settings, isOpen]);
 
   useEffect(() => {
+      fetchModelsRequestIdRef.current++;
       // Clear models if provider changes
       setModels([]);
       setFetchError(null);
@@ -55,17 +64,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   }, [localSettings.provider, isOpen]);
 
   const handleFetchModels = async () => {
+    const requestId = ++fetchModelsRequestIdRef.current;
     setIsFetchingModels(true);
     setFetchError(null);
     setModels([]);
     try {
       const fetchedModels = await fetchModels(localSettings);
+      if (!isMountedRef.current || requestId !== fetchModelsRequestIdRef.current) return;
       setModels(fetchedModels);
     } catch (err) {
+      if (!isMountedRef.current || requestId !== fetchModelsRequestIdRef.current) return;
       console.error(err);
       setFetchError(err instanceof Error ? err.message : "An unknown error occurred.");
     } finally {
-      setIsFetchingModels(false);
+      if (isMountedRef.current && requestId === fetchModelsRequestIdRef.current) {
+        setIsFetchingModels(false);
+      }
     }
   };
 
