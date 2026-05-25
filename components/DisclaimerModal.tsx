@@ -13,6 +13,8 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose(dontShowAgain);
@@ -21,7 +23,7 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, dontShowAgain]);
+  }, [isOpen, onClose, dontShowAgain]);
 
   if (!isOpen) return null;
 
