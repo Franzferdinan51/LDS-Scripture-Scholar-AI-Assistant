@@ -90,36 +90,36 @@ const PROVIDER_CAPABILITIES: Record<ApiProvider, ProviderCapabilityInfo> = {
   },
 };
 
-export function getProviderCapabilities(provider: ApiProvider): ProviderCapabilityInfo {
-  return PROVIDER_CAPABILITIES[provider];
+export function getProviderCapabilities(provider: unknown): ProviderCapabilityInfo {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)];
 }
 
-export function getProviderDisplayName(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].title;
+export function getProviderDisplayName(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].title;
 }
 
-export function getProviderShortLabel(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].shortLabel;
+export function getProviderShortLabel(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].shortLabel;
 }
 
-export function getProviderKeyLabel(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].keyLabel;
+export function getProviderKeyLabel(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].keyLabel;
 }
 
-export function getProviderBaseUrlLabel(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].baseUrlLabel ?? 'Base URL';
+export function getProviderBaseUrlLabel(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].baseUrlLabel ?? 'Base URL';
 }
 
-export function getProviderNote(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].note;
+export function getProviderNote(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].note;
 }
 
-export function getProviderDescription(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].description;
+export function getProviderDescription(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].description;
 }
 
-export function getProviderDefaultModel(provider: ApiProvider): string {
-  return PROVIDER_CAPABILITIES[provider].defaultModel ?? '';
+export function getProviderDefaultModel(provider: unknown): string {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].defaultModel ?? '';
 }
 
 export function normalizeApiProvider(value: unknown): ApiProvider {
@@ -132,18 +132,18 @@ export function normalizeApiProvider(value: unknown): ApiProvider {
     : 'google';
 }
 
-export function providerSupportsLiveVoice(provider: ApiProvider): boolean {
-  return PROVIDER_CAPABILITIES[provider].supportsLiveVoice;
+export function providerSupportsLiveVoice(provider: unknown): boolean {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].supportsLiveVoice;
 }
 
-export function providerSupportsTextToSpeech(provider: ApiProvider): boolean {
-  return PROVIDER_CAPABILITIES[provider].supportsTextToSpeech;
+export function providerSupportsTextToSpeech(provider: unknown): boolean {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].supportsTextToSpeech;
 }
 
-export function providerSupportsModelDiscovery(provider: ApiProvider): boolean {
-  return PROVIDER_CAPABILITIES[provider].supportsModelDiscovery;
+export function providerSupportsModelDiscovery(provider: unknown): boolean {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].supportsModelDiscovery;
 }
 
-export function providerSupportsOpenAIChatCompletions(provider: ApiProvider): boolean {
-  return PROVIDER_CAPABILITIES[provider].supportsOpenAIChatCompletions;
+export function providerSupportsOpenAIChatCompletions(provider: unknown): boolean {
+  return PROVIDER_CAPABILITIES[normalizeApiProvider(provider)].supportsOpenAIChatCompletions;
 }
