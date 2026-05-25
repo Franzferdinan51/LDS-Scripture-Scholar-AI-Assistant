@@ -81,17 +81,6 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
     };
   }, [closeSearch]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeSearch();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [closeSearch]);
-
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
     if (q.length < 3) {
