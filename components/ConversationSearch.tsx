@@ -14,6 +14,14 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
   const searchRequestIdRef = useRef(0);
   const isMountedRef = useRef(true);
 
+  const closeSearch = useCallback(() => {
+    searchRequestIdRef.current++;
+    setQuery('');
+    setResults([]);
+    setIsSearching(false);
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
@@ -46,7 +54,7 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 pt-20 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 pt-20 p-4" onClick={closeSearch}>
       <div className="bg-gray-800 rounded-xl max-w-lg w-full max-h-[70vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
@@ -64,7 +72,7 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
               className="flex-1 bg-transparent text-white outline-none placeholder-gray-400"
               autoFocus
             />
-            <button onClick={onClose} className="text-gray-400 hover:text-white">&times;</button>
+            <button onClick={closeSearch} className="text-gray-400 hover:text-white">&times;</button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -75,7 +83,7 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
           {results.map((result, i) => (
             <button
               key={`${result.chatId}-${result.messageId}-${i}`}
-              onClick={() => { onNavigate(result.chatId); onClose(); }}
+              onClick={() => { onNavigate(result.chatId); closeSearch(); }}
               className="w-full p-3 text-left hover:bg-gray-700 border-b border-gray-700/50 transition-colors"
             >
               <p className="text-sm text-white">{result.snippet}</p>
