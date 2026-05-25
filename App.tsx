@@ -542,6 +542,51 @@ const App: React.FC = () => {
     };
 
     switch (command) {
+      case '/study':
+      case '/plan':
+        setChatMode('study-plan');
+        setActiveView('chat');
+        if (args.length > 0) {
+          const prompt = args.join(' ');
+          await handleSendMessageRef.current?.(prompt, 'study-plan');
+        }
+        return true;
+      case '/quiz':
+        setChatMode('multi-quiz');
+        setActiveView('chat');
+        if (args.length > 0) {
+          const prompt = args.join(' ');
+          await handleSendMessageRef.current?.(prompt, 'multi-quiz');
+        }
+        return true;
+      case '/lesson':
+        setChatMode('lesson-prep');
+        setActiveView('chat');
+        if (args.length > 0) {
+          const prompt = args.join(' ');
+          await handleSendMessageRef.current?.(prompt, 'lesson-prep');
+        }
+        return true;
+      case '/fhe':
+        setChatMode('fhe-planner');
+        setActiveView('chat');
+        if (args.length > 0) {
+          const prompt = args.join(' ');
+          await handleSendMessageRef.current?.(prompt, 'fhe-planner');
+        }
+        return true;
+      case '/explain':
+      case '/cross-ref':
+      case '/image':
+        setChatMode('chat');
+        setActiveView('chat');
+        if (args.length > 0) {
+          const prompt = args.join(' ');
+          await handleSendMessageRef.current?.(prompt, 'chat');
+        } else {
+          setError(`Usage: ${command} <topic or scripture>`);
+        }
+        return true;
       case '/new':
         handleNewChat();
         return true;
