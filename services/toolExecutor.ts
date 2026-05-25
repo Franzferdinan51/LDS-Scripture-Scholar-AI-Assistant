@@ -3,7 +3,7 @@ import {
   getScriptureText as lookupScriptureText,
   searchScriptureCorpus,
 } from './scriptureCorpus';
-import { searchLDSContent, searchLDSSources, webSearch, type WebSearchSettings } from './webSearchService';
+import { searchLDSContent, searchLDSSources, webSearch, type WebSearchSettings, normalizeWebSearchProvider } from './webSearchService';
 import { searchLDS as searchLDSFromService, getSearchConfig } from './webSearchService';
 import { getCrossReferencesForSettings } from './crossReferenceService';
 
@@ -194,7 +194,7 @@ async function searchWeb(params: { query: string; limit?: number }, settings?: A
     // Fallback: try the old webSearchService for broader coverage
     const webSettings: WebSearchSettings | undefined = settings?.webSearchProvider
       ? {
-          provider: settings.webSearchProvider as any,
+          provider: normalizeWebSearchProvider(settings.webSearchProvider),
           braveApiKey: settings.braveSearchApiKey,
           googleApiKey: settings.googleSearchApiKey,
           googleCx: settings.googleSearchCx,

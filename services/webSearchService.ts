@@ -35,6 +35,18 @@ export interface WebSearchResponse {
   source: string;
 }
 
+export function normalizeWebSearchProvider(value: unknown): WebSearchProvider {
+  return value === 'duckduckgo' ||
+    value === 'tavily' ||
+    value === 'brave' ||
+    value === 'searxng' ||
+    value === 'google' ||
+    value === 'wikipedia' ||
+    value === 'churchofjesuschrist'
+    ? value
+    : 'duckduckgo';
+}
+
 const LDS_DOMAINS = [
   'churchofjesuschrist.org',
   'byui.edu',
@@ -926,7 +938,7 @@ async function searchWikipediaLDS(query: string, limit: number): Promise<LDSSear
 // --- Search Config Helper (migrated from ldsSearchService) ---
 export function getSearchConfig(settings: Record<string, any>): SearchProviderConfig {
   return {
-    provider: (settings.webSearchProvider as WebSearchProvider) || 'duckduckgo',
+    provider: normalizeWebSearchProvider(settings.webSearchProvider),
     searxngUrl: settings.searxngUrl || 'http://localhost:8080',
     tavilyApiKey: settings.tavilyApiKey || '',
     braveApiKey: settings.braveSearchApiKey || '',
