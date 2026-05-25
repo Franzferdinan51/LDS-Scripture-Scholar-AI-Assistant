@@ -63,6 +63,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       setMcpTestStatus(MCP_TEST_INITIAL);
   }, [localSettings.provider, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleFetchModels = async () => {
     const requestId = ++fetchModelsRequestIdRef.current;
     setIsFetchingModels(true);
@@ -177,13 +190,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       <div
         className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 text-gray-200 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
       >
         <div className="flex items-start justify-between border-b border-white/10 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-800 px-6 py-5">
           <div>
             <div className="inline-flex items-center rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-200">
               Settings
             </div>
-            <h2 className="mt-3 text-3xl font-bold text-white">Configure your study stack</h2>
+            <h2 id="settings-title" className="mt-3 text-3xl font-bold text-white">Configure your study stack</h2>
             <p className="mt-2 max-w-2xl text-sm text-slate-300">
               Choose the provider, key, and model that power chat, cross-references, journaling, and other study tools.
             </p>
