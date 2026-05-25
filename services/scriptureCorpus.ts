@@ -525,6 +525,6 @@ export async function searchScriptureCorpus(
         limit,
         keywordWeight: 0.55,
         semanticWeight: 0.45,
-      })).map(({ score, ...result }) => result)
+      })).map((r) => ({ reference: r.reference, text: r.text, book: r.book, chapter: r.chapter, verse: r.verse, score: r.score }))
     : [];
 }

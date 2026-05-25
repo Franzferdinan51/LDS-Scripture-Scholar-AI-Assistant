@@ -219,7 +219,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       setSelectedIndex(0);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isOpen]);
+  }, [isOpen, setQuery, setSelectedIndex]);
 
   // Filter commands based on query
   const filteredCommands = useMemo(() => {
@@ -300,7 +300,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredCommands, selectedIndex, query, onExecute, onClose, handleTabComplete]);
+  }, [isOpen, filteredCommands, selectedIndex, query, onExecute, onClose, handleTabComplete, setSelectedIndex]);
 
   // Scroll selected into view
   useEffect(() => {
@@ -310,7 +310,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         items[selectedIndex].scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [selectedIndex]);
+  }, [selectedIndex, filteredCommands]);
 
   // Group commands by category
   const groupedCommands = useMemo(() => {

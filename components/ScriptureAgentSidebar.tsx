@@ -12,6 +12,10 @@ interface ScriptureAgentSidebarProps {
   onSendMessage: (text: string) => void;
 }
 
+// Moved outside component to prevent new function reference on each render
+const noOpAsync = () => Promise.resolve();
+const noOp = () => {};
+
 const ScriptureAgentSidebar: React.FC<ScriptureAgentSidebarProps> = ({ isOpen, onClose, context, messages, isLoading, onSendMessage }) => {
   const [text, setText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -19,9 +23,6 @@ const ScriptureAgentSidebar: React.FC<ScriptureAgentSidebarProps> = ({ isOpen, o
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
-
-  const noOpAsync = useCallback(() => Promise.resolve(), []);
-  const noOp = useCallback(() => {}, []);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();

@@ -60,7 +60,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     setSelectedIndex(0);
     setShowCommands(text.startsWith('/') && filteredCommands.length > 0);
-  }, [text, filteredCommands.length]);
+  }, [text, filteredCommands.length, filteredCommands]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

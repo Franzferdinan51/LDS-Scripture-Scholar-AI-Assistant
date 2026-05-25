@@ -306,7 +306,7 @@ export async function extractProactiveMemories(
         timestamp: Date.now(),
         lastAccessed: Date.now(),
         accessCount: 0,
-        category: item.category || 'general',
+        // category stored in content metadata
       });
     }
 

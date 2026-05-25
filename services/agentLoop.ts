@@ -72,8 +72,14 @@ export class AgentLoop {
     let currentPhase: AgentPhase = 'responding';
 
     for await (const chunk of responseStream) {
-      const text = chunk.text || '';
+      let text = '';
+      try {
+        text = (typeof chunk.text === 'string') ? chunk.text : (chunk.text != null ? String(chunk.text) : '');
+      } catch { text = ''; }
+      if (!text) continue;
       accumulatedText += text;
+      // Strip "undefined" literal strings from local LLM artifacts
+      accumulatedText = accumulatedText.replace(/\bundefined\b/g, '');
 
       // Detect phase from content patterns
       const newPhase = this.detectPhase(accumulatedText);
@@ -111,9 +117,11 @@ export class AgentLoop {
 
       // Stream the reflected response
       for await (const chunk of reflectedResponse) {
-        const text = chunk.text || '';
-        yield { type: 'text_delta', text, accumulatedText: text };
-        accumulatedText = text;
+        const text = (typeof chunk.text === 'string') ? chunk.text : (chunk.text != null ? String(chunk.text) : '');
+        const cleanText = text.replace(/undefined/g, '');
+        if (!cleanText) continue;
+        yield { type: 'text_delta', text: cleanText, accumulatedText: cleanText };
+        accumulatedText = cleanText;
       }
     }
 

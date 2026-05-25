@@ -432,6 +432,7 @@ export interface ChatServiceOptions {
   persona?: string;
   toolCallManager?: ToolCallManager;
   enableSlashCommands?: boolean;
+  agentSystemPrompt?: string;
 }
 
 // --- Build Enhanced System Instruction with Agent Guidance ---
@@ -441,7 +442,7 @@ function buildEnhancedSystemInstruction(
   memories: Memory[] | undefined,
   activeSkill: Skill | null | undefined,
   readingContext: string | undefined,
-  options: { verbose?: boolean; persona?: string }
+  options: { verbose?: boolean; persona?: string; agentSystemPrompt?: string }
 ): string {
   let baseInstruction = buildSystemPrompt(chatMode, profile, memories, activeSkill, readingContext, options);
 
@@ -453,6 +454,11 @@ function buildEnhancedSystemInstruction(
       .join('\n\n');
 
     baseInstruction += `\n\n=== AGENT GUIDELINES ===\n${instructionGuidance}`;
+  }
+
+  // Inject sub-agent specific system prompt if provided
+  if (options.agentSystemPrompt) {
+    baseInstruction += `\n\n=== ACTIVE AGENT ROLE ===\n${options.agentSystemPrompt}`;
   }
 
   return baseInstruction;
@@ -508,7 +514,7 @@ function createGoogleChatService(
       options.memories,
       options.activeSkill,
       options.readingContext,
-      { verbose: options.verbose, persona: options.persona }
+      { verbose: options.verbose, persona: options.persona, agentSystemPrompt: options.agentSystemPrompt }
   );
 
   // Build tools config with proper schema
@@ -634,11 +640,12 @@ function createOpenAICompatibleChatService(
           options.memories,
           options.activeSkill,
           options.readingContext,
-          { verbose: options.verbose, persona: options.persona }
+          { verbose: options.verbose, persona: options.persona, agentSystemPrompt: options.agentSystemPrompt }
       );
 
+      const currentDateNote = `\n\nCurrent date: ${new Date().toISOString().split('T')[0]}. For time-sensitive questions, note that you may not have real-time information access. Use your available search/retrieval tools whenever possible for current or recent topics.`;
       const msgs = [
-          { role: 'system', content: systemInstruction },
+          { role: 'system', content: systemInstruction + currentDateNote },
           ...history.filter(m => m.id !== 'initial-message' && m.text).map(m => ({
               role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
               content: m.text
@@ -670,6 +677,44 @@ function createOpenAICompatibleChatService(
           body.tool_choice = 'auto';
       }
 
+  // LM Studio 0.4.0+ MCP integration
+  if (settings.provider === 'lmstudio') {
+    const integrations: any[] = [];
+
+    // Add MCP servers from settings
+    if (settings.lmStudioMcpServers && settings.lmStudioMcpServers.length > 0) {
+      for (const server of settings.lmStudioMcpServers) {
+        integrations.push({
+          type: 'ephemeral_mcp',
+          server_label: server.server_label,
+          server_url: server.server_url,
+          ...(server.allowed_tools && server.allowed_tools.length > 0
+            ? { allowed_tools: server.allowed_tools }
+            : {}),
+        });
+      }
+    }
+
+    // Also add the global mcpBaseUrl if set and not already in lmStudioMcpServers
+    if (settings.mcpBaseUrl) {
+      const mcpUrl = settings.mcpBaseUrl.replace(/\/v1\/?$/, '/sse');
+      const alreadyAdded = integrations.some(
+        (i: any) => i.server_url === mcpUrl
+      );
+      if (!alreadyAdded) {
+        integrations.push({
+          type: 'ephemeral_mcp',
+          server_label: 'scripture-scholar-mcp',
+          server_url: mcpUrl,
+          allowed_tools: ['search_lds_sources', 'search_web'],
+        });
+      }
+    }
+
+    if (integrations.length > 0) {
+      body.integrations = integrations;
+    }
+  }
       const response = await fetch(`${baseUrl}/chat/completions`, {
           method: 'POST',
           headers: {
@@ -704,12 +749,18 @@ function createOpenAICompatibleChatService(
                       const chunk = JSON.parse(jsonStr);
                       const delta = chunk.choices?.[0]?.delta;
 
-                      // Handle text content
-                      const text = delta?.content || '';
-                      if (text) {
-                          accumulatedText += text;
-                          yield { text, isDelta: true } as any;
-                      }
+              // Handle text content - use typeof guard to prevent "undefined" string leaking
+              const rawText = delta?.content;
+              const text = (typeof rawText === 'string' && rawText !== 'undefined') ? rawText : '';
+              if (text) {
+                // Filter out raw function call XML that some models (LM Studio/MiniMax) emit as text
+                if (/<function=|<\/function>|<tool_call|<\/tool_call>|<function_call|<\/function_call>/i.test(text)) {
+                  console.warn('[Stream] Filtering out raw function XML from text output:', text.substring(0, 80));
+                  continue;
+                }
+                accumulatedText += text;
+                yield { text, isDelta: true } as any;
+              }
 
                       // Handle tool calls with proper tracking (Hermes/OpenClaw pattern)
                       if (delta?.tool_calls) {

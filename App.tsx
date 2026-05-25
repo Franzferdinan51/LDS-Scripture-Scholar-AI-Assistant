@@ -44,6 +44,46 @@ import type { SuggestedReminder } from './services/reminders';
 import { recordConversation } from './services/studyProgress';
 // Agent router
 import { routeToAgent } from './services/agentRouter';
+
+// Strip raw function call syntax that some local LLMs emit as text instead of proper tool_calls
+function stripRawToolCalls(text: string): string {
+  return text
+    // Complete function/tool call XML tags (with closing tags)
+    .replace(/<function=[^>]*>[\s\S]*?<\/function>/gi, '')
+    .replace(/<function_call[^>]*>[\s\S]*?<\/function_call>/gi, '')
+    .replace(/<tool_call[^>]*>[\s\S]*?<\/tool_call>/gi, '')
+    // Partial/unclosed function/tool call XML tags (during streaming, tags may be incomplete)
+    .replace(/<function=[^>]*>[\s\S]*$/gi, '')
+    .replace(/<function_call[^>]*>[\s\S]*$/gi, '')
+    .replace(/<tool_call[^>]*>[\s\S]*$/gi, '')
+    .replace(/<\/function>?\s*$/gi, '')
+    .replace(/<\/function_call>?\s*$/gi, '')
+    .replace(/<\/tool_call>?\s*$/gi, '')
+    // Bracket-style tool calls
+    .replace(/\[TOOL_CALL:[^\]]*\]/gi, '')
+    .replace(/\{\s*"function"\s*:\s*"[^"]+"[^}]*\}/g, '')
+    .trim();
+}
+
+/** Safely extract text from a streaming chunk, handling both Gemini and OpenAI-compatible responses. */
+function safeChunkText(chunk: any): string {
+  try {
+    // OpenAI-compatible path: chunk has explicit text field
+    if (typeof chunk.text === 'string' && chunk.text !== 'undefined') return chunk.text;
+    // Gemini path: chunk is GenerateContentResponse, .text is a getter that can throw
+    const raw = chunk.text;
+    if (typeof raw === 'string' && raw !== 'undefined') return raw;
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+/** Strip "undefined" literal strings and raw tool call XML from text output. */
+function cleanStreamText(text: string): string {
+  return stripRawToolCalls(text)
+    .trim();
+}
 import type { AgentPhase } from './components/AgentIndicator';
 // Context compression
 import { needsCompression, compressContext } from './services/contextCompressor';
@@ -583,10 +623,12 @@ const App: React.FC = () => {
     setToolCallsInProgress(0);
 
     // Auto-route to specialized mode if pattern matches (sub-agent routing)
+  let agentSystemPrompt: string | undefined;
     if (!overrideMode && chatMode === 'chat') {
         const matchedAgent = routeToAgent(trimmed, chatMode);
         if (matchedAgent) {
             setActiveAgentName(matchedAgent.name);
+            agentSystemPrompt = matchedAgent.systemPrompt;
             const modeMap: Record<string, ChatMode> = {
                 research: 'chat',
                 studyPlanner: 'study-plan',
@@ -598,9 +640,11 @@ const App: React.FC = () => {
             }
         } else {
             setActiveAgentName('General Chat Agent');
+            agentSystemPrompt = 'You are a helpful LDS scripture scholar assistant. Keep ordinary chat natural, concise, and grounded in scripture when relevant.';
         }
     } else if (chatMode === 'chat') {
         setActiveAgentName('General Chat Agent');
+        agentSystemPrompt = 'You are a helpful LDS scripture scholar assistant. Keep ordinary chat natural, concise, and grounded in scripture when relevant.';
     }
 
     // Create a temporary service if an override is requested and it's different from the current mode
@@ -611,7 +655,16 @@ const App: React.FC = () => {
             if (needsCompression(currentHistory)) {
               currentHistory = await compressContext(currentHistory, settings);
             }
-            chatService = createChatService(settings, effectiveMode, currentHistory);
+            chatService = createChatServiceWithFailover(settings, effectiveMode, currentHistory, {
+        profile: userProfile,
+        memories: memories.slice(0, 5),
+        activeSkill,
+        readingContext: readingContext || undefined,
+        thinkingDepth,
+        verbose: verboseMode,
+        persona,
+        agentSystemPrompt,
+      });
         } catch (err: any) {
             console.error("Temporary chat service initialization error:", err);
             setError(`Could not initialize the chat for this request: ${err.message}`);
@@ -649,7 +702,8 @@ const App: React.FC = () => {
       let lastGoogleResponse: GenerateContentResponse | null = null;
 
       for await (const chunk of responseStream) {
-        accumulatedText += chunk.text;
+        if (chunk.isToolCall) continue; // Skip tool call chunks
+ accumulatedText += safeChunkText(chunk);
 
         if (settings.provider === 'google') {
           const fullResponse = chunk as GenerateContentResponse;
@@ -658,7 +712,7 @@ const App: React.FC = () => {
           if (newGrounding) groundingChunks = newGrounding;
         }
 
-        let visibleText = accumulatedText;
+        let visibleText = cleanStreamText(accumulatedText);
         let thinkingText: string | undefined = undefined;
 
         // Live-parse the thinking tags during the stream
@@ -688,7 +742,7 @@ const App: React.FC = () => {
         }));
       }
       
-      let finalVisibleText = accumulatedText;
+      let finalVisibleText = cleanStreamText(accumulatedText);
       let finalThinkingText: string | undefined = undefined;
 
       const thinkingRegex = /<thinking>([\s\S]*)<\/thinking>/;
@@ -700,23 +754,24 @@ const App: React.FC = () => {
 
       const wikimediaRegex = /WIKIMEDIA_SEARCH\[(.*?)\]/;
       const matchImage = finalVisibleText.match(wikimediaRegex);
-
       if (matchImage) {
         const filename = matchImage[1];
         try {
-            const loadingText = finalVisibleText.replace(matchImage[0], "Searching for the image...");
-            setChatHistory(prev => ({ ...prev, [activeChatId]: prev[activeChatId]?.map(msg => msg.id === botMessageId ? { ...msg, text: loadingText, thinking: finalThinkingText } : msg)}));
-            
-            const imageUrl = await getWikimediaImageUrl(filename);
-            const altText = filename.replace('File:', '').replace(/_/g, ' ').replace(/\.[^/.]+$/, "");
-            finalVisibleText = finalVisibleText.replace(matchImage[0], `![${altText}](${imageUrl})`);
+          const loadingText = finalVisibleText.replace(matchImage[0], "Searching for the image...");
+          setChatHistory(prev => ({ ...prev, [activeChatId]: prev[activeChatId]?.map(msg =>
+            msg.id === botMessageId ? { ...msg, text: loadingText, thinking: finalThinkingText } : msg
+          )}));
+
+          const imageUrl = await getWikimediaImageUrl(filename);
+          const altText = filename.replace('File:', '').replace(/_/g, ' ').replace(/\.[^/.]+$/, '');
+          finalVisibleText = finalVisibleText.replace(matchImage[0], `![${altText}](${imageUrl})`);
         } catch(e) {
-            console.error("Wikimedia fetch failed:", e);
-            finalVisibleText = finalVisibleText.replace(matchImage[0], `I was unable to find an image for "${filename.replace('File:', '').replace(/_/g, ' ')}".`);
+          console.error("Wikimedia fetch failed:", e);
+          finalVisibleText = finalVisibleText.replace(matchImage[0], `I was unable to find an image for "${filename.replace('File:', '').replace(/_/g, ' ')}".`);
         }
       }
-
-      // Handle tool calls if present
+  
+        // Handle tool calls if present
       const toolCallResults: ToolCall[] = [];
       if (lastGoogleResponse && chatService.handleToolCalls) {
         try {
@@ -923,17 +978,24 @@ const App: React.FC = () => {
     setToolCallsInProgress(0);
 
     try {
-        const agentChatService = createChatService(settings, 'chat', currentHistory);
+        const agentChatService = createChatServiceWithFailover(settings, 'chat', currentHistory, {
+        profile: userProfile,
+        memories: memories.slice(0, 5),
+        activeSkill,
+        readingContext: scriptureAgentContext ? `${scriptureAgentContext.book} ${scriptureAgentContext.chapter}:${scriptureAgentContext.verse} - ${scriptureAgentContext.text}` : undefined,
+        agentSystemPrompt: 'You are a scripture study assistant specialized in verse-by-verse analysis. Provide doctrinal insights, cross-references, and practical applications for the specific verse being discussed. Use authoritative LDS sources and teachings.',
+      });
         setAgentPhase('responding');
         const responseStream = await agentChatService.sendMessageStream({ message: prompt });
 
         let accumulatedText = "";
         for await (const chunk of responseStream) {
-            accumulatedText += chunk.text;
-            const visibleText = accumulatedText.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+            if (chunk.isToolCall) continue; // Skip tool call chunks
+ accumulatedText += safeChunkText(chunk);
+            const visibleText = cleanStreamText(accumulatedText).replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
             setScriptureAgentHistory(prev => prev.map(msg => msg.id === botMessageId ? { ...msg, text: visibleText } : msg));
         }
-    } catch (err) {
+ } catch (err) {
         console.error("Scripture agent error:", err);
         setAgentPhase('done');
         const errorMessage = "Sorry, I encountered an error.";
@@ -1205,7 +1267,7 @@ const App: React.FC = () => {
       case 'cross-reference':
         return <CrossReferencePanel onExplainVerse={handleExplainVerse} />;
       case 'scripture-reader':
-        return <ScripturePanel setReadingContext={setReadingContext} onAskAboutVerse={handleAskAboutVerse} />;
+        return <ScripturePanel setReadingContext={setReadingContext} onAskAboutVerse={handleAskAboutVerse} isScriptureAgentOpen={isScriptureAgentOpen} onToggleScriptureAgent={() => setIsScriptureAgentOpen(prev => !prev)} />;
       case 'dashboard':
         return (
           <StudyDashboard
@@ -1243,6 +1305,28 @@ const App: React.FC = () => {
             }}
           />
         );
+    case 'skills':
+      return (
+        <div className="flex-1 flex flex-col bg-slate-900/40 text-gray-200 overflow-y-auto">
+          <header className="border-b border-white/10 bg-slate-800/60 p-4 shadow-md backdrop-blur-sm">
+            <h2 className="text-lg font-bold text-white">Skills Library</h2>
+            <p className="text-sm text-gray-400 mt-1">Activate a skill to enhance your study session</p>
+          </header>
+          <div className="flex-1 p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {skills.map(skill => (
+              <button
+                key={skill.id}
+                onClick={() => { setActiveSkill(skill); setActiveView('chat'); }}
+                className={"p-4 rounded-lg border text-left transition-colors " + (activeSkill?.id === skill.id ? "border-blue-500 bg-blue-600/20" : "border-slate-700 bg-slate-800/50 hover:bg-slate-700/50")}
+              >
+                <div className="text-2xl mb-2">{skill.icon || '📚'}</div>
+                <h3 className="font-semibold text-white">{skill.name}</h3>
+                <p className="text-sm text-gray-400 mt-1">{skill.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
       default:
         return null;
     }

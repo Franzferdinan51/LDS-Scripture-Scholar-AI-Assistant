@@ -110,13 +110,53 @@ export const SCRIPTURE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'searchWeb',
-    description: 'Search public web sources for current LDS-related information, background, and related topics.',
+    description: 'Search official Church of Jesus Christ of Latter-day Saints sources for current information. Searches ChurchofJesusChrist.org Gospel Library, General Conference talks, Church magazines, and authoritative LDS sources. Use this for recent Church information, talks, news, and official statements.',
     parameters: {
       type: Type.OBJECT,
       properties: {
         query: {
           type: Type.STRING,
-          description: 'Search query for web search',
+          description: 'Search query for LDS/Church information',
+        },
+        limit: {
+          type: Type.NUMBER,
+          description: 'Maximum number of results to return (default 5)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'searchLDSSources',
+    description: 'Search directly on ChurchofJesusChrist.org for official LDS Church content including General Conference talks, scripture study helps, Church manuals, and official publications. Use this when you need the most authoritative, current, and doctrinally accurate information from the Church of Jesus Christ of Latter-day Saints.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        query: {
+          type: Type.STRING,
+          description: 'Search query for official LDS Church sources',
+        },
+        limit: {
+          type: Type.NUMBER,
+          description: 'Maximum number of results to return (default 8)',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'searchLdsWeb',
+    description: 'Search multiple authoritative LDS sources including ChurchofJesusChrist.org, Book of Mormon Central, and FAIR LDS for scholarly and official information. Combines Gospel Library API results with LDS-domain-filtered web search for maximum coverage of authoritative Latter-day Saints content.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        query: {
+          type: Type.STRING,
+          description: 'Search query for LDS information across multiple authoritative sources',
+        },
+        limit: {
+          type: Type.NUMBER,
+          description: 'Maximum number of results to return (default 8)',
         },
       },
       required: ['query'],

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
-import { ApiProvider, Model } from '../types';
+import { ApiProvider, Model, WebSearchProvider } from '../types';
 import { fetchModels, testMCPConnection } from '../services/aiService';
 import {
   getProviderCapabilities,
@@ -15,6 +15,7 @@ interface SettingsModalProps {
   onClearHistory: () => void;
 }
 
+const MCP_TEST_INITIAL = { status: 'idle' as const, message: null };
 const PROVIDER_DEFAULT_MODELS: Partial<Record<ApiProvider, string>> = {
   google: getProviderDefaultModel('google'),
   minimax: 'MiniMax-Text-01',
@@ -28,13 +29,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [modelSearch, setModelSearch] = useState('');
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>({ status: 'idle', message: null });
+  const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>(MCP_TEST_INITIAL);
   const providerModelMemory = useRef<Partial<Record<ApiProvider, string>>>({});
 
   useEffect(() => {
     setLocalSettings(settings);
     providerModelMemory.current[settings.provider] = settings.model;
-  }, [settings, isOpen]);
+  }, [settings, localSettings, isOpen]);
 
   useEffect(() => {
       // Clear models if provider changes
@@ -42,8 +43,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       setFetchError(null);
       setModelSearch('');
       setShowFreeOnly(false);
-      setMcpTestStatus({ status: 'idle', message: null });
-  }, [localSettings.provider, isOpen]);
+      setMcpTestStatus(MCP_TEST_INITIAL);
+  }, [localSettings, isOpen]);
 
   const handleFetchModels = async () => {
     setIsFetchingModels(true);
@@ -444,7 +445,118 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
               )}
             </section>
 
-            <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+
+      <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+        <div className="mb-3">
+          <h3 className="text-lg font-semibold text-white">Web Search Provider</h3>
+          <p className="text-sm text-slate-400">
+            Configure how the app searches for current Church information and LDS content online.
+          </p>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="webSearchProvider" className="block text-sm font-medium text-gray-300">Search Provider</label>
+            <select
+              id="webSearchProvider"
+              name="webSearchProvider"
+              value={localSettings.webSearchProvider || 'duckduckgo'}
+              onChange={handleInputChange}
+              className={selectBaseClasses}
+            >
+              <option value="duckduckgo">DuckDuckGo (No API key needed)</option>
+          <option value="tavily">Tavily (AI-optimized search)</option>
+              <option value="searxng">SearXNG (Self-hosted)</option>
+              <option value="brave">Brave Search API</option>
+              <option value="google">Google Custom Search</option>
+              <option value="wikipedia">Wikipedia Only (Fallback)</option>
+            </select>
+          </div>
+
+          <p className="rounded-lg border border-blue-400/20 bg-blue-500/10 px-3 py-2 text-xs text-blue-100">
+            All searches prioritize official Church sources (ChurchofJesusChrist.org, Book of Mormon Central, FAIR LDS, BYU).
+          </p>
+
+          {(localSettings.webSearchProvider === 'searxng') && (
+            <div>
+              <label htmlFor="searxngUrl" className="block text-sm font-medium text-gray-300">SearXNG Base URL</label>
+              <input
+                type="text"
+                id="searxngUrl"
+                name="searxngUrl"
+                value={localSettings.searxngUrl || 'http://localhost:8080'}
+                onChange={handleInputChange}
+                className={inputBaseClasses}
+                placeholder="http://localhost:8080"
+              />
+              <p className="mt-1 text-xs text-gray-400">URL of your self-hosted SearXNG instance with JSON format enabled.</p>
+            </div>
+          )}
+
+          {(localSettings.webSearchProvider === 'tavily') && (
+          <div>
+            <label htmlFor="tavilyApiKey" className="block text-sm font-medium text-gray-300">Tavily API Key</label>
+            <input
+              type="password"
+              id="tavilyApiKey"
+              name="tavilyApiKey"
+              value={localSettings.tavilyApiKey || ''}
+              onChange={handleInputChange}
+              className={inputBaseClasses}
+              placeholder="tvly-..."
+            />
+            <p className="mt-1 text-xs text-gray-400">Get an API key at tavily.com</p>
+          </div>
+        )}
+
+        {(localSettings.webSearchProvider === 'brave') && (
+            <div>
+              <label htmlFor="braveSearchApiKey" className="block text-sm font-medium text-gray-300">Brave Search API Key</label>
+              <input
+                type="password"
+                id="braveSearchApiKey"
+                name="braveSearchApiKey"
+                value={localSettings.braveSearchApiKey || ''}
+                onChange={handleInputChange}
+                className={inputBaseClasses}
+                placeholder="BSA-..."
+              />
+              <p className="mt-1 text-xs text-gray-400">Get a free API key at brave.com/search/api</p>
+            </div>
+          )}
+
+          {(localSettings.webSearchProvider === 'google') && (
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="googleSearchApiKey" className="block text-sm font-medium text-gray-300">Google API Key</label>
+                <input
+                  type="password"
+                  id="googleSearchApiKey"
+                  name="googleSearchApiKey"
+                  value={localSettings.googleSearchApiKey || ''}
+                  onChange={handleInputChange}
+                  className={inputBaseClasses}
+                  placeholder="AIza..."
+                />
+              </div>
+              <div>
+                <label htmlFor="googleSearchCx" className="block text-sm font-medium text-gray-300">Custom Search Engine ID</label>
+                <input
+                  type="text"
+                  id="googleSearchCx"
+                  name="googleSearchCx"
+                  value={localSettings.googleSearchCx || ''}
+                  onChange={handleInputChange}
+                  className={inputBaseClasses}
+                  placeholder="a1b2c3..."
+                />
+                <p className="mt-1 text-xs text-gray-400">Create a Custom Search Engine at cse.google.com restricted to LDS domains.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+        <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
               <h3 className="text-lg font-semibold text-white">Data management</h3>
               <p className="mt-1 text-sm text-slate-400">
                 Remove local conversation history if you want to start fresh.

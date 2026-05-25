@@ -23,7 +23,8 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
   setIsConnecting, isApiConfigured, googleApiKey, setError, stopVoiceSession, getJournalInsights
 }) => {
   const [currentTranscription, setCurrentTranscription] = useState('');
-  const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summarizingEntryId, setSummarizingEntryId] = useState<string | null>(null);
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const inputAudioContextRef = useRef<AudioContext | null>(null);
@@ -111,7 +112,8 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
         setEntries(prev => [newEntry, ...prev]);
 
         // Start summarization
-        setIsSummarizing(newEntry.id);
+        setIsSummarizing(true);
+        setSummarizingEntryId(newEntry.id);
         try {
             const insights = await getJournalInsights(transcriptionRef.current);
             setEntries(prev => prev.map(e => e.id === newEntry.id ? { ...e, ...insights } : e));
@@ -119,7 +121,8 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
             console.error("Failed to get journal insights:", e);
             setError("Could not summarize the journal entry.");
         } finally {
-            setIsSummarizing(null);
+            setIsSummarizing(false);
+            setSummarizingEntryId(null);
         }
     }
     setCurrentTranscription('');
@@ -181,7 +184,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
                     <h4 className="font-semibold text-gray-200 mb-1">Full Transcription</h4>
                     <p className="whitespace-pre-wrap">{entry.originalText}</p>
                 </div>
-                {isSummarizing === entry.id ? (
+                {summarizingEntryId === entry.id ? (
                      <div className="flex items-center gap-2 text-gray-400">
                         <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                         <span>Analyzing entry...</span>

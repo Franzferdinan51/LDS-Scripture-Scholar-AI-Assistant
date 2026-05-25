@@ -36,7 +36,7 @@ console.log('Part1 valid length:', validLen);
 
 const truncJson = raw1.slice(0, validLen);
 // Find last complete book
-const booksMatch = truncJson.match(/\"books\"\\s*:\\s*\\[/);
+const booksMatch = truncJson.match(/"books"\s*:\s*\[/);
 if (booksMatch) {
   console.log('Part1 books array found at:', booksMatch.index);
 }

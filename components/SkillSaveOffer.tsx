@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Skill, Message } from '../types';
+import type { Skill, Message, ToolCall } from '../types';
 
 interface SkillSaveOfferProps {
   chatId: string;
@@ -28,8 +28,8 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
   const topic = firstUserMsg.length > 50 ? firstUserMsg.substring(0, 47) + '...' : firstUserMsg;
 
   // Extract tools used from tool calls
-  const allToolCalls = messages.flatMap(m => m.toolCalls || []);
-  const toolsUsed = [...new Set(allToolCalls.map(tc => tc.name))];
+  const allToolCalls: ToolCall[] = messages.flatMap(m => m.toolCalls ?? []);
+  const toolsUsed: string[] = [...new Set(allToolCalls.map(tc => tc.name))];
 
   // Build system prompt addition from the pattern
   const systemPromptAddition = `This skill was created from a complex study session on: ${topic}. ` +
@@ -48,7 +48,12 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
       icon: '✨',
       category: 'research',
       systemPromptAddition,
-      requiredTools: toolsUsed
+      requiredTools: toolsUsed,
+      useCount: 0,
+      lastUsed: null,
+      successCount: 0,
+      avgRating: 0,
+      isCustom: true,
     };
     await onSave(skill);
     setIsSaving(false);

@@ -11,11 +11,19 @@ const DEFAULT_SETTINGS: ApiProviderSettings = {
   lmStudioApiKey: '',
   openRouterBaseUrl: 'https://openrouter.ai/api/v1',
   mcpBaseUrl: 'http://localhost:8080/v1',
-  minimaxBaseUrl: 'https://api.minimax.chat/v1',
+  mcpApiKey: '',
+  minimaxBaseUrl: 'https://api.minimax.io/v1',
   minimaxApiKey: '',
   model: getProviderDefaultModel('google'),
   fallbackProvider: undefined,
   fallbackModel: undefined,
+  webSearchProvider: 'duckduckgo',
+  searxngUrl: 'http://localhost:8080',
+  braveSearchApiKey: '',
+  googleSearchApiKey: '',
+  googleSearchCx: '',
+  tavilyApiKey: '',
+  lmStudioMcpServers: [],
 };
 
 interface SettingsContextType {

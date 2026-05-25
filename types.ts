@@ -94,8 +94,15 @@ export interface JournalEntry {
 
 
 export type ApiProvider = 'google' | 'lmstudio' | 'openrouter' | 'mcp' | 'minimax';
+export type WebSearchProvider = 'duckduckgo' | 'tavily' | 'brave' | 'searxng' | 'google' | 'wikipedia';
 export type ChatMode = 'chat' | 'thinking' | 'study-plan' | 'multi-quiz' | 'lesson-prep' | 'fhe-planner';
 export type ViewMode = 'chat' | 'notes' | 'journal' | 'cross-reference' | 'scripture-reader' | 'dashboard' | 'reminders' | 'skills';
+
+export interface LmStudioMcpServer {
+  server_label: string;
+  server_url: string;
+  allowed_tools?: string[];
+}
 
 export interface ApiProviderSettings {
   provider: ApiProvider;
@@ -105,11 +112,19 @@ export interface ApiProviderSettings {
   lmStudioApiKey: string;
   openRouterBaseUrl: string;
   mcpBaseUrl: string;
+  mcpApiKey?: string;
   minimaxBaseUrl: string;
   minimaxApiKey: string;
   model: string;
   fallbackProvider?: ApiProvider;
   fallbackModel?: string;
+  webSearchProvider?: WebSearchProvider;
+  searxngUrl?: string;
+  braveSearchApiKey?: string;
+  googleSearchApiKey?: string;
+  googleSearchCx?: string;
+  tavilyApiKey?: string;
+  lmStudioMcpServers?: LmStudioMcpServer[];
 }
 
 export interface Model {
