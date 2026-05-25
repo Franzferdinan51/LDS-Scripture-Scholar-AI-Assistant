@@ -11,7 +11,7 @@ interface AgentIndicatorProps {
 
 const PHASE_CONFIG: Record<AgentPhase, { label: string; color: string; icon: string }> = {
   idle: { label: 'Ready', color: 'bg-gray-600/50 text-gray-300', icon: '💤' },
-  thinking: { label: 'Thinking', color: 'bg-amber-500/20 text-amber-300', icon: '💭' },
+  thinking: { label: 'Thinking', color: 'bg-amber-500/20 text-amber-300', icon: '🤔' },
   planning: { label: 'Planning', color: 'bg-blue-500/20 text-blue-300', icon: '📋' },
   acting: { label: 'Acting', color: 'bg-green-500/20 text-green-300', icon: '⚡' },
   reflecting: { label: 'Reflecting', color: 'bg-purple-500/20 text-purple-300', icon: '🔄' },
