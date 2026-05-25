@@ -31,6 +31,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>(MCP_TEST_INITIAL);
   const providerModelMemory = useRef<Partial<Record<ApiProvider, string>>>({});
+  const hasText = (value?: string) => Boolean(value?.trim());
 
   useEffect(() => {
     setLocalSettings(settings);
@@ -72,7 +73,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   };
 
   const handleSave = () => {
-    setSettings(localSettings);
+    setSettings({
+      ...localSettings,
+      googleApiKey: localSettings.googleApiKey.trim(),
+      openRouterApiKey: localSettings.openRouterApiKey.trim(),
+      openRouterBaseUrl: localSettings.openRouterBaseUrl.trim(),
+      lmStudioBaseUrl: localSettings.lmStudioBaseUrl.trim(),
+      lmStudioApiKey: localSettings.lmStudioApiKey.trim(),
+      mcpBaseUrl: localSettings.mcpBaseUrl.trim(),
+      minimaxBaseUrl: localSettings.minimaxBaseUrl.trim(),
+      minimaxApiKey: localSettings.minimaxApiKey.trim(),
+      googleSearchApiKey: localSettings.googleSearchApiKey.trim(),
+      googleSearchCx: localSettings.googleSearchCx.trim(),
+      tavilyApiKey: localSettings.tavilyApiKey.trim(),
+      braveSearchApiKey: localSettings.braveSearchApiKey.trim(),
+      model: localSettings.model.trim(),
+    });
     onClose();
   };
 
@@ -103,12 +119,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     ? `Selected model: ${localSettings.model}`
     : 'No model selected yet.';
   const isMissingRequiredConnection =
-    (localSettings.provider === 'google' && !localSettings.googleApiKey) ||
-    (localSettings.provider === 'lmstudio' && !localSettings.lmStudioBaseUrl) ||
-    (localSettings.provider === 'openrouter' && (!localSettings.openRouterBaseUrl || !localSettings.openRouterApiKey)) ||
-    (localSettings.provider === 'mcp' && !localSettings.mcpBaseUrl) ||
-    (localSettings.provider === 'minimax' && !localSettings.minimaxApiKey);
-  const isMissingRequiredModel = localSettings.provider !== 'google' && !localSettings.model;
+    (localSettings.provider === 'google' && !hasText(localSettings.googleApiKey)) ||
+    (localSettings.provider === 'lmstudio' && !hasText(localSettings.lmStudioBaseUrl)) ||
+    (localSettings.provider === 'openrouter' && (!hasText(localSettings.openRouterBaseUrl) || !hasText(localSettings.openRouterApiKey))) ||
+    (localSettings.provider === 'mcp' && !hasText(localSettings.mcpBaseUrl)) ||
+    (localSettings.provider === 'minimax' && !hasText(localSettings.minimaxApiKey));
+  const isMissingRequiredModel = localSettings.provider !== 'google' && !hasText(localSettings.model);
   const canSave = Boolean(localSettings.provider) && !isMissingRequiredConnection && !isMissingRequiredModel;
   const saveHint = isMissingRequiredConnection
     ? 'Enter the required provider connection details before saving.'
