@@ -1,7 +1,7 @@
 import React, { useReducer, useCallback } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { getCrossReferencesForSettings } from '../services/crossReferenceService';
-import { getProviderKeyLabel, providerSupportsOpenAIChatCompletions } from '../services/providerCapabilities';
+import { getProviderKeyLabel, normalizeApiProvider, providerSupportsOpenAIChatCompletions } from '../services/providerCapabilities';
 import LoadingDots from './LoadingDots';
 
 interface CrossReferenceResult {
@@ -58,19 +58,20 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
   const { settings } = useSettings();
   const [state, dispatch] = useReducer(reducer, initialState);
   const { scripture, result, isLoading, error } = state;
+  const provider = normalizeApiProvider(settings.provider);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scripture.trim()) return;
-    if (settings.provider === 'google' && !settings.googleApiKey) {
-        dispatch({ type: 'FETCH_ERROR', payload: `${getProviderKeyLabel(settings.provider)} is required for this feature. Please set it in settings.` });
+    if (provider === 'google' && !settings.googleApiKey) {
+        dispatch({ type: 'FETCH_ERROR', payload: `${getProviderKeyLabel(provider)} is required for this feature. Please set it in settings.` });
         return;
     }
-    if (settings.provider !== 'google' && !settings.model) {
+    if (provider !== 'google' && !settings.model) {
         dispatch({ type: 'FETCH_ERROR', payload: "Please select a model in settings before using cross-references." });
         return;
     }
-    if (settings.provider !== 'google' && !providerSupportsOpenAIChatCompletions(settings.provider)) {
+    if (provider !== 'google' && !providerSupportsOpenAIChatCompletions(provider)) {
         dispatch({ type: 'FETCH_ERROR', payload: "The selected provider does not support cross-references." });
         return;
     }

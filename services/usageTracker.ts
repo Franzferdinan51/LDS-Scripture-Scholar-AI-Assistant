@@ -1,3 +1,4 @@
+import { normalizeApiProvider } from './providerCapabilities';
 import { openDB } from 'idb';
 
 interface UsageEntry {
@@ -55,17 +56,18 @@ export async function getUsageTracker() {
 export async function addUsage(provider: string, tokens: number, messages: number = 1) {
   const db = await getDB();
   const today = new Date().toISOString().split('T')[0];
+  const normalizedProvider = normalizeApiProvider(provider);
   const entry = await db.get('usage', today) || {
     sessionTokens: 0,
     totalTokens: 0,
     messageCount: 0,
-    provider,
+    provider: normalizedProvider,
     date: today,
   };
   entry.sessionTokens += tokens;
   entry.totalTokens += tokens;
   entry.messageCount += messages;
-  entry.provider = provider;
+  entry.provider = normalizedProvider;
   entry.key = today;
   await db.put('usage', entry);
   return entry;
@@ -83,14 +85,17 @@ export async function getAllUsage() {
 }
 
 export function estimateCost(provider: string, tokens: number): string {
-  if (provider === 'google') {
+  const rawProvider = provider.toLowerCase();
+  if (rawProvider === 'openai' || rawProvider === 'openai-native') {
+    return `~$${(tokens / 1_000_000 * 1.5).toFixed(4)}`;
+  }
+
+  const normalizedProvider = normalizeApiProvider(provider);
+  if (normalizedProvider === 'google') {
     // Gemini pricing ~$0.125-$0.50/million tokens for input, $0.50-$1.50/million for output
     return `~$${(tokens / 1_000_000 * 0.50).toFixed(4)}`;
   }
-  if (provider === 'openai' || provider === 'openai-native') {
-    return `~$${(tokens / 1_000_000 * 1.5).toFixed(4)}`;
-  }
-  if (provider === 'minimax') {
+  if (normalizedProvider === 'minimax') {
     return `~$${(tokens / 1_000_000 * 0.1).toFixed(4)}`;
   }
   return 'unknown';
