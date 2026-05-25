@@ -101,7 +101,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextProvider = normalizeApiProvider(e.target.value);
-    providerModelMemory.current[normalizeApiProvider(localSettings.provider)] = localSettings.model;
+    const previousProvider = normalizeApiProvider(localSettings.provider);
+    if (localSettings.model.trim()) {
+      providerModelMemory.current[previousProvider] = localSettings.model;
+    } else {
+      delete providerModelMemory.current[previousProvider];
+    }
     const rememberedModel = providerModelMemory.current[nextProvider];
     const newModel = rememberedModel?.trim() ? rememberedModel : PROVIDER_DEFAULT_MODELS[nextProvider] ?? '';
     setLocalSettings(prev => ({ ...prev, provider: nextProvider, model: newModel }));
