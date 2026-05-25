@@ -36,7 +36,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   useEffect(() => {
     setLocalSettings(settings);
-    providerModelMemory.current[normalizeApiProvider(settings.provider)] = settings.model;
+    const provider = normalizeApiProvider(settings.provider);
+    if (settings.model.trim()) {
+      providerModelMemory.current[provider] = settings.model;
+    } else {
+      delete providerModelMemory.current[provider];
+    }
   }, [settings, isOpen]);
 
   useEffect(() => {
@@ -98,7 +103,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     const nextProvider = normalizeApiProvider(e.target.value);
     providerModelMemory.current[normalizeApiProvider(localSettings.provider)] = localSettings.model;
     const rememberedModel = providerModelMemory.current[nextProvider];
-    const newModel = rememberedModel ?? PROVIDER_DEFAULT_MODELS[nextProvider] ?? '';
+    const newModel = rememberedModel?.trim() ? rememberedModel : PROVIDER_DEFAULT_MODELS[nextProvider] ?? '';
     setLocalSettings(prev => ({ ...prev, provider: nextProvider, model: newModel }));
   };
   
