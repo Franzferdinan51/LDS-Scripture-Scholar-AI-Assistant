@@ -403,7 +403,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
               {localSettings.provider === 'google' && (
                 <div className="space-y-3">
                   <select
-                    id="model"
+                    id="googleModel"
                     name="model"
                     value={localSettings.model}
                     onChange={handleInputChange}
