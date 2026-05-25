@@ -455,11 +455,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                         onChange={e => setModelSearch(e.target.value)}
                         className={inputBaseClasses}
                       />
-                      <label htmlFor="model" className="block text-sm font-medium text-gray-300">
+                      <label htmlFor="providerModel" className="block text-sm font-medium text-gray-300">
                         Model ({filteredModels.length} found)
                       </label>
                       <select
-                        id="model"
+                        id="providerModel"
                         name="model"
                         value={localSettings.model}
                         onChange={handleInputChange}
