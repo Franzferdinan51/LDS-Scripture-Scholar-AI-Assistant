@@ -235,6 +235,7 @@ const App: React.FC = () => {
   const currentBotMessageIdRef = useRef<string | null>(null);
   const chatHistoryRef = useRef<ChatHistory>(chatHistory);
   const activeChatIdRef = useRef<string | null>(activeChatId);
+  const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
 
   // Keep chatHistoryRef in sync so the finally block in handleSendMessage
   // always reads the latest state (avoids stale closure bug).
@@ -246,6 +247,10 @@ const App: React.FC = () => {
   useEffect(() => {
     activeChatIdRef.current = activeChatId;
   }, [activeChatId]);
+
+  useEffect(() => {
+    scriptureAgentHistoryRef.current = scriptureAgentHistory;
+  }, [scriptureAgentHistory]);
 
   const isVoiceChatAvailable = providerSupportsLiveVoice(settings.provider);
   const messages = activeChatId ? chatHistory[activeChatId] || [] : [];
@@ -1090,7 +1095,8 @@ const App: React.FC = () => {
   
   const handleSendScriptureAgentFollowup = (prompt: string) => {
     const userMessage: Message = { id: `agent-user-${Date.now()}`, text: prompt, sender: 'user' };
-    const newHistory = [...scriptureAgentHistory, userMessage];
+    const newHistory = [...scriptureAgentHistoryRef.current, userMessage];
+    scriptureAgentHistoryRef.current = newHistory;
     setScriptureAgentHistory(newHistory);
     runScriptureAgentQuery(prompt, newHistory);
   };
