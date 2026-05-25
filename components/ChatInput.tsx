@@ -108,7 +108,27 @@ const ChatInput: React.FC<ChatInputProps> = ({
   const executeHighlightedCommand = () => {
     const selected = filteredCommands[selectedIndex];
     if (!selected) return;
-    selectCommand(selected.cmd);
+
+    const currentText = text.trim();
+    const isExactMatch = currentText === selected.cmd;
+
+    if (COMMANDS_REQUIRING_ARGS.has(selected.cmd)) {
+      if (isExactMatch) {
+        setText(selected.cmd + ' ');
+        setShowCommands(false);
+        inputRef.current?.focus();
+        return;
+      }
+    } else if (isExactMatch) {
+      onSendMessage(selected.cmd);
+      setText('');
+      setShowCommands(false);
+      return;
+    }
+
+    onSendMessage(text);
+    setText('');
+    setShowCommands(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
