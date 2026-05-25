@@ -493,6 +493,7 @@ const App: React.FC = () => {
   const handleNewChat = () => {
     const newId = `chat-${Date.now()}`;
     setReadingContext(null);
+    setCrossReferenceScripture('');
     setChatHistory(prev => ({ ...prev, [newId]: [initialBotMessage] }));
     setActiveChatId(newId);
     setChatMode('chat');
