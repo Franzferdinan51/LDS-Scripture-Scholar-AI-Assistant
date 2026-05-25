@@ -102,7 +102,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const activeModelHint = localSettings.model
     ? `Selected model: ${localSettings.model}`
     : 'No model selected yet.';
-  const canSave = Boolean(localSettings.provider) && (localSettings.provider === 'google' ? Boolean(localSettings.googleApiKey) : true);
+  const isMissingRequiredConnection =
+    (localSettings.provider === 'google' && !localSettings.googleApiKey) ||
+    (localSettings.provider === 'lmstudio' && !localSettings.lmStudioBaseUrl) ||
+    (localSettings.provider === 'openrouter' && (!localSettings.openRouterBaseUrl || !localSettings.openRouterApiKey)) ||
+    (localSettings.provider === 'mcp' && !localSettings.mcpBaseUrl) ||
+    (localSettings.provider === 'minimax' && !localSettings.minimaxApiKey);
+  const isMissingRequiredModel = localSettings.provider !== 'google' && !localSettings.model;
+  const canSave = Boolean(localSettings.provider) && !isMissingRequiredConnection && !isMissingRequiredModel;
+  const saveHint = isMissingRequiredConnection
+    ? 'Enter the required provider connection details before saving.'
+    : isMissingRequiredModel
+      ? 'Select or enter a model before saving.'
+      : null;
 
 
   if (!isOpen) return null;
@@ -559,7 +571,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
         </div>
       </section>
 
-        <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
+            <section className="rounded-xl border border-white/10 bg-slate-800/50 p-4">
               <h3 className="text-lg font-semibold text-white">Data management</h3>
               <p className="mt-1 text-sm text-slate-400">
                 Remove local conversation history if you want to start fresh.
@@ -577,20 +589,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-white/10 bg-slate-950/60 px-6 py-4">
-          <button
-            onClick={onClose}
-            className="rounded-md border border-white/10 bg-transparent px-4 py-2 text-sm text-gray-200 transition-colors hover:bg-white/5"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Save Settings
-          </button>
+        <div className="border-t border-white/10 bg-slate-950/60 px-6 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={onClose}
+              className="rounded-md border border-white/10 bg-transparent px-4 py-2 text-sm text-gray-200 transition-colors hover:bg-white/5"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!canSave}
+              className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Save Settings
+            </button>
+          </div>
+          {!canSave && saveHint && (
+            <p className="mt-3 text-right text-xs text-amber-300">
+              {saveHint}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -598,4 +617,3 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 };
 
 export default SettingsModal;
-
