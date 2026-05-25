@@ -971,6 +971,21 @@ export async function searchLDS(
   // Try the configured provider first
   try {
     switch (config.provider) {
+      case 'duckduckgo': {
+        const duckResult = await searchDuckDuckGo(query, limit);
+        const ldsFiltered = duckResult.results.filter(r =>
+          LDS_DOMAINS.some(domain => r.url.includes(domain))
+        );
+        if (ldsFiltered.length > 0) {
+          return ldsFiltered.map(r => ({
+            title: r.title,
+            url: r.url,
+            snippet: r.snippet,
+            source: r.source || extractDomain(r.url) || 'duckduckgo',
+          }));
+        }
+        break;
+      }
       case 'churchofjesuschrist':
         return await searchChurchofJesusChrist(query, limit);
       case 'tavily':
