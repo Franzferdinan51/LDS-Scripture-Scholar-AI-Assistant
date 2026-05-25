@@ -37,8 +37,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   useEffect(() => {
     setLocalSettings(settings);
     const provider = normalizeApiProvider(settings.provider);
-    if (settings.model.trim()) {
-      providerModelMemory.current[provider] = settings.model;
+    const trimmedModel = settings.model.trim();
+    if (trimmedModel) {
+      providerModelMemory.current[provider] = trimmedModel;
     } else {
       delete providerModelMemory.current[provider];
     }
@@ -102,8 +103,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextProvider = normalizeApiProvider(e.target.value);
     const previousProvider = normalizeApiProvider(localSettings.provider);
-    if (localSettings.model.trim()) {
-      providerModelMemory.current[previousProvider] = localSettings.model;
+    const trimmedModel = localSettings.model.trim();
+    if (trimmedModel) {
+      providerModelMemory.current[previousProvider] = trimmedModel;
     } else {
       delete providerModelMemory.current[previousProvider];
     }
