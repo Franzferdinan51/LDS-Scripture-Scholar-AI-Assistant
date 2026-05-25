@@ -56,7 +56,6 @@ interface ChatInputProps {
   setChatMode: (mode: ChatMode) => void;
 }
 
-
 const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
@@ -84,7 +83,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
     setShowCommands(text.startsWith('/') && filteredCommands.length > 0);
   }, [text, filteredCommands.length, filteredCommands]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -95,22 +93,32 @@ const ChatInput: React.FC<ChatInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  const selectCommand = (cmd: string) => {
+    if (COMMANDS_REQUIRING_ARGS.has(cmd)) {
+      setText(cmd + ' ');
+      setShowCommands(false);
+      inputRef.current?.focus();
+    } else {
+      onSendMessage(cmd);
+      setText('');
+      setShowCommands(false);
+    }
+  };
+
+  const executeHighlightedCommand = () => {
+    const selected = filteredCommands[selectedIndex];
+    if (!selected) return;
+    selectCommand(selected.cmd);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
     if (isLoading || isVoiceChatActive) return;
 
-    // If a command is selected from dropdown, use it
     if (showCommands && filteredCommands[selectedIndex]) {
-      const selected = filteredCommands[selectedIndex];
-      // If the command needs an argument (like /skill, /think, /persona, /verbose),
-      // just insert the command and let user type the rest
-      if (COMMANDS_REQUIRING_ARGS.has(selected.cmd) && text === selected.cmd) {
-        setText(selected.cmd + ' ');
-        setShowCommands(false);
-        inputRef.current?.focus();
-        return;
-      }
+      executeHighlightedCommand();
+      return;
     }
 
     onSendMessage(text);
@@ -128,34 +136,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
       e.preventDefault();
       setSelectedIndex(i => (i - 1 + filteredCommands.length) % filteredCommands.length);
     } else if (e.key === 'Tab' || (e.key === 'Enter' && showCommands)) {
-      if (filteredCommands[selectedIndex]) {
-        e.preventDefault();
-        const selected = filteredCommands[selectedIndex];
-        setText(selected.cmd + ' ');
-        setShowCommands(false);
-        // Don't submit for commands that need args
-        if (COMMANDS_REQUIRING_ARGS.has(selected.cmd)) {
-          return;
-        }
-        // For no-arg commands, submit immediately
-        if (!['/skill', '/think', '/persona', '/verbose'].includes(selected.cmd)) {
-          onSendMessage(selected.cmd);
-          setText('');
-        }
-      }
+      e.preventDefault();
+      executeHighlightedCommand();
     } else if (e.key === 'Escape') {
-      setShowCommands(false);
-    }
-  };
-
-  const selectCommand = (cmd: string) => {
-    if (COMMANDS_REQUIRING_ARGS.has(cmd)) {
-      setText(cmd + ' ');
-      setShowCommands(false);
-      inputRef.current?.focus();
-    } else {
-      onSendMessage(cmd);
-      setText('');
       setShowCommands(false);
     }
   };
@@ -168,7 +151,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     if (chatMode === 'lesson-prep') return "Topic, audience, and time for your lesson...";
     if (chatMode === 'fhe-planner') return "Topic for FHE (e.g., Gratitude, with young kids)...";
     return "Ask Scripture Scholar... (type / for commands)";
-  }
+  };
 
   const isInputDisabled = isLoading || isVoiceChatActive || isConnecting;
   const isSendDisabled = isLoading || isVoiceChatActive || isConnecting || !text.trim();
@@ -176,7 +159,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Slash command dropdown */}
       {showCommands && (
         <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto z-50">
           {filteredCommands.map((cmd, i) => (
