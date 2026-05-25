@@ -112,10 +112,12 @@ export function startReminderCheck(): void {
     if (reminderCheckInFlight) return;
     reminderCheckInFlight = true;
     try {
-    const due = await checkDueReminders();
-    for (const reminder of due) {
-      showReminderNotification(reminder);
-    }
+      const due = await checkDueReminders();
+      for (const reminder of due) {
+        showReminderNotification(reminder);
+      }
+    } catch (err) {
+      console.error('Reminder polling failed:', err);
     } finally {
       reminderCheckInFlight = false;
     }
