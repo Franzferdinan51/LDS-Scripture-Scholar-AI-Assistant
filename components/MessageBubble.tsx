@@ -35,12 +35,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
   const isUser = message.sender === 'user';
   const [copied, setCopied] = useState(false);
   const detailsRef = useRef<HTMLDetailsElement>(null);
+  const copyResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (isStreaming && message.thinking && detailsRef.current && !detailsRef.current.open) {
       detailsRef.current.open = true;
     }
   }, [isStreaming, message.thinking]);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current) {
+        clearTimeout(copyResetTimerRef.current);
+        copyResetTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleAudioToggle = async () => {
     // Collect all text content for TTS, excluding structured data like quizzes
@@ -54,11 +64,20 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
     await onToggleAudio(message.id, textToSpeak);
   }
   
-  const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(message.text).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    });
+  const handleCopyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(message.text);
+      setCopied(true);
+      if (copyResetTimerRef.current) {
+        clearTimeout(copyResetTimerRef.current);
+      }
+      copyResetTimerRef.current = setTimeout(() => {
+        copyResetTimerRef.current = null;
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy message text:', err);
+    }
   };
 
   if (message.isSuggestion) {
