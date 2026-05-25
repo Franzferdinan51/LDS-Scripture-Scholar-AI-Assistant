@@ -184,15 +184,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               </li>
               <li>
-                <button onClick={() => { onOpenSkillSelector?.(); if (window.innerWidth < 768) onClose(); }} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${activeSkill ? 'bg-purple-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
-                  <span className="text-lg">⚡</span>
-                  <span className="flex-1">{activeSkill ? activeSkill.name : 'Skills'}</span>
+                <div className={`w-full flex items-center gap-3 p-3 rounded-md transition-colors ${activeSkill ? 'bg-purple-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
+                  <button
+                    type="button"
+                    onClick={() => { onOpenSkillSelector?.(); if (window.innerWidth < 768) onClose(); }}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                  >
+                    <span className="text-lg">⚡</span>
+                    <span className="min-w-0 truncate">{activeSkill ? activeSkill.name : 'Skills'}</span>
+                  </button>
                   {activeSkill && (
-                    <button onClick={(e) => { e.stopPropagation(); onOpenSkillSelector?.(); }} className="text-xs text-gray-400 hover:text-white">
+                    <button
+                      type="button"
+                      onClick={() => { onOpenSkillSelector?.(); if (window.innerWidth < 768) onClose(); }}
+                      className="shrink-0 text-xs text-gray-400 hover:text-white"
+                    >
                       Change
                     </button>
                   )}
-                </button>
+                </div>
               </li>
               <li>
                 <button onClick={() => { setActiveView('reminders'); if (window.innerWidth < 768) onClose(); }} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${activeView === 'reminders' ? 'bg-blue-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
