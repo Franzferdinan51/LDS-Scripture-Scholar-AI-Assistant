@@ -445,7 +445,7 @@ const App: React.FC = () => {
     if (!isVoiceChatAvailable && isVoiceActive) {
       stopVoiceSession();
     }
-  }, [settings.provider, settings.googleApiKey, settings.model, chatMode, activeChatId, initializeChat, isVoiceChatAvailable, isVoiceActive]);
+  }, [initializeChat, isVoiceChatAvailable, isVoiceActive]);
 
   const handleDisclaimerClose = async (dontShowAgain: boolean) => {
     if (dontShowAgain) {
