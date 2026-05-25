@@ -921,7 +921,7 @@ const App: React.FC = () => {
           addUsage(settings.provider, totalTokens, 1).catch(() => {});
         }
       }
-      if (chatMode === 'chat' && !requestError && activeChatId) {
+      if (effectiveMode === 'chat' && !requestError && activeChatId) {
           setTimeout(() => triggerProactiveSuggestion(), 2000);
           // Extract and store memories from the conversation (async, non-blocking)
           const currentMessages = chatHistoryRef.current[activeChatId] || [];
