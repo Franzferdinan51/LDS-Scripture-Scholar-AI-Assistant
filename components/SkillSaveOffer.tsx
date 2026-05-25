@@ -5,7 +5,7 @@ interface SkillSaveOfferProps {
   chatId: string;
   messageId: string;
   chatHistory: Record<string, Message[]>;
-  onSave: (skill: Skill) => void;
+  onSave: (skill: Skill) => void | Promise<void>;
   onDismiss: () => void;
 }
 
@@ -18,6 +18,7 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [customName, setCustomName] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const messages = chatHistory[chatId] || [];
   const botMessage = messages.find(m => m.id === messageId);
@@ -40,6 +41,7 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
 
   const handleSave = async () => {
     setIsSaving(true);
+    setSaveError(null);
     const skillName = customName.trim() || topic;
     const skill: Skill = {
       id: `custom-${Date.now()}`,
@@ -55,8 +57,14 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
       avgRating: 0,
       isCustom: true,
     };
-    await onSave(skill);
-    setIsSaving(false);
+    try {
+      await onSave(skill);
+    } catch (err) {
+      console.error('Failed to save skill:', err);
+      setSaveError(err instanceof Error ? err.message : 'Failed to save skill. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -78,6 +86,9 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
                 onChange={(e) => setCustomName(e.target.value)}
                 className="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs text-white placeholder-gray-400 mb-2"
               />
+              {saveError && (
+                <p className="mb-2 text-xs text-red-300">{saveError}</p>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={handleSave}
