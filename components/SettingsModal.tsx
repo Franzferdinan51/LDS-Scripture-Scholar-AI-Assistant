@@ -83,6 +83,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       mcpBaseUrl: localSettings.mcpBaseUrl.trim(),
       minimaxBaseUrl: localSettings.minimaxBaseUrl.trim(),
       minimaxApiKey: localSettings.minimaxApiKey.trim(),
+      searxngUrl: localSettings.searxngUrl.trim(),
       googleSearchApiKey: localSettings.googleSearchApiKey.trim(),
       googleSearchCx: localSettings.googleSearchCx.trim(),
       tavilyApiKey: localSettings.tavilyApiKey.trim(),
@@ -515,7 +516,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                 type="text"
                 id="searxngUrl"
                 name="searxngUrl"
-                value={localSettings.searxngUrl || 'http://localhost:8080'}
+                value={localSettings.searxngUrl}
                 onChange={handleInputChange}
                 className={inputBaseClasses}
                 placeholder="http://localhost:8080"

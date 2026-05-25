@@ -35,6 +35,7 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
     ...DEFAULT_SETTINGS,
     ...stored,
     minimaxBaseUrl: stored.minimaxBaseUrl?.trim() || DEFAULT_SETTINGS.minimaxBaseUrl,
+    searxngUrl: stored.searxngUrl?.trim() || DEFAULT_SETTINGS.searxngUrl,
   };
 };
 
