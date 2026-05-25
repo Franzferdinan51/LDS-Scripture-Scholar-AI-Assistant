@@ -219,6 +219,7 @@ const App: React.FC = () => {
   const [agentPhase, setAgentPhase] = useState<AgentPhase>('idle');
   const [toolCallsInProgress, setToolCallsInProgress] = useState(0);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [crossReferenceScripture, setCrossReferenceScripture] = useState('');
   const [verboseMode, setVerboseMode] = useState(false);
   const [persona, setPersona] = useState<string>('');
 
@@ -577,6 +578,9 @@ const App: React.FC = () => {
         return true;
       case '/explain':
       case '/cross-ref':
+        setActiveView('cross-reference');
+        setCrossReferenceScripture(args.join(' '));
+        return true;
       case '/image':
         setChatMode('chat');
         setActiveView('chat');
@@ -1520,7 +1524,7 @@ const App: React.FC = () => {
           />
         );
       case 'cross-reference':
-        return <CrossReferencePanel onExplainVerse={handleExplainVerse} />;
+        return <CrossReferencePanel onExplainVerse={handleExplainVerse} initialScripture={crossReferenceScripture} />;
       case 'scripture-reader':
         return <ScripturePanel setReadingContext={setReadingContext} onAskAboutVerse={handleAskAboutVerse} isScriptureAgentOpen={isScriptureAgentOpen} onToggleScriptureAgent={() => setIsScriptureAgentOpen(prev => !prev)} />;
       case 'dashboard':

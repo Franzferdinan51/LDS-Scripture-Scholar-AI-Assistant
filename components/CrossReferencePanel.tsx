@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback } from 'react';
+import React, { useReducer, useCallback, useEffect } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { getCrossReferencesForSettings } from '../services/crossReferenceService';
 import { getProviderKeyLabel, normalizeApiProvider, providerSupportsOpenAIChatCompletions } from '../services/providerCapabilities';
@@ -14,6 +14,7 @@ interface CrossReferenceResult {
 
 interface CrossReferencePanelProps {
   onExplainVerse: (verse: string) => void;
+  initialScripture?: string;
 }
 
 type State = {
@@ -54,11 +55,17 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVerse }) => {
+const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVerse, initialScripture }) => {
   const { settings } = useSettings();
   const [state, dispatch] = useReducer(reducer, initialState);
   const { scripture, result, isLoading, error } = state;
   const provider = normalizeApiProvider(settings.provider);
+
+  useEffect(() => {
+    if (initialScripture?.trim()) {
+      dispatch({ type: 'SET_SCRIPTURE', payload: initialScripture.trim() });
+    }
+  }, [initialScripture]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
