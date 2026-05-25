@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Skill, Message, ToolCall } from '../types';
 
 interface SkillSaveOfferProps {
@@ -38,6 +38,17 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
     `Tools used: ${toolsUsed.join(', ') || 'none'}. ` +
     `Instructions: You are helping the user study "${topic}". ` +
     `Be thorough, provide scripture references, and encourage deep reflection.`;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onDismiss();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onDismiss]);
 
   const handleSave = async () => {
     setIsSaving(true);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { SuggestedReminder } from '../services/reminders';
 
 interface SuggestedReminderToastProps {
@@ -8,9 +8,22 @@ interface SuggestedReminderToastProps {
 }
 
 const SuggestedReminderToast: React.FC<SuggestedReminderToastProps> = ({ suggestions, onAccept, onDismiss }) => {
-  if (suggestions.length === 0) return null;
-
   const topSuggestion = suggestions[0];
+
+  useEffect(() => {
+    if (!topSuggestion) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onDismiss(topSuggestion);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onDismiss, topSuggestion]);
+
+  if (!topSuggestion) return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
