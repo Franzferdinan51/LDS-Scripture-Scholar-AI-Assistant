@@ -96,7 +96,7 @@ export function formatReminderTime(schedule: { time: string; days: string[] }): 
     schedule.days.join(', ');
 
   const [hours, minutes] = schedule.time.split(':');
-  const h = parseInt(hours);
+  const h = parseInt(hours, 10);
   const ampm = h >= 12 ? 'PM' : 'AM';
   const displayH = h > 12 ? h - 12 : h === 0 ? 12 : h;
 
@@ -104,13 +104,20 @@ export function formatReminderTime(schedule: { time: string; days: string[] }): 
 }
 
 let reminderInterval: ReturnType<typeof setInterval> | null = null;
+let reminderCheckInFlight = false;
 
 export function startReminderCheck(): void {
   if (reminderInterval) return;
   reminderInterval = setInterval(async () => {
+    if (reminderCheckInFlight) return;
+    reminderCheckInFlight = true;
+    try {
     const due = await checkDueReminders();
     for (const reminder of due) {
       showReminderNotification(reminder);
+    }
+    } finally {
+      reminderCheckInFlight = false;
     }
   }, 60000); // Check every minute
 }
