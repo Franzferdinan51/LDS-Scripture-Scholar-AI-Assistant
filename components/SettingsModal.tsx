@@ -35,6 +35,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const fetchModelsRequestIdRef = useRef(0);
   const mcpTestRequestIdRef = useRef(0);
   const isMountedRef = useRef(true);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
   const hasText = (value?: string) => Boolean(value?.trim());
 
   useEffect(() => {
@@ -81,9 +83,53 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   useEffect(() => {
     if (!isOpen) return;
 
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const focusFirstElement = () => {
+      const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      focusableElements?.[0]?.focus();
+    };
+
+    const timer = window.setTimeout(focusFirstElement, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      previouslyFocusedElementRef.current?.focus();
+      previouslyFocusedElementRef.current = null;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (e.shiftKey) {
+        if (activeElement === firstElement || !modalRef.current?.contains(activeElement)) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else if (activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
     };
 
@@ -205,6 +251,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       onClick={onClose}
     >
       <div
+        ref={modalRef}
         className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-slate-900/90 text-gray-200 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
