@@ -754,9 +754,14 @@ function createOpenAICompatibleChatService(
               const text = (typeof rawText === 'string' && rawText !== 'undefined') ? rawText : '';
               if (text) {
                 // Filter out raw function call XML that some models (LM Studio/MiniMax) emit as text
-                if (/<function=|<\/function>|<tool_call|<\/tool_call>|<function_call|<\/function_call>/i.test(text)) {
+                if (/<function=|<\/function>|<tool_call|<\/tool_call>|<function_call|<\/function_call>|<invoke|<tool_response|<python-repl|<\/invoke|<\/tool_response|<\/python-repl>|<\|im_start\|>|<\|tool\|>|<scratchpad|<thought|\[TOOL_CALL:/i.test(text)) {
                   console.warn('[Stream] Filtering out raw function XML from text output:', text.substring(0, 80));
                   continue;
+          // Filter JSON-style tool calls that some models emit
+          if (/^\s*\{\s*"(name|function|tool_calls)"\s*:/i.test(text.trim())) {
+            console.warn('[Stream] Filtering out raw JSON tool call from text output:', text.substring(0, 80));
+            continue;
+          }
                 }
                 accumulatedText += text;
                 yield { text, isDelta: true } as any;
@@ -874,7 +879,16 @@ function createOpenAICompatibleChatService(
 
                           if (followUpResp.ok) {
                               const followUpData = await followUpResp.json();
-                              const followUpText = followUpData.choices?.[0]?.message?.content || '';
+          const rawFollowUpText = followUpData.choices?.[0]?.message?.content || '';
+          const followUpText = rawFollowUpText
+            .replace(/<function_call[^>]*>[\s\S]*?<\/function_call>/gi, '')
+            .replace(/<tool_call[^>]*>[\s\S]*?<\/tool_call>/gi, '')
+            .replace(/<\|im_start\|>[\s\S]*?<\|im_end\|>/gi, '')
+            .replace(/<\|tool\|>[\s\S]*?<\|\/tool\|>/gi, '')
+            .replace(/<\|im_start\|>[\s\S]*$/gi, '')
+            .replace(/<\|tool\|>[\s\S]*$/gi, '')
+            .replace(/\bundefined\b/g, '')
+            .trim();
                               if (followUpText) {
                                   yield { text: followUpText, isFinal: true } as any;
                               }

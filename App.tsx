@@ -48,22 +48,67 @@ import { routeToAgent } from './services/agentRouter';
 // Strip raw function call syntax that some local LLMs emit as text instead of proper tool_calls
 function stripRawToolCalls(text: string): string {
   return text
-    // Complete function/tool call XML tags (with closing tags)
+    // === Complete XML tool call tags (with closing tags) ===
     .replace(/<function=[^>]*>[\s\S]*?<\/function>/gi, '')
     .replace(/<function_call[^>]*>[\s\S]*?<\/function_call>/gi, '')
     .replace(/<tool_call[^>]*>[\s\S]*?<\/tool_call>/gi, '')
-    // Partial/unclosed function/tool call XML tags (during streaming, tags may be incomplete)
+    .replace(/<invoke[^>]*>[\s\S]*?<\/invoke>/gi, '')
+    .replace(/<tool_response[^>]*>[\s\S]*?<\/tool_response>/gi, '')
+    .replace(/<python-repl[^>]*>[\s\S]*?<\/python-repl>/gi, '')
+    .replace(/<tool>[\s\S]*?<\/tool>/gi, '')
+    .replace(/<scratchpad[^>]*>[\s\S]*?<\/scratchpad>/gi, '')
+    .replace(/<thought[^>]*>[\s\S]*?<\/thought>/gi, '')
+    .replace(/<react[^>]*>[\s\S]*?<\/react>/gi, '')
+    // === Partial/unclosed XML tags (during streaming) ===
     .replace(/<function=[^>]*>[\s\S]*$/gi, '')
     .replace(/<function_call[^>]*>[\s\S]*$/gi, '')
     .replace(/<tool_call[^>]*>[\s\S]*$/gi, '')
+    .replace(/<invoke[^>]*>[\s\S]*$/gi, '')
+    .replace(/<tool_response[^>]*>[\s\S]*$/gi, '')
+    .replace(/<python-repl[^>]*>[\s\S]*$/gi, '')
+    .replace(/<tool>[\s\S]*$/gi, '')
+    .replace(/<scratchpad[^>]*>[\s\S]*$/gi, '')
+    .replace(/<thought[^>]*>[\s\S]*$/gi, '')
+    // Stray closing tags
     .replace(/<\/function>?\s*$/gi, '')
     .replace(/<\/function_call>?\s*$/gi, '')
     .replace(/<\/tool_call>?\s*$/gi, '')
-    // Bracket-style tool calls
+    .replace(/<\/invoke>?\s*$/gi, '')
+    .replace(/<\/tool_response>?\s*$/gi, '')
+    .replace(/<\/python-repl>?\s*$/gi, '')
+    .replace(/<\/tool>?\s*$/gi, '')
+    .replace(/<\/scratchpad>?\s*$/gi, '')
+    .replace(/<\/thought>?\s*$/gi, '')
+    // === Special tokens from local LLMs ===
+    .replace(/<\|im_start\|>[\s\S]*?<\|im_end\|>/gi, '')
+    .replace(/<\|im_start\|>[\s\S]*$/gi, '')
+    .replace(/<\|tool\|>[\s\S]*?<\|\/tool\|>/gi, '')
+    .replace(/<\|tool\|>[\s\S]*$/gi, '')
+    .replace(/<\|\/tool\|>\s*/g, '')
+    .replace(/<\|im_end\|>\s*/g, '')
+    .replace(/<\|action_start\|>[\s\S]*?<\|action_end\|>/gi, '')
+    .replace(/<\|action_start\|>[\s\S]*$/gi, '')
+    .replace(/<\|action_end\|>\s*/g, '')
+    // === Bracket/JSON-style tool calls ===
     .replace(/\[TOOL_CALL:[^\]]*\]/gi, '')
-    .replace(/\{\s*"function"\s*:\s*"[^"]+"[^}]*\}/g, '')
+    // Nested JSON tool calls (handles {"function":"x","args":{"y":"z"}})
+    .replace(/\{\s*"function"\s*:\s*"[^"]+"[\s\S]*?\}\s*\}/g, '')
+    .replace(/\{\s*"name"\s*:\s*"[^"]+"[\s\S]*?\}\s*\}/g, '')
+    .replace(/\{\s*"tool_calls"\s*:\s*\[[\s\S]*?\]\s*\}/g, '')
+    // Single-level JSON tool calls (no nested braces)
+    .replace(/\{\s*"function"\s*:\s*"[^"]+"\s*,?\s*\}/g, '')
+    .replace(/\{\s*"name"\s*:\s*"[^"]+"\s*,?\s*\}/g, '')
+    // === ReAct patterns ===
+    .replace(/^\s*(Thought|Action|Observation|Final Answer)\s*:\s*$/gim, '')
+    .replace(/^\s*Action\s*:\s*\{[^}]*\}\s*$/gim, '')
+    // === Code block tool calls ===
+    .replace(/```json\s*\n?\s*\{\s*"name"\s*:[\s\S]*?```/gi, '')
+    .replace(/```tool\s*\n?[\s\S]*?```/gi, '')
+    // === "undefined" literal artifact ===
+    .replace(/\bundefined\b/g, '')
     .trim();
 }
+
 
 /** Safely extract text from a streaming chunk, handling both Gemini and OpenAI-compatible responses. */
 function safeChunkText(chunk: any): string {
@@ -785,14 +830,15 @@ const App: React.FC = () => {
             setToolCallsInProgress(toolCallResults.length);
             setAgentPhase('reflecting');
             // Accumulate the follow-up response text
-            const followUpText = followUpResponse.text || '';
+        const followUpText = cleanStreamText(followUpResponse.text || '');
             if (followUpText) {
               accumulatedText += '\n\n' + followUpText;
-              finalVisibleText += '\n\n' + followUpText;
+          finalVisibleText = cleanStreamText(accumulatedText);
             }
           }
         } catch (toolErr) {
-          console.error("Tool execution failed:", toolErr);
+      console.error('Tool execution failed:', toolErr);
+      finalVisibleText += '\n\n*Note: A tool call failed during processing. The response may be incomplete.*';
         }
       }
 

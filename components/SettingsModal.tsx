@@ -35,7 +35,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   useEffect(() => {
     setLocalSettings(settings);
     providerModelMemory.current[settings.provider] = settings.model;
-  }, [settings, localSettings, isOpen]);
+  }, [settings, isOpen]);
 
   useEffect(() => {
       // Clear models if provider changes
@@ -44,7 +44,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
       setModelSearch('');
       setShowFreeOnly(false);
       setMcpTestStatus(MCP_TEST_INITIAL);
-  }, [localSettings, isOpen]);
+  }, [localSettings.provider, isOpen]);
 
   const handleFetchModels = async () => {
     setIsFetchingModels(true);

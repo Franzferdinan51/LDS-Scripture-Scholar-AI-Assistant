@@ -13,12 +13,11 @@
  * - none (disables web search)
  */
 
-export type SearchProvider = 'none' | 'searxng' | 'tavily' | 'brave' | 'google' | 'churchofjesuschrist';
+import { WebSearchProvider } from '../types';
 
 export interface SearchProviderConfig {
-  provider: SearchProvider;
+  provider: WebSearchProvider;
   searxngUrl?: string;
-  searxngApiKey?: string;
   tavilyApiKey?: string;
   braveApiKey?: string;
   googleSearchApiKey?: string;
@@ -75,7 +74,7 @@ export async function searchLDS(
   config: SearchProviderConfig,
   limit: number = 8
 ): Promise<LDSSearchResult[]> {
-  if (config.provider === 'none') {
+  if (!config.provider) {
     return [];
   }
 
@@ -96,7 +95,7 @@ export async function searchLDS(
         break;
       case 'searxng':
         if (config.searxngUrl) {
-          return await searchSearXNG(query, config.searxngUrl, config.searxngApiKey, limit);
+          return await searchSearXNG(query, config.searxngUrl, limit);
         }
         break;
       case 'google':
@@ -137,9 +136,8 @@ export async function searchLDS(
  */
 export function getSearchConfig(settings: Record<string, any>): SearchProviderConfig {
   return {
-    provider: (settings.webSearchProvider as SearchProvider) || 'churchofjesuschrist',
+    provider: (settings.webSearchProvider as WebSearchProvider) || 'churchofjesuschrist',
     searxngUrl: settings.searxngUrl || 'http://localhost:8080',
-    searxngApiKey: settings.searxngApiKey || '',
     tavilyApiKey: settings.tavilyApiKey || '',
     braveApiKey: settings.braveSearchApiKey || '',
     googleSearchApiKey: settings.googleSearchApiKey || '',
@@ -431,7 +429,6 @@ async function searchBrave(query: string, apiKey: string, limit: number): Promis
 async function searchSearXNG(
   query: string,
   baseUrl: string,
-  apiKey: string | undefined,
   limit: number
 ): Promise<LDSSearchResult[]> {
   // Add LDS domain restriction in the query
@@ -446,9 +443,6 @@ async function searchSearXNG(
   const headers: Record<string, string> = {
     'Accept': 'application/json',
   };
-  if (apiKey) {
-    headers['Authorization'] = `Bearer ${apiKey}`;
-  }
 
   const response = await fetch(url, { headers });
 
@@ -600,7 +594,6 @@ function guessScriptureCollection(book: string): string {
 export const DEFAULT_SEARCH_CONFIG: SearchProviderConfig = {
   provider: 'churchofjesuschrist',
   searxngUrl: 'http://localhost:8080',
-  searxngApiKey: '',
   tavilyApiKey: '',
   braveApiKey: '',
   googleSearchApiKey: '',

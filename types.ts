@@ -94,7 +94,7 @@ export interface JournalEntry {
 
 
 export type ApiProvider = 'google' | 'lmstudio' | 'openrouter' | 'mcp' | 'minimax';
-export type WebSearchProvider = 'duckduckgo' | 'tavily' | 'brave' | 'searxng' | 'google' | 'wikipedia';
+export type WebSearchProvider = 'duckduckgo' | 'tavily' | 'brave' | 'searxng' | 'google' | 'wikipedia' | 'churchofjesuschrist';
 export type ChatMode = 'chat' | 'thinking' | 'study-plan' | 'multi-quiz' | 'lesson-prep' | 'fhe-planner';
 export type ViewMode = 'chat' | 'notes' | 'journal' | 'cross-reference' | 'scripture-reader' | 'dashboard' | 'reminders' | 'skills';
 

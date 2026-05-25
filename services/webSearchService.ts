@@ -12,7 +12,7 @@
  * ALL searches are scoped to authoritative LDS domains. No general web results.
  */
 
-export type WebSearchProvider = 'duckduckgo' | 'tavily' | 'brave' | 'searxng' | 'google' | 'wikipedia';
+import { WebSearchProvider } from '../types';
 
 export interface WebSearchSettings {
   provider: WebSearchProvider;

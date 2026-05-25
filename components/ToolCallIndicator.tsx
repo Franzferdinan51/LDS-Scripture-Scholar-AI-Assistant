@@ -25,6 +25,8 @@ const toolLabels: Record<string, string> = {
   getCrossReferences: 'Cross References',
   searchWikimediaImage: 'Image Search',
   searchWeb: 'Web Search',
+ searchLDSSources: 'LDS Church Sources',
+ searchLdsWeb: 'LDS Multi-Source Search',
 };
 
 const SingleToolCall: React.FC<{ toolCall: ToolCall }> = ({ toolCall }) => {

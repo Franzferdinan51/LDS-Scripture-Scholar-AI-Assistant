@@ -95,7 +95,20 @@ export class AgentLoop {
         yield { type: 'tool_call_detected', toolCalls: functionCalls };
       }
 
-      yield { type: 'text_delta', text, accumulatedText };
+      // Strip raw tool call artifacts from text before yielding
+      const cleanedText = text
+        .replace(/<function=[^>]*>[\s\S]*?<\/function>/gi, '')
+        .replace(/<function_call[^>]*>[\s\S]*?<\/function_call>/gi, '')
+        .replace(/<tool_call[^>]*>[\s\S]*?<\/tool_call>/gi, '')
+        .replace(/<\|im_start\|>[\s\S]*?<\|im_end\|>/gi, '')
+        .replace(/<\|tool\|>[\s\S]*?<\|\/tool\|>/gi, '')
+        .replace(/<\|im_start\|>[\s\S]*$/gi, '')
+        .replace(/<\|tool\|>[\s\S]*$/gi, '')
+        .replace(/undefined/g, '')
+        .trim();
+      if (cleanedText) {
+        yield { type: 'text_delta', text: cleanedText, accumulatedText };
+      }
     }
 
     // Handle pending tool calls - execute them and feed results back
@@ -185,13 +198,21 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
   }
 
   private extractFunctionCalls(chunk: any): any[] {
-    // Model function calls
+    // Model function calls (Gemini format)
     if (chunk.functionCalls && chunk.functionCalls.length > 0) {
       return chunk.functionCalls;
     }
     // OpenAI-compatible function calls
     if (chunk.function_call) {
       return [chunk.function_call];
+    }
+    // OpenAI tool_calls array format (used by LM Studio, MiniMax, OpenRouter)
+    if (chunk.tool_calls && chunk.tool_calls.length > 0) {
+      return chunk.tool_calls.map((tc: any) => ({
+        name: tc.function?.name || tc.name,
+        args: tc.function?.arguments ? (typeof tc.function.arguments === 'string' ? JSON.parse(tc.function.arguments) : tc.function.arguments) : tc.arguments || {},
+        id: tc.id,
+      }));
     }
     return [];
   }
@@ -263,6 +284,8 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
         toolCall.result = { success: false, data: null, error: String(e) };
         this.toolCallManager.failToolCall(toolCall.id, String(e));
         results.push({ toolName: name, result: { success: false, data: null, error: String(e) } });
+        // Include error context in tool results so the LLM can explain the failure
+        results.push({ toolName: name, result: { success: false, data: null, error: `Tool "${name}" failed: ${String(e).substring(0, 200)}` } });
       }
     }
 
