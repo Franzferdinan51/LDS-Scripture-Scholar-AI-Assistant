@@ -229,7 +229,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
         {!isUser && hasContent && !message.isSuggestion && (
              <button 
               onClick={() => onRetry(message.id)} 
-              className="p-1.5 rounded-full text-gray-400 hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-white/10 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
               aria-label="Retry answer"
               title="Retry answer"
             >
@@ -239,7 +239,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
         {!isUser && message.text && (
              <button 
               onClick={handleCopyToClipboard} 
-              className="p-1.5 rounded-full text-gray-400 hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-white/10 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
               aria-label={copied ? "Copied!" : "Copy text"}
               title={copied ? "Copied!" : "Copy text"}
             >
@@ -249,7 +249,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
         {onDelete && !message.isSuggestion && (
              <button
               onClick={() => onDelete(message.id)}
-              className="p-1.5 rounded-full text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
+              className="p-1.5 rounded-full text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
               aria-label="Delete message"
               title="Delete message"
             >
