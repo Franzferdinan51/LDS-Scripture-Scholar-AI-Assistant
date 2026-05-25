@@ -238,6 +238,7 @@ const App: React.FC = () => {
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
   const proactiveSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retrySendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSendMessageRef = useRef<((text: string, overrideMode?: ChatMode) => Promise<void>) | null>(null);
   const provider = normalizeApiProvider(settings.provider);
 
   // Keep chatHistoryRef in sync so the finally block in handleSendMessage
@@ -536,7 +537,7 @@ const App: React.FC = () => {
       }
       retrySendTimerRef.current = setTimeout(() => {
         retrySendTimerRef.current = null;
-        void handleSendMessage(message);
+        void handleSendMessageRef.current?.(message);
       }, delayMs);
     };
 
@@ -1028,6 +1029,10 @@ const App: React.FC = () => {
       }
     }
   };
+
+  useEffect(() => {
+    handleSendMessageRef.current = handleSendMessage;
+  }, [handleSendMessage]);
   
   const handleDeleteMessage = (messageId: string) => {
     if (!activeChatId) return;
@@ -1061,7 +1066,7 @@ const App: React.FC = () => {
         }
         retrySendTimerRef.current = setTimeout(() => {
             retrySendTimerRef.current = null;
-            void handleSendMessage(userMessageToRetry!.text);
+            void handleSendMessageRef.current?.(userMessageToRetry!.text);
         }, 50);
     } else {
         setError("Could not find the original prompt to retry.");
