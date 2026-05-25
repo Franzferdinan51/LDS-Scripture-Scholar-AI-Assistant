@@ -83,7 +83,7 @@ async function generateWithOpenAICompatibleProvider(
   }
 
   const requiredKeyLabel = getProviderKeyLabel(settings.provider);
-  if (requiredKeyLabel && !apiKey) {
+  if (settings.provider !== 'mcp' && requiredKeyLabel && !apiKey) {
     throw new Error(`${requiredKeyLabel} is required for cross-references. Please set it in Settings.`);
   }
 
