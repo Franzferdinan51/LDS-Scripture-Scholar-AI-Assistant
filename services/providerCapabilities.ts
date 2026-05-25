@@ -81,6 +81,7 @@ const PROVIDER_CAPABILITIES: Record<ApiProvider, ProviderCapabilityInfo> = {
     note: 'Refresh the model list after setting your API key and base URL.',
     keyLabel: 'MiniMax API key',
     baseUrlLabel: 'Base URL',
+    defaultModel: 'MiniMax-M1',
     environment: 'cloud',
     supportsLiveVoice: false,
     supportsTextToSpeech: false,
@@ -136,4 +137,3 @@ export function providerSupportsModelDiscovery(provider: ApiProvider): boolean {
 export function providerSupportsOpenAIChatCompletions(provider: ApiProvider): boolean {
   return PROVIDER_CAPABILITIES[provider].supportsOpenAIChatCompletions;
 }
-

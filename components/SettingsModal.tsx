@@ -18,7 +18,7 @@ interface SettingsModalProps {
 const MCP_TEST_INITIAL = { status: 'idle' as const, message: null };
 const PROVIDER_DEFAULT_MODELS: Partial<Record<ApiProvider, string>> = {
   google: getProviderDefaultModel('google'),
-  minimax: 'MiniMax-M1',
+  minimax: getProviderDefaultModel('minimax'),
 };
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearHistory }) => {
