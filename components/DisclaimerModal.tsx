@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface DisclaimerModalProps {
   isOpen: boolean;
@@ -7,6 +7,8 @@ interface DisclaimerModalProps {
 
 const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) => {
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) setDontShowAgain(false);
@@ -15,9 +17,53 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
   useEffect(() => {
     if (!isOpen) return;
 
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const focusFirstElement = () => {
+      const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      focusableElements?.[0]?.focus();
+    };
+
+    const timer = window.setTimeout(focusFirstElement, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      previouslyFocusedElementRef.current?.focus();
+      previouslyFocusedElementRef.current = null;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose(dontShowAgain);
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (e.shiftKey) {
+        if (activeElement === firstElement || !modalRef.current?.contains(activeElement)) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else if (activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
     };
 
@@ -34,11 +80,17 @@ const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClose }) =>
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center backdrop-blur-sm" 
+      onClick={() => onClose(dontShowAgain)}
     >
       <div 
+        ref={modalRef}
         className="bg-slate-800/80 backdrop-blur-xl border border-yellow-500/50 rounded-lg shadow-2xl p-6 w-full max-w-lg m-4 relative text-gray-200"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="disclaimer-title"
+        onClick={e => e.stopPropagation()}
       >
-        <h2 className="text-2xl font-bold mb-4 text-yellow-400 flex items-center gap-2">
+        <h2 id="disclaimer-title" className="text-2xl font-bold mb-4 text-yellow-400 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
