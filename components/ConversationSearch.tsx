@@ -50,7 +50,12 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
       <div className="bg-gray-800 rounded-xl max-w-lg w-full max-h-[70vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
-            <span className="text-gray-400">🔍</span>
+            <span className="text-gray-400" aria-hidden="true">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </span>
             <input
               type="text"
               value={query}

@@ -97,7 +97,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showCommands) return;
+    if (!showCommands || filteredCommands.length === 0) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
