@@ -32,21 +32,35 @@ const ScripturePanel: React.FC<ScripturePanelProps> = ({ setReadingContext, onAs
   const [selectedChapter, setSelectedChapter] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const fetchRequestIdRef = React.useRef(0);
+  const isMountedRef = React.useRef(true);
 
   const fetchScriptureData = useCallback(async (volume: ScriptureVolume) => {
+    const requestId = ++fetchRequestIdRef.current;
     setIsLoading(true);
     setError(null);
 
     try {
       const data = await loadScriptureVolume(volume);
+      if (!isMountedRef.current || requestId !== fetchRequestIdRef.current) return;
       setScriptureData(data);
     } catch (err) {
+      if (!isMountedRef.current || requestId !== fetchRequestIdRef.current) return;
       console.error(err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred loading scriptures.');
       setScriptureData(null);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current && requestId === fetchRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      fetchRequestIdRef.current++;
+    };
   }, []);
 
   useEffect(() => {
