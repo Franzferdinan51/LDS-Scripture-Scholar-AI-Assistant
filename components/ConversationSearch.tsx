@@ -22,7 +22,12 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
 
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
-    if (q.length < 3) { setResults([]); return; }
+    if (q.length < 3) {
+      searchRequestIdRef.current++;
+      setResults([]);
+      setIsSearching(false);
+      return;
+    }
     setIsSearching(true);
     const requestId = ++searchRequestIdRef.current;
     try {
