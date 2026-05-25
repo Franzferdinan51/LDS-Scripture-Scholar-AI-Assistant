@@ -28,6 +28,17 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeSearch();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [closeSearch]);
+
   const handleSearch = useCallback(async (q: string) => {
     setQuery(q);
     if (q.length < 3) {
@@ -55,7 +66,13 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 pt-20 p-4" onClick={closeSearch}>
-      <div className="bg-gray-800 rounded-xl max-w-lg w-full max-h-[70vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+      <div
+        className="bg-gray-800 rounded-xl max-w-lg w-full max-h-[70vh] overflow-hidden flex flex-col"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search conversations"
+      >
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center gap-2">
             <span className="text-gray-400" aria-hidden="true">
@@ -72,7 +89,7 @@ const ConversationSearch: React.FC<ConversationSearchProps> = ({ onNavigate, onC
               className="flex-1 bg-transparent text-white outline-none placeholder-gray-400"
               autoFocus
             />
-            <button onClick={closeSearch} className="text-gray-400 hover:text-white">&times;</button>
+            <button onClick={closeSearch} className="text-gray-400 hover:text-white" aria-label="Close search">&times;</button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
