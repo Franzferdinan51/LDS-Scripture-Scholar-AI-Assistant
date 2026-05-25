@@ -199,7 +199,7 @@ async function searchWeb(params: { query: string; limit?: number }, settings?: A
           googleApiKey: settings.googleSearchApiKey,
           googleCx: settings.googleSearchCx,
           searxngUrl: settings.searxngUrl,
-      tavilyApiKey: settings.tavilyApiKey,
+          tavilyApiKey: settings.tavilyApiKey,
         }
       : undefined;
 
