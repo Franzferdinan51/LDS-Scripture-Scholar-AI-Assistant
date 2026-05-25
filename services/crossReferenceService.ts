@@ -16,6 +16,16 @@ export interface CrossReferenceResult {
   studySuggestions?: string[];
 }
 
+function normalizeProvider(provider: ApiProviderSettings['provider'] | undefined): ApiProviderSettings['provider'] {
+  return provider === 'google' ||
+    provider === 'lmstudio' ||
+    provider === 'openrouter' ||
+    provider === 'mcp' ||
+    provider === 'minimax'
+    ? provider
+    : 'google';
+}
+
 export const CROSS_REFERENCE_SYSTEM_INSTRUCTION = `You are an expert scripture cross-referencing tool for members of The Church of Jesus Christ of Latter-day Saints. Your task is to find and explain related scriptures for a given verse or passage. When analyzing, consider:
 1. Doctrinal parallels - scriptures that teach the same principle
 2. Historical context - related events or time periods
@@ -139,15 +149,17 @@ export async function getCrossReferencesForSettings(
   settings: ApiProviderSettings,
   scripture: string
 ): Promise<CrossReferenceResult> {
-  if (settings.provider === 'google') {
+  const provider = normalizeProvider(settings.provider);
+
+  if (provider === 'google') {
     return generateWithGoogleProvider(settings, scripture);
   }
 
-  if (!providerSupportsOpenAIChatCompletions(settings.provider)) {
+  if (!providerSupportsOpenAIChatCompletions(provider)) {
     throw new Error('The selected provider does not support cross-references.');
   }
 
-  return generateWithOpenAICompatibleProvider(settings, scripture);
+  return generateWithOpenAICompatibleProvider({ ...settings, provider }, scripture);
 }
 
 export async function getCrossReferences(
