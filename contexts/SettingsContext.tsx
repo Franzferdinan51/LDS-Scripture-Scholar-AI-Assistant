@@ -26,6 +26,18 @@ const DEFAULT_SETTINGS: ApiProviderSettings = {
   lmStudioMcpServers: [],
 };
 
+const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProviderSettings => {
+  if (!stored) {
+    return DEFAULT_SETTINGS;
+  }
+
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    minimaxBaseUrl: stored.minimaxBaseUrl?.trim() || DEFAULT_SETTINGS.minimaxBaseUrl,
+  };
+};
+
 interface SettingsContextType {
   settings: ApiProviderSettings;
   setSettings: (settings: ApiProviderSettings) => void;
@@ -49,7 +61,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
           if (!stored.googleApiKey && process.env.API_KEY) {
             stored.googleApiKey = process.env.API_KEY;
           }
-          setSettingsState({ ...DEFAULT_SETTINGS, ...stored });
+          setSettingsState(normalizeLoadedSettings(stored));
         } else {
           // First run: save defaults
           await saveApiSettings(DEFAULT_SETTINGS);

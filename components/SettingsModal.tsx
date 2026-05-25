@@ -351,9 +351,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                       type="text"
                       id="minimaxBaseUrl"
                       name="minimaxBaseUrl"
-                      value={localSettings.minimaxBaseUrl || 'https://api.minimax.io/v1'}
+                      value={localSettings.minimaxBaseUrl}
                       onChange={handleInputChange}
                       className={inputBaseClasses}
+                      placeholder="https://api.minimax.io/v1"
                     />
                   </div>
                   <div>

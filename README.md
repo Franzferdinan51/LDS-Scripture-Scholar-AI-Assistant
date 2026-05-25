@@ -244,7 +244,7 @@ Open the in-app **Settings** modal (gear icon) to configure providers:
 2. **LM Studio** -- Enter your local server base URL (e.g., `http://localhost:1234/v1`). No API key needed for local instances. For MCP integration, ensure LM Studio 0.4.0+ is running with MCP servers configured.
 3. **OpenRouter** -- Enter your OpenRouter API key, then refresh the model list to browse available models.
 4. **Docker MCP Toolkit** -- Enter the base URL and access key for your MCP endpoint.
-5. **MiniMax** -- Enter your MiniMax API key and base URL, then refresh the model list.
+5. **MiniMax** -- Enter your MiniMax API key and base URL, then refresh the model list. The current default model family is `MiniMax-M2.7`, with `MiniMax-M2.7-highspeed` also available.
 
 You can also configure a **fallback provider** and model in settings so the app gracefully degrades if your primary provider is unavailable.
 
