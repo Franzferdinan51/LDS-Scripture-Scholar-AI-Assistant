@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ApiProviderSettings } from '../types';
 import { parseJSON } from '../utils/jsonRepair';
-import { getProviderKeyLabel, providerSupportsOpenAIChatCompletions } from './providerCapabilities';
+import { getProviderDefaultModel, getProviderKeyLabel, providerSupportsOpenAIChatCompletions } from './providerCapabilities';
 
 export interface CrossReferenceItem {
   scripture: string;
@@ -124,7 +124,7 @@ async function generateWithGoogleProvider(
 
   const ai = new GoogleGenAI({ apiKey: settings.googleApiKey });
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro',
+    model: settings.model || getProviderDefaultModel('google'),
     contents: scripture,
     config: {
       systemInstruction: CROSS_REFERENCE_SYSTEM_INSTRUCTION,
@@ -166,7 +166,7 @@ export async function getCrossReferences(
         mcpBaseUrl: 'http://localhost:8080/v1',
         minimaxBaseUrl: 'https://api.minimax.chat/v1',
         minimaxApiKey: '',
-        model: 'gemini-2.5-pro',
+        model: getProviderDefaultModel('google'),
       },
       scripture
     );
