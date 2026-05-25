@@ -236,6 +236,8 @@ const App: React.FC = () => {
   const currentBotMessageIdRef = useRef<string | null>(null);
   const chatHistoryRef = useRef<ChatHistory>(chatHistory);
   const activeChatIdRef = useRef<string | null>(activeChatId);
+  const activeViewRef = useRef<ViewMode>(activeView);
+  const chatModeRef = useRef<ChatMode>(chatMode);
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
   const previousActiveViewRef = useRef<ViewMode>(activeView);
   const proactiveSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -260,6 +262,14 @@ const App: React.FC = () => {
   }, [activeChatId]);
 
   useEffect(() => {
+    activeViewRef.current = activeView;
+  }, [activeView]);
+
+  useEffect(() => {
+    chatModeRef.current = chatMode;
+  }, [chatMode]);
+
+  useEffect(() => {
     setReadingContext(null);
   }, [activeChatId]);
 
@@ -275,6 +285,12 @@ const App: React.FC = () => {
       setSuggestedReminders([]);
     }
   }, [activeView]);
+
+  useEffect(() => {
+    if (!proactiveSuggestionTimerRef.current) return;
+    clearTimeout(proactiveSuggestionTimerRef.current);
+    proactiveSuggestionTimerRef.current = null;
+  }, [activeChatId, activeView, chatMode]);
 
   useEffect(() => {
     const previousActiveView = previousActiveViewRef.current;
@@ -542,11 +558,14 @@ const App: React.FC = () => {
   };
 
   const triggerProactiveSuggestion = useCallback(async () => {
-    if (isSuggesting || chatMode !== 'chat' || !activeChatId) return;
+    const targetChatId = activeChatIdRef.current;
+    const targetChatMode = chatModeRef.current;
+    const targetActiveView = activeViewRef.current;
+    if (isSuggesting || targetChatMode !== 'chat' || targetActiveView !== 'chat' || !targetChatId) return;
 
     setIsSuggesting(true);
     try {
-      const relevantMessages = chatHistory[activeChatId]?.filter(m => !m.isSuggestion) || [];
+      const relevantMessages = chatHistoryRef.current[targetChatId]?.filter(m => !m.isSuggestion) || [];
       const history: Content[] = relevantMessages.slice(-4).map(msg => ({
           role: msg.sender === 'user' ? 'user' : 'model',
           parts: [{ text: msg.text }]
@@ -559,9 +578,9 @@ const App: React.FC = () => {
       }
 
       const suggestion = await getProactiveSuggestion(settings, history);
-      if (suggestion) {
+      if (suggestion && activeChatIdRef.current === targetChatId && chatModeRef.current === 'chat' && activeViewRef.current === 'chat') {
         const suggestionMessage: Message = { id: `suggestion-${Date.now()}`, text: suggestion, sender: 'bot', isSuggestion: true };
-        setChatHistory(prev => ({...prev, [activeChatId]: [...(prev[activeChatId] || []), suggestionMessage]}));
+        setChatHistory(prev => ({...prev, [targetChatId]: [...(prev[targetChatId] || []), suggestionMessage]}));
       }
     } catch (err) {
       console.error("Proactive suggestion failed:", err);
