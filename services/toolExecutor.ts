@@ -208,7 +208,7 @@ async function searchWeb(params: { query: string; limit?: number }, settings?: A
     // If results are sparse, supplement with direct Church site search
     if (results.length < 3) {
       const directResult = await searchLDSSources(query, 5);
-      const combined = [...results, ...directResult.results];
+      const combined = [...results, ...directResult];
       const seen = new Set<string>();
       const deduped = combined.filter(r => {
         if (seen.has(r.url)) return false;

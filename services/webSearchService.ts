@@ -30,6 +30,11 @@ export interface WebSearchResult {
   source?: string;
 }
 
+export interface WebSearchResponse {
+  results: WebSearchResult[];
+  source: string;
+}
+
 const LDS_DOMAINS = [
   'churchofjesuschrist.org',
   'byui.edu',
@@ -61,7 +66,7 @@ function ldsSiteFilterQuery(query: string): string {
 async function searchGospelLibrary(
   query: string,
   limit: number = 5
-): Promise<LDSSearchResult[]> {
+): Promise<WebSearchResponse> {
   try {
     const url = `https://www.churchofjesuschrist.org/study/api/v3/svc/search?query=${encodeURIComponent(query)}&language=eng`;
     const resp = await fetch(url, {
@@ -111,7 +116,7 @@ export async function webSearch(
   query: string,
   settings?: WebSearchSettings,
   limit: number = 8
-): Promise<LDSSearchResult[]> {
+): Promise<WebSearchResponse> {
   // --- Primary: Church Gospel Library API v3 ---
   const gospelResult = await searchGospelLibrary(query, limit);
   if (gospelResult.results.length > 0) {
@@ -195,7 +200,7 @@ export async function webSearch(
 async function searchDuckDuckGo(
   query: string,
   limit: number = 8
-): Promise<LDSSearchResult[]> {
+): Promise<WebSearchResponse> {
   const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
   const response = await fetch(url, {
     headers: {
@@ -260,7 +265,7 @@ async function searchDuckDuckGo(
 /**
  * Brave Search API.
  */
-async function searchBrave(query: string, apiKey: string, limit: number): Promise<LDSSearchResult[]> {
+async function searchBrave(query: string, apiKey: string, limit: number): Promise<WebSearchResponse> {
   const params = new URLSearchParams({
     q: query,
     count: String(Math.min(limit, 20)),
@@ -292,7 +297,7 @@ async function searchBrave(query: string, apiKey: string, limit: number): Promis
 /**
  * SearXNG self-hosted instance.
  */
-async function searchSearXNG(query: string, baseUrl: string, limit: number): Promise<LDSSearchResult[]> {
+async function searchSearXNG(query: string, baseUrl: string, limit: number): Promise<WebSearchResponse> {
   const url = `${baseUrl.replace(/\/+$/, '')}/search?${new URLSearchParams({
     q: query,
     format: 'json',
@@ -318,7 +323,7 @@ async function searchSearXNG(query: string, baseUrl: string, limit: number): Pro
 /**
  * Google Custom Search Engine.
  */
-async function searchGoogle(query: string, apiKey: string, cx: string, limit: number): Promise<LDSSearchResult[]> {
+async function searchGoogle(query: string, apiKey: string, cx: string, limit: number): Promise<WebSearchResponse> {
   const params = new URLSearchParams({
     key: apiKey,
     cx,
@@ -346,7 +351,7 @@ async function searchGoogle(query: string, apiKey: string, cx: string, limit: nu
 /**
  * Tavily AI-optimized search API.
  */
-async function searchTavily(query: string, apiKey: string, limit: number): Promise<LDSSearchResult[]> {
+async function searchTavily(query: string, apiKey: string, limit: number): Promise<WebSearchResponse> {
   const response = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: {
@@ -376,7 +381,7 @@ async function searchTavily(query: string, apiKey: string, limit: number): Promi
 /**
  * Wikipedia search (fallback for historical context only).
  */
-async function searchWikipedia(query: string, limit: number): Promise<LDSSearchResult[]> {
+async function searchWikipedia(query: string, limit: number): Promise<WebSearchResponse> {
   const params = new URLSearchParams({
     action: 'query',
     list: 'search',
@@ -410,7 +415,7 @@ export async function searchLDSContent(
   query: string,
   settings?: WebSearchSettings,
   limit: number = 8
-): Promise<LDSSearchResult[]> {
+): Promise<WebSearchResponse> {
   // Primary: Gospel Library API
   const gospelResult = await searchGospelLibrary(query, limit);
   if (gospelResult.results.length >= 3) {
@@ -442,7 +447,7 @@ export async function searchLDSContent(
 export async function searchLdsWeb(
   query: string,
   limit: number = 8
-): Promise<LDSSearchResult[]> {
+): Promise<WebSearchResponse> {
   const allResults: WebSearchResult[] = [];
 
   // --- Attempt 1: Church Gospel Library API v3 ---
@@ -470,7 +475,7 @@ export async function searchLdsWeb(
   if (allResults.length < limit) {
     try {
       const directResult = await searchLDSSources(query, limit - allResults.length);
-      for (const r of directResult.results) {
+      for (const r of directResult) {
         if (!allResults.some(existing => existing.url === r.url)) {
           allResults.push(r);
         }
@@ -544,7 +549,10 @@ export async function searchLDSSources(
     return true;
   });
 
-  return { results: deduped.slice(0, limit), source: 'churchofjesuschrist.org' };
+  return deduped.slice(0, limit).map(r => ({
+    ...r,
+    source: r.source || extractDomain(r.url) || 'churchofjesuschrist.org',
+  }));
 }
 
 /**
