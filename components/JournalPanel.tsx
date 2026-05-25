@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { JournalEntry } from '../types';
 import type { LiveServerMessage, Session } from '@google/genai';
 import { connectLive } from '../services/aiService';
@@ -33,6 +33,15 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
   const sessionRef = useRef<Session | null>(null);
   const transcriptionRef = useRef('');
   const isStoppingRef = useRef(false);
+  const summaryRequestIdRef = useRef(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      summaryRequestIdRef.current++;
+    };
+  }, []);
 
   const startJournaling = async () => {
     if (isConnecting || isVoiceActive || isStoppingRef.current) return;
@@ -111,6 +120,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
       sessionRef.current = null;
 
       if (transcriptionRef.current.trim()) {
+          const summaryRequestId = ++summaryRequestIdRef.current;
           const newEntry: JournalEntry = {
               id: `journal-${Date.now()}`,
               originalText: transcriptionRef.current,
@@ -119,17 +129,23 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
           setEntries(prev => [newEntry, ...prev]);
 
           // Start summarization
-          setIsSummarizing(true);
-          setSummarizingEntryId(newEntry.id);
+          if (isMountedRef.current && summaryRequestId === summaryRequestIdRef.current) {
+            setIsSummarizing(true);
+            setSummarizingEntryId(newEntry.id);
+          }
           try {
               const insights = await getJournalInsights(transcriptionRef.current);
               setEntries(prev => prev.map(e => e.id === newEntry.id ? { ...e, ...insights } : e));
           } catch (e) {
               console.error("Failed to get journal insights:", e);
-              setError("Could not summarize the journal entry.");
+              if (isMountedRef.current && summaryRequestId === summaryRequestIdRef.current) {
+                setError("Could not summarize the journal entry.");
+              }
           } finally {
-              setIsSummarizing(false);
-              setSummarizingEntryId(null);
+              if (isMountedRef.current && summaryRequestId === summaryRequestIdRef.current) {
+                setIsSummarizing(false);
+                setSummarizingEntryId(null);
+              }
           }
       }
       setCurrentTranscription('');
