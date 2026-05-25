@@ -67,6 +67,9 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
     if (initialScripture?.trim()) {
       dispatch({ type: 'RESET' });
       dispatch({ type: 'SET_SCRIPTURE', payload: initialScripture.trim() });
+    } else {
+      dispatch({ type: 'RESET' });
+      dispatch({ type: 'SET_SCRIPTURE', payload: '' });
     }
   }, [initialScripture]);
 
