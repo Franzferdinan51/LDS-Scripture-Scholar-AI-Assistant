@@ -236,6 +236,7 @@ const App: React.FC = () => {
   const chatHistoryRef = useRef<ChatHistory>(chatHistory);
   const activeChatIdRef = useRef<string | null>(activeChatId);
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
+  const proactiveSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const provider = normalizeApiProvider(settings.provider);
 
   // Keep chatHistoryRef in sync so the finally block in handleSendMessage
@@ -252,6 +253,15 @@ const App: React.FC = () => {
   useEffect(() => {
     scriptureAgentHistoryRef.current = scriptureAgentHistory;
   }, [scriptureAgentHistory]);
+
+  useEffect(() => {
+    return () => {
+      if (proactiveSuggestionTimerRef.current) {
+        clearTimeout(proactiveSuggestionTimerRef.current);
+        proactiveSuggestionTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const isVoiceChatAvailable = providerSupportsLiveVoice(provider);
   const messages = activeChatId ? chatHistory[activeChatId] || [] : [];
@@ -923,7 +933,13 @@ const App: React.FC = () => {
         }
       }
       if (effectiveMode === 'chat' && !requestError && activeChatId) {
-          setTimeout(() => triggerProactiveSuggestion(), 2000);
+          if (proactiveSuggestionTimerRef.current) {
+            clearTimeout(proactiveSuggestionTimerRef.current);
+          }
+          proactiveSuggestionTimerRef.current = setTimeout(() => {
+            proactiveSuggestionTimerRef.current = null;
+            void triggerProactiveSuggestion();
+          }, 2000);
           // Extract and store memories from the conversation (async, non-blocking)
           const currentMessages = chatHistoryRef.current[activeChatId] || [];
           if (currentMessages.length >= 4) {
