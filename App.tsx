@@ -270,6 +270,13 @@ const App: React.FC = () => {
   }, [activeChatId]);
 
   useEffect(() => {
+    if (activeView !== 'chat') {
+      setSkillSaveOffer(null);
+      setSuggestedReminders([]);
+    }
+  }, [activeView]);
+
+  useEffect(() => {
     const previousActiveView = previousActiveViewRef.current;
     previousActiveViewRef.current = activeView;
 
