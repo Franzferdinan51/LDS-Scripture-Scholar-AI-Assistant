@@ -1128,6 +1128,8 @@ const App: React.FC = () => {
     scriptProcessorRef.current?.disconnect();
     scriptProcessorRef.current = null;
     if (inputAudioContextRef.current?.state !== 'closed') inputAudioContextRef.current?.close();
+    if (outputAudioContextRef.current?.state !== 'closed') outputAudioContextRef.current?.close();
+    outputAudioContextRef.current = null;
     audioSourcesRef.current.forEach(source => source.stop());
     audioSourcesRef.current.clear();
     setIsVoiceActive(false);
