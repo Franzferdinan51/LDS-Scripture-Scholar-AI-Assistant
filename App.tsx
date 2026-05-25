@@ -237,6 +237,7 @@ const App: React.FC = () => {
   const chatHistoryRef = useRef<ChatHistory>(chatHistory);
   const activeChatIdRef = useRef<string | null>(activeChatId);
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
+  const previousActiveViewRef = useRef<ViewMode>(activeView);
   const proactiveSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retrySendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSendMessageRef = useRef<((text: string, overrideMode?: ChatMode) => Promise<void>) | null>(null);
@@ -261,6 +262,15 @@ const App: React.FC = () => {
   useEffect(() => {
     setReadingContext(null);
   }, [activeChatId]);
+
+  useEffect(() => {
+    const previousActiveView = previousActiveViewRef.current;
+    previousActiveViewRef.current = activeView;
+
+    if (previousActiveView === 'scripture-reader' && activeView !== 'scripture-reader') {
+      setReadingContext(null);
+    }
+  }, [activeView]);
 
   useEffect(() => {
     scriptureAgentHistoryRef.current = scriptureAgentHistory;
