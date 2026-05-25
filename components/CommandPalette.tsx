@@ -285,6 +285,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (mode !== 'commands' && e.key !== 'Escape') {
+        return;
+      }
+
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
@@ -316,7 +320,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredCommands, selectedIndex, query, onExecute, onClose, handleTabComplete, setSelectedIndex]);
+  }, [isOpen, mode, filteredCommands, selectedIndex, query, onExecute, onClose, handleTabComplete, setSelectedIndex]);
 
   // Scroll selected into view
   useEffect(() => {
