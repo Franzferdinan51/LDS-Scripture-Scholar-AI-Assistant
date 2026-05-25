@@ -83,6 +83,7 @@ async function generateWithOpenAICompatibleProvider(
   scripture: string
 ): Promise<CrossReferenceResult> {
   const { baseUrl, apiKey, model } = getOpenAICompatibleSettings(settings);
+  const provider = normalizeProvider(settings.provider);
 
   if (!baseUrl) {
     throw new Error('Cross-references require a configured AI provider.');
@@ -92,8 +93,8 @@ async function generateWithOpenAICompatibleProvider(
     throw new Error('Please select a model in Settings before using cross-references.');
   }
 
-  const requiredKeyLabel = getProviderKeyLabel(settings.provider);
-  if (settings.provider !== 'mcp' && requiredKeyLabel && !apiKey) {
+  const requiredKeyLabel = getProviderKeyLabel(provider);
+  if (provider !== 'mcp' && requiredKeyLabel && !apiKey) {
     throw new Error(`${requiredKeyLabel} is required for cross-references. Please set it in Settings.`);
   }
 
