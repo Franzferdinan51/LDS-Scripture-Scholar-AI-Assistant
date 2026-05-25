@@ -26,12 +26,13 @@ interface MessageBubbleProps {
   onToggleAudio: (messageId: string, text: string) => Promise<void>;
   audioPlaybackState: AudioPlaybackState;
   onAnswerQuiz: (messageId: string, questionIndex: number, answerIndex: number) => void;
+  onResetQuiz?: (messageId: string) => void;
   onExplainVerse: (verse: string) => void;
   onRetry: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = false, onToggleAudio, audioPlaybackState, onAnswerQuiz, onExplainVerse, onRetry, onDelete }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = false, onToggleAudio, audioPlaybackState, onAnswerQuiz, onResetQuiz, onExplainVerse, onRetry, onDelete }) => {
   const isUser = message.sender === 'user';
   const [copied, setCopied] = useState(false);
   const detailsRef = useRef<HTMLDetailsElement>(null);
@@ -197,7 +198,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
           <>
             {renderContent(message.text)}
             {message.studyPlan && <StudyPlanView studyPlan={message.studyPlan} />}
-            {message.multiQuiz && <MultiQuizView quiz={message.multiQuiz} messageId={message.id} onAnswer={onAnswerQuiz} />}
+            {message.multiQuiz && <MultiQuizView quiz={message.multiQuiz} messageId={message.id} onAnswer={onAnswerQuiz} onReset={onResetQuiz} />}
           </>
         )}
         {message.toolCalls && message.toolCalls.length > 0 && (

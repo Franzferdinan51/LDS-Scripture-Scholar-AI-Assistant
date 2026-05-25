@@ -1162,6 +1162,26 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleResetQuiz = (messageId: string) => {
+    if (!activeChatId) return;
+    setChatHistory(prev => ({
+      ...prev,
+      [activeChatId]: prev[activeChatId]?.map(msg => {
+        if (msg.id !== messageId || !msg.multiQuiz) return msg;
+        return {
+          ...msg,
+          multiQuiz: {
+            ...msg.multiQuiz,
+            questions: msg.multiQuiz.questions.map(question => {
+              const { userAnswerIndex, ...rest } = question;
+              return rest;
+            }),
+          },
+        };
+      }),
+    }));
+  };
+
   const stopVoiceSession = () => {
     if (session) session.close();
     setSession(null);
@@ -1357,6 +1377,7 @@ const App: React.FC = () => {
             onToggleAudio={handleToggleAudio}
             audioPlaybackState={audioPlayback}
             onAnswerQuiz={handleAnswerQuiz}
+            onResetQuiz={handleResetQuiz}
             onExplainVerse={handleExplainVerse}
             onRetry={handleRetry}
             onDeleteMessage={handleDeleteMessage}

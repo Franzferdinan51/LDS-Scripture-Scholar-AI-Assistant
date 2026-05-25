@@ -8,7 +8,7 @@ interface MultiQuizViewProps {
   onReset?: (messageId: string) => void;
 }
 
-const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer }) => {
+const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer, onReset }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showResults, setShowResults] = useState(false);
 
@@ -33,11 +33,9 @@ const MultiQuizView: React.FC<MultiQuizViewProps> = ({ quiz, messageId, onAnswer
   };
   
   const handleRestart = () => {
-    // This would require clearing answers in the parent state, which is complex.
-    // For now, we'll just reset the view. A full reset would need prop drilling.
+    onReset?.(messageId);
     setCurrentQuestionIndex(0);
     setShowResults(false);
-    // Note: answers are still stored in the message state.
   };
 
   if (showResults) {

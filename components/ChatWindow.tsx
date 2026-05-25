@@ -23,6 +23,7 @@ interface ChatWindowProps {
   onToggleAudio: (messageId: string, text: string) => Promise<void>;
   audioPlaybackState: AudioPlaybackState;
   onAnswerQuiz: (messageId: string, questionIndex: number, answerIndex: number) => void;
+  onResetQuiz: (messageId: string) => void;
   onExplainVerse: (verse: string) => void;
   onRetry: (messageId: string) => void;
   onDeleteMessage?: (messageId: string) => void;
@@ -55,6 +56,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onToggleAudio,
   audioPlaybackState,
   onAnswerQuiz,
+  onResetQuiz,
   onExplainVerse,
   onRetry,
   onDeleteMessage,
@@ -127,6 +129,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             onToggleAudio={onToggleAudio}
             audioPlaybackState={audioPlaybackState}
             onAnswerQuiz={onAnswerQuiz}
+            onResetQuiz={onResetQuiz}
             onExplainVerse={onExplainVerse}
             onRetry={onRetry}
             onDelete={onDeleteMessage}
@@ -138,6 +141,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 onToggleAudio={() => Promise.resolve()} 
                 audioPlaybackState={{messageId: null, status: 'stopped'}}
                 onAnswerQuiz={() => {}}
+                onResetQuiz={() => {}}
                 onExplainVerse={() => {}}
                 onRetry={() => {}}
              />
