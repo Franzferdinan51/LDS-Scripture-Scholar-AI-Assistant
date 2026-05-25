@@ -59,21 +59,22 @@ export const SUB_AGENTS: Map<string, SubAgent> = new Map([
 // Routes to sub-agents based on message content and mode
 export function routeToAgent(message: string, mode: ChatMode): SubAgent | null {
   const lower = message.toLowerCase();
+  const slashCommand = lower.match(/^\s*\/([a-z-]+)/)?.[1] || '';
 
   if (/^\s*(hi|hello|hey|howdy|thanks|thank you|good morning|good afternoon|good evening)\b/i.test(lower)) {
     return SUB_AGENTS.get('generalChat') || null;
   }
 
-  if (mode === 'study-plan' || /study\s*plan|create\s*plan|schedule/i.test(lower)) {
+  if (mode === 'study-plan' || slashCommand === 'plan' || /study\s*plan|create\s*plan|schedule/i.test(lower)) {
     return SUB_AGENTS.get('studyPlanner') || null;
   }
-  if (mode === 'multi-quiz' || /quiz|test\s*me|exam/i.test(lower)) {
+  if (mode === 'multi-quiz' || slashCommand === 'quiz' || /quiz|test\s*me|exam/i.test(lower)) {
     return SUB_AGENTS.get('quizMaster') || null;
   }
-  if (mode === 'lesson-prep' || /lesson|prepare\s*teach|preach/i.test(lower)) {
+  if (mode === 'lesson-prep' || slashCommand === 'lesson' || slashCommand === 'fhe' || /lesson|prepare\s*teach|preach|family home evening/i.test(lower)) {
     return SUB_AGENTS.get('lessonPrep') || null;
   }
-  if (/(scripture|verse|cross-?reference|book of mormon|doctrine and covenants|pearl of great price|old testament|new testament|1 nephi|2 nephi|alma|moroni|moses|abraham|joseph smith|gospel doctrine)/i.test(lower)) {
+  if (slashCommand === 'study' || slashCommand === 'explain' || slashCommand === 'cross-ref' || slashCommand === 'search' || slashCommand === 'image' || /(scripture|verse|cross-?reference|book of mormon|doctrine and covenants|pearl of great price|old testament|new testament|1 nephi|2 nephi|alma|moroni|moses|abraham|joseph smith|gospel doctrine)/i.test(lower)) {
     return SUB_AGENTS.get('research') || null;
   }
 
