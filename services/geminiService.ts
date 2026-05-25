@@ -8,6 +8,7 @@ import { generateTextWithSettings, generateJsonWithSettings } from './llmService
 import { parseJSON } from "../utils/jsonRepair";
 import { ToolCallManager } from './toolCallManager';
 import { convertGeminiParamsToOpenAI } from './tools';
+import { getProviderDefaultModel } from './providerCapabilities';
 
 // ============================================================================
 // HERMES/OPENCLAW ENHANCED AGENT PATTERNS
@@ -446,7 +447,7 @@ function createGoogleChatService(
 
   const modelName = ['study-plan', 'multi-quiz', 'lesson-prep', 'fhe-planner'].includes(chatMode)
       ? 'gemini-2.5-pro'
-      : settings.model || 'gemini-flash-lite-latest';
+      : settings.model || getProviderDefaultModel('google');
 
   const systemInstruction = buildEnhancedSystemInstruction(
       chatMode,
