@@ -237,6 +237,7 @@ const App: React.FC = () => {
   const activeChatIdRef = useRef<string | null>(activeChatId);
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
   const proactiveSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retrySendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const provider = normalizeApiProvider(settings.provider);
 
   // Keep chatHistoryRef in sync so the finally block in handleSendMessage
@@ -259,6 +260,10 @@ const App: React.FC = () => {
       if (proactiveSuggestionTimerRef.current) {
         clearTimeout(proactiveSuggestionTimerRef.current);
         proactiveSuggestionTimerRef.current = null;
+      }
+      if (retrySendTimerRef.current) {
+        clearTimeout(retrySendTimerRef.current);
+        retrySendTimerRef.current = null;
       }
     };
   }, []);
@@ -525,6 +530,16 @@ const App: React.FC = () => {
     const [cmd, ...args] = text.trim().split(/\s+/);
     const command = cmd.toLowerCase();
 
+    const scheduleRetrySend = (message: string, delayMs: number) => {
+      if (retrySendTimerRef.current) {
+        clearTimeout(retrySendTimerRef.current);
+      }
+      retrySendTimerRef.current = setTimeout(() => {
+        retrySendTimerRef.current = null;
+        void handleSendMessage(message);
+      }, delayMs);
+    };
+
     switch (command) {
       case '/new':
         handleNewChat();
@@ -584,7 +599,7 @@ const App: React.FC = () => {
             const newMsgs = msgs.slice(0, actualIdx);
             setChatHistory(prev => ({ ...prev, [activeChatId]: newMsgs }));
             // Re-trigger send after a tick
-            setTimeout(() => handleSendMessage(lastUserMsg.text), 100);
+            scheduleRetrySend(lastUserMsg.text, 100);
           }
         }
         return true;
@@ -1041,7 +1056,13 @@ const App: React.FC = () => {
 
     if (userMessageToRetry) {
         setChatHistory(prev => ({...prev, [activeChatId]: currentMessages.slice(0, userMessageIndex + 1)}));
-        setTimeout(() => handleSendMessage(userMessageToRetry!.text), 50);
+        if (retrySendTimerRef.current) {
+            clearTimeout(retrySendTimerRef.current);
+        }
+        retrySendTimerRef.current = setTimeout(() => {
+            retrySendTimerRef.current = null;
+            void handleSendMessage(userMessageToRetry!.text);
+        }, 50);
     } else {
         setError("Could not find the original prompt to retry.");
     }
