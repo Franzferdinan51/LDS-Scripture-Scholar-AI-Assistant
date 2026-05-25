@@ -51,6 +51,7 @@ interface ScriptureScholarDB extends DBSchema {
 // --- Database Instance ---
 
 let dbPromise: Promise<IDBPDatabase<ScriptureScholarDB>> | null = null;
+const writeQueues = new Map<string, Promise<void>>();
 
 function getDB(): Promise<IDBPDatabase<ScriptureScholarDB>> {
   if (!dbPromise) {
@@ -95,6 +96,18 @@ function getDB(): Promise<IDBPDatabase<ScriptureScholarDB>> {
     });
   }
   return dbPromise;
+}
+
+function queueWrite<T>(queueKey: string, operation: () => Promise<T>): Promise<T> {
+  const previous = writeQueues.get(queueKey) ?? Promise.resolve();
+  const next = previous.catch(() => {}).then(operation);
+
+  writeQueues.set(
+    queueKey,
+    next.then(() => undefined, () => undefined)
+  );
+
+  return next;
 }
 
 // --- Migration from localStorage ---
@@ -183,18 +196,24 @@ export async function getChat(chatId: string): Promise<Message[] | undefined> {
 }
 
 export async function saveChat(chatId: string, messages: Message[], title?: string): Promise<void> {
-  const db = await getDB();
-  await db.put('chatHistory', { chatId, messages, timestamp: Date.now(), title });
+  return queueWrite('chatHistory', async () => {
+    const db = await getDB();
+    await db.put('chatHistory', { chatId, messages, timestamp: Date.now(), title });
+  });
 }
 
 export async function deleteChat(chatId: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('chatHistory', chatId);
+  return queueWrite('chatHistory', async () => {
+    const db = await getDB();
+    await db.delete('chatHistory', chatId);
+  });
 }
 
 export async function clearAllChats(): Promise<void> {
-  const db = await getDB();
-  await db.clear('chatHistory');
+  return queueWrite('chatHistory', async () => {
+    const db = await getDB();
+    await db.clear('chatHistory');
+  });
 }
 
 // --- Memories ---
@@ -210,18 +229,24 @@ export async function getMemoriesByType(type: string): Promise<Memory[]> {
 }
 
 export async function saveMemory(memory: Memory): Promise<void> {
-  const db = await getDB();
-  await db.put('memories', memory);
+  return queueWrite('memories', async () => {
+    const db = await getDB();
+    await db.put('memories', memory);
+  });
 }
 
 export async function deleteMemory(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('memories', id);
+  return queueWrite('memories', async () => {
+    const db = await getDB();
+    await db.delete('memories', id);
+  });
 }
 
 export async function clearAllMemories(): Promise<void> {
-  const db = await getDB();
-  await db.clear('memories');
+  return queueWrite('memories', async () => {
+    const db = await getDB();
+    await db.clear('memories');
+  });
 }
 
 // --- User Profile ---
@@ -235,8 +260,10 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 }
 
 export async function saveUserProfile(profile: UserProfile): Promise<void> {
-  const db = await getDB();
-  await db.put('userProfile' as any, { ...profile, id: USER_PROFILE_ID } as any);
+  return queueWrite('userProfile', async () => {
+    const db = await getDB();
+    await db.put('userProfile' as any, { ...profile, id: USER_PROFILE_ID } as any);
+  });
 }
 
 // --- Skills ---
@@ -247,35 +274,43 @@ export async function getAllSkills(): Promise<Skill[]> {
 }
 
 export async function saveSkill(skill: Skill): Promise<void> {
-  const db = await getDB();
-  await db.put('skills', skill);
+  return queueWrite('skills', async () => {
+    const db = await getDB();
+    await db.put('skills', skill);
+  });
 }
 
 export async function deleteSkill(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('skills', id);
+  return queueWrite('skills', async () => {
+    const db = await getDB();
+    await db.delete('skills', id);
+  });
 }
 
 export async function updateSkillUsage(skillId: string): Promise<void> {
-  const db = await getDB();
-  const skill = await db.get('skills', skillId);
-  if (skill) {
-    skill.useCount = (skill.useCount || 0) + 1;
-    skill.lastUsed = new Date().toISOString();
-    await db.put('skills', skill);
-  }
+  return queueWrite('skills', async () => {
+    const db = await getDB();
+    const skill = await db.get('skills', skillId);
+    if (skill) {
+      skill.useCount = (skill.useCount || 0) + 1;
+      skill.lastUsed = new Date().toISOString();
+      await db.put('skills', skill);
+    }
+  });
 }
 
 export async function rateSkill(skillId: string, rating: number): Promise<void> {
-  const db = await getDB();
-  const skill = await db.get('skills', skillId);
-  if (skill) {
-    const prev = skill.avgRating || 0;
-    const prevCount = skill.successCount || 0;
-    skill.successCount = prevCount + 1;
-    skill.avgRating = (prev * prevCount + rating) / skill.successCount;
-    await db.put('skills', skill);
-  }
+  return queueWrite('skills', async () => {
+    const db = await getDB();
+    const skill = await db.get('skills', skillId);
+    if (skill) {
+      const prev = skill.avgRating || 0;
+      const prevCount = skill.successCount || 0;
+      skill.successCount = prevCount + 1;
+      skill.avgRating = (prev * prevCount + rating) / skill.successCount;
+      await db.put('skills', skill);
+    }
+  });
 }
 
 // --- Study History ---
@@ -286,8 +321,10 @@ export async function getAllStudySessions(): Promise<StudySession[]> {
 }
 
 export async function saveStudySession(session: StudySession): Promise<void> {
-  const db = await getDB();
-  await db.put('studyHistory', session);
+  return queueWrite('studyHistory', async () => {
+    const db = await getDB();
+    await db.put('studyHistory', session);
+  });
 }
 
 export async function getStudySessionsByDate(date: string): Promise<StudySession[]> {
@@ -303,13 +340,17 @@ export async function getAllNotes(): Promise<Note[]> {
 }
 
 export async function saveNote(note: Note): Promise<void> {
-  const db = await getDB();
-  await db.put('notes', note);
+  return queueWrite('notes', async () => {
+    const db = await getDB();
+    await db.put('notes', note);
+  });
 }
 
 export async function deleteNote(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('notes', id);
+  return queueWrite('notes', async () => {
+    const db = await getDB();
+    await db.delete('notes', id);
+  });
 }
 
 // --- Journal Entries ---
@@ -320,13 +361,17 @@ export async function getAllJournalEntries(): Promise<JournalEntry[]> {
 }
 
 export async function saveJournalEntry(entry: JournalEntry): Promise<void> {
-  const db = await getDB();
-  await db.put('journalEntries', entry);
+  return queueWrite('journalEntries', async () => {
+    const db = await getDB();
+    await db.put('journalEntries', entry);
+  });
 }
 
 export async function deleteJournalEntry(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('journalEntries', id);
+  return queueWrite('journalEntries', async () => {
+    const db = await getDB();
+    await db.delete('journalEntries', id);
+  });
 }
 
 // --- Reminders ---
@@ -337,13 +382,17 @@ export async function getAllReminders(): Promise<Reminder[]> {
 }
 
 export async function saveReminder(reminder: Reminder): Promise<void> {
-  const db = await getDB();
-  await db.put('reminders', reminder);
+  return queueWrite('reminders', async () => {
+    const db = await getDB();
+    await db.put('reminders', reminder);
+  });
 }
 
 export async function deleteReminder(id: string): Promise<void> {
-  const db = await getDB();
-  await db.delete('reminders', id);
+  return queueWrite('reminders', async () => {
+    const db = await getDB();
+    await db.delete('reminders', id);
+  });
 }
 
 // --- Settings ---
@@ -355,8 +404,10 @@ export async function getSetting(key: string): Promise<any> {
 }
 
 export async function setSetting(key: string, value: any): Promise<void> {
-  const db = await getDB();
-  await db.put('settings', { key, value });
+  return queueWrite('settings', async () => {
+    const db = await getDB();
+    await db.put('settings', { key, value });
+  });
 }
 
 export async function getApiSettings(): Promise<ApiProviderSettings | null> {
