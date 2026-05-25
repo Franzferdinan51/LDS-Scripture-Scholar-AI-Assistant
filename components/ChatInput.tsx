@@ -138,7 +138,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           return;
         }
         // For no-arg commands, submit immediately
-        if (!['/skill', '/think', '/persona', '/verbose', '/search'].includes(selected.cmd)) {
+        if (!['/skill', '/think', '/persona', '/verbose'].includes(selected.cmd)) {
           onSendMessage(selected.cmd);
           setText('');
         }
