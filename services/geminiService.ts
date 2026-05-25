@@ -8,7 +8,7 @@ import { generateTextWithSettings, generateJsonWithSettings } from './llmService
 import { parseJSON } from "../utils/jsonRepair";
 import { ToolCallManager } from './toolCallManager';
 import { convertGeminiParamsToOpenAI } from './tools';
-import { getProviderDefaultModel } from './providerCapabilities';
+import { getProviderDefaultModel, normalizeApiProvider } from './providerCapabilities';
 
 // ============================================================================
 // HERMES/OPENCLAW ENHANCED AGENT PATTERNS
@@ -415,6 +415,8 @@ export const createChatService = (
     history: Message[],
     options: ChatServiceOptions = {}
 ) => {
+    const provider = normalizeApiProvider(settings.provider);
+
     // Handle slash commands if enabled
     if (options.enableSlashCommands !== false) {
       const slashResult = parseSlashCommand(history[history.length - 1]?.text || '');
@@ -426,10 +428,10 @@ export const createChatService = (
       }
     }
 
-    if (settings.provider === 'google') {
-        return createGoogleChatService(settings, chatMode, history, options);
+    if (provider === 'google') {
+        return createGoogleChatService({ ...settings, provider }, chatMode, history, options);
     } else {
-        return createOpenAICompatibleChatService(settings, chatMode, history, options);
+        return createOpenAICompatibleChatService({ ...settings, provider }, chatMode, history, options);
     }
 };
 

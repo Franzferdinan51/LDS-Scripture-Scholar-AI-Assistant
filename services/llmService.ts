@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ApiProviderSettings } from '../types';
 import { parseJSON } from '../utils/jsonRepair';
-import { getProviderDefaultModel } from './providerCapabilities';
+import { getProviderDefaultModel, normalizeApiProvider } from './providerCapabilities';
 
 export interface GenerateResponseOptions {
   systemInstruction: string;
@@ -11,7 +11,7 @@ export interface GenerateResponseOptions {
 }
 
 function getProviderConnection(settings: ApiProviderSettings): { baseUrl: string; apiKey: string; model: string } {
-  switch (settings.provider) {
+  switch (normalizeApiProvider(settings.provider)) {
     case 'google':
       return {
         baseUrl: '',
@@ -61,7 +61,7 @@ export async function generateTextWithSettings(
     throw new Error('Please select a model in Settings before using this feature.');
   }
 
-  if (settings.provider === 'google') {
+  if (normalizeApiProvider(settings.provider) === 'google') {
     if (!settings.googleApiKey) {
       throw new Error('Google API key is not set.');
     }

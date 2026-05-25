@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { ApiProviderSettings, WebSearchProvider } from '../types';
 import { getApiSettings, saveApiSettings, migrateFromLocalStorage } from '../services/storage';
-import { getProviderDefaultModel } from '../services/providerCapabilities';
+import { getProviderDefaultModel, normalizeApiProvider } from '../services/providerCapabilities';
 
 const DEFAULT_SETTINGS: ApiProviderSettings = {
   provider: 'google',
@@ -36,14 +36,6 @@ const isWebSearchProvider = (value: unknown): value is WebSearchProvider => {
     value === 'churchofjesuschrist';
 };
 
-const isApiProvider = (value: unknown): value is ApiProviderSettings['provider'] => {
-  return value === 'google' ||
-    value === 'lmstudio' ||
-    value === 'openrouter' ||
-    value === 'mcp' ||
-    value === 'minimax';
-};
-
 const trimString = (value: string | undefined): string => value?.trim() || '';
 
 const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProviderSettings => {
@@ -54,8 +46,8 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    provider: isApiProvider(stored.provider) ? stored.provider : DEFAULT_SETTINGS.provider,
-    fallbackProvider: isApiProvider(stored.fallbackProvider) ? stored.fallbackProvider : undefined,
+    provider: normalizeApiProvider(stored.provider),
+    fallbackProvider: stored.fallbackProvider ? normalizeApiProvider(stored.fallbackProvider) : undefined,
     googleApiKey: trimString(stored.googleApiKey),
     openRouterApiKey: trimString(stored.openRouterApiKey),
     lmStudioBaseUrl: trimString(stored.lmStudioBaseUrl) || DEFAULT_SETTINGS.lmStudioBaseUrl,
@@ -71,7 +63,7 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
     googleSearchApiKey: trimString(stored.googleSearchApiKey),
     googleSearchCx: trimString(stored.googleSearchCx),
     tavilyApiKey: trimString(stored.tavilyApiKey),
-    model: trimString(stored.model) || getProviderDefaultModel(isApiProvider(stored.provider) ? stored.provider : DEFAULT_SETTINGS.provider),
+    model: trimString(stored.model) || getProviderDefaultModel(normalizeApiProvider(stored.provider)),
   };
 };
 
@@ -112,10 +104,11 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, []);
 
   const handleSetSettings = useCallback((newSettings: ApiProviderSettings) => {
-    if (newSettings.provider !== settings.provider) {
-      newSettings.model = getProviderDefaultModel(newSettings.provider);
+    const normalizedProvider = normalizeApiProvider(newSettings.provider);
+    if (normalizedProvider !== settings.provider) {
+      newSettings.model = getProviderDefaultModel(normalizedProvider);
     }
-    setSettingsState(newSettings);
+    setSettingsState({ ...newSettings, provider: normalizedProvider });
   }, [settings.provider]);
 
   // Auto-save to IndexedDB when settings change

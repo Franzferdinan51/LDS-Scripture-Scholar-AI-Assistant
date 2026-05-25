@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ApiProviderSettings } from '../types';
 import { parseJSON } from '../utils/jsonRepair';
-import { getProviderDefaultModel, getProviderKeyLabel, providerSupportsOpenAIChatCompletions } from './providerCapabilities';
+import { getProviderDefaultModel, getProviderKeyLabel, normalizeApiProvider, providerSupportsOpenAIChatCompletions } from './providerCapabilities';
 
 export interface CrossReferenceItem {
   scripture: string;
@@ -14,16 +14,6 @@ export interface CrossReferenceResult {
   context?: string;
   references: CrossReferenceItem[];
   studySuggestions?: string[];
-}
-
-function normalizeProvider(provider: ApiProviderSettings['provider'] | undefined): ApiProviderSettings['provider'] {
-  return provider === 'google' ||
-    provider === 'lmstudio' ||
-    provider === 'openrouter' ||
-    provider === 'mcp' ||
-    provider === 'minimax'
-    ? provider
-    : 'google';
 }
 
 export const CROSS_REFERENCE_SYSTEM_INSTRUCTION = `You are an expert scripture cross-referencing tool for members of The Church of Jesus Christ of Latter-day Saints. Your task is to find and explain related scriptures for a given verse or passage. When analyzing, consider:
@@ -83,7 +73,7 @@ async function generateWithOpenAICompatibleProvider(
   scripture: string
 ): Promise<CrossReferenceResult> {
   const { baseUrl, apiKey, model } = getOpenAICompatibleSettings(settings);
-  const provider = normalizeProvider(settings.provider);
+  const provider = normalizeApiProvider(settings.provider);
 
   if (!baseUrl) {
     throw new Error('Cross-references require a configured AI provider.');
@@ -150,7 +140,7 @@ export async function getCrossReferencesForSettings(
   settings: ApiProviderSettings,
   scripture: string
 ): Promise<CrossReferenceResult> {
-  const provider = normalizeProvider(settings.provider);
+  const provider = normalizeApiProvider(settings.provider);
 
   if (provider === 'google') {
     return generateWithGoogleProvider(settings, scripture);

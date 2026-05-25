@@ -122,6 +122,16 @@ export function getProviderDefaultModel(provider: ApiProvider): string {
   return PROVIDER_CAPABILITIES[provider].defaultModel ?? '';
 }
 
+export function normalizeApiProvider(value: unknown): ApiProvider {
+  return value === 'google' ||
+    value === 'lmstudio' ||
+    value === 'openrouter' ||
+    value === 'mcp' ||
+    value === 'minimax'
+    ? value
+    : 'google';
+}
+
 export function providerSupportsLiveVoice(provider: ApiProvider): boolean {
   return PROVIDER_CAPABILITIES[provider].supportsLiveVoice;
 }

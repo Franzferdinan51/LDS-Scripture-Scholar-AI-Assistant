@@ -6,6 +6,7 @@ import {
 import { searchLDSContent, searchLDSSources, webSearch, type WebSearchSettings, normalizeWebSearchProvider } from './webSearchService';
 import { searchLDS as searchLDSFromService, getSearchConfig } from './webSearchService';
 import { getCrossReferencesForSettings } from './crossReferenceService';
+import { normalizeApiProvider } from './providerCapabilities';
 
 // --- Wikimedia helper (inlined to avoid circular dependency) ---
 
@@ -133,7 +134,8 @@ async function handleCrossReferences(
   }
   try {
     const data = await getCrossReferencesForSettings(settings, params.scripture);
-    return { success: true, data, source: settings.provider === 'google' ? 'google-genai' : settings.provider };
+    const provider = normalizeApiProvider(settings.provider);
+    return { success: true, data, source: provider === 'google' ? 'google-genai' : provider };
   } catch (e) {
     return { success: false, data: null, error: String(e) };
   }
