@@ -80,8 +80,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
   
   const containerClasses = isUser ? 'justify-end' : 'justify-start';
 
-  // This regex finds scripture references like "1 Nephi 3:7", "Alma 32:21-28", or "Doctrine and Covenants 76:22–24"
-  const scriptureRegex = /\b([1-3]\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+:\d+(?:–\d+)?(?:,\s*\d+(?:–\d+)?)*\b/g;
+  // Match scripture references like "1 Nephi 3:7", "Alma 32:21-28", or "Doctrine and Covenants 76:22-24"
+  const scriptureRegex = /\b([1-3]\s*)?[A-Za-z]+(?:\s+[A-Za-z]+)*\s+\d+:\d+(?:[-–—]\d+)?(?:,\s*\d+(?:[-–—]\d+)?)*\b/g;
 
   const renderTextWithFeatures = (text: string) => {
     const parts = text.split(scriptureRegex);
