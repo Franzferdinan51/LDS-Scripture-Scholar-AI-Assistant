@@ -67,8 +67,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleItemClick = (view: ViewMode) => {
     setActiveView(view);
     if (view === 'chat') {
-        // When clicking the main chat tool, ensure we are in a basic chat mode.
-        setChatMode('chat');
+      // When clicking the main chat tool, ensure we are in a basic chat mode.
+      setChatMode('chat');
     }
     if (window.innerWidth < 768) onClose();
   };
@@ -77,23 +77,23 @@ const Sidebar: React.FC<SidebarProps> = ({
     setChatMode(mode);
     setActiveView('chat');
     if (window.innerWidth < 768) onClose();
-  }
+  };
 
   const handleActionClick = (action: () => void) => {
     action();
     if (window.innerWidth < 768) onClose();
-  }
+  };
 
   const handleChatSelect = (chatId: string) => {
     onSelectChat(chatId);
     setActiveView('chat'); // Switch to chat view when a history item is clicked
     if (window.innerWidth < 768) onClose();
-  }
+  };
   
   const getChatTitle = (messages: Message[]): string => {
-    if (messages.length <= 1) return "New Chat";
+    if (messages.length <= 1) return 'New Chat';
     const userMessage = messages.find(m => m.sender === 'user');
-    if (!userMessage || !userMessage.text) return "New Chat";
+    if (!userMessage || !userMessage.text) return 'New Chat';
     return userMessage.text.substring(0, 30) + (userMessage.text.length > 30 ? '...' : '');
   };
   
@@ -116,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <button
         onClick={() => onTogglePin(chatId)}
         className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-yellow-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-colors"
-        title={pinnedChatIds.includes(chatId) ? "Unpin chat" : "Pin chat"}
+        title={pinnedChatIds.includes(chatId) ? 'Unpin chat' : 'Pin chat'}
       >
         <StarIcon isPinned={pinnedChatIds.includes(chatId)} className="w-4 h-4" />
       </button>
@@ -152,11 +152,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                 const isActive = isGeneralChatActive || isOtherToolActive;
                 
                 return (
-                    <li key={item.view}>
+                  <li key={item.view}>
                     <button onClick={() => handleItemClick(item.view as ViewMode)} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${isActive ? 'bg-blue-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
-                        {item.icon}<span>{item.label}</span>
+                      {item.icon}<span>{item.label}</span>
                     </button>
-                    </li>
+                  </li>
                 );
               })}
             </ul>
@@ -164,7 +164,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="px-3 mt-4 mb-1">
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Assistants</h3>
             </div>
-             <ul>
+            <ul>
               {assistantModes.map(item => (
                 <li key={item.mode}>
                   <button onClick={() => handleAssistantClick(item.mode)} className={`w-full flex items-center gap-3 p-3 rounded-md text-left transition-colors ${activeView === 'chat' && chatMode === item.mode ? 'bg-blue-600/50 text-white' : 'text-gray-300 hover:bg-slate-700/50'}`}>
@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => { onOpenSkillSelector?.(); if (window.innerWidth < 768) onClose(); }}
                     className="flex min-w-0 flex-1 items-center gap-3 text-left"
                   >
-                    <span className="text-lg">⚡</span>
+                    <span className="text-lg">{activeSkill?.icon || '⚡'}</span>
                     <span className="min-w-0 truncate">{activeSkill ? activeSkill.name : 'Skills'}</span>
                   </button>
                   {activeSkill && (
@@ -227,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent</h3>
                 <button onClick={() => handleActionClick(onNewChat)} className="p-1 text-gray-400 hover:text-white hover:bg-slate-700/50 rounded-full transition-colors" title="New Chat">
-                    <PlusIcon />
+                  <PlusIcon />
                 </button>
               </div>
             </div>
