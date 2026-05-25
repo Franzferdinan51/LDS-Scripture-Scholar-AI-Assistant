@@ -36,6 +36,8 @@ const isWebSearchProvider = (value: unknown): value is WebSearchProvider => {
     value === 'churchofjesuschrist';
 };
 
+const trimString = (value: string | undefined): string => value?.trim() || '';
+
 const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProviderSettings => {
   if (!stored) {
     return DEFAULT_SETTINGS;
@@ -44,9 +46,22 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
-    minimaxBaseUrl: stored.minimaxBaseUrl?.trim() || DEFAULT_SETTINGS.minimaxBaseUrl,
-    searxngUrl: stored.searxngUrl?.trim() || DEFAULT_SETTINGS.searxngUrl,
+    googleApiKey: trimString(stored.googleApiKey),
+    openRouterApiKey: trimString(stored.openRouterApiKey),
+    lmStudioBaseUrl: trimString(stored.lmStudioBaseUrl) || DEFAULT_SETTINGS.lmStudioBaseUrl,
+    lmStudioApiKey: trimString(stored.lmStudioApiKey),
+    openRouterBaseUrl: trimString(stored.openRouterBaseUrl) || DEFAULT_SETTINGS.openRouterBaseUrl,
+    mcpBaseUrl: trimString(stored.mcpBaseUrl) || DEFAULT_SETTINGS.mcpBaseUrl,
+    mcpApiKey: trimString(stored.mcpApiKey),
+    minimaxBaseUrl: trimString(stored.minimaxBaseUrl) || DEFAULT_SETTINGS.minimaxBaseUrl,
+    minimaxApiKey: trimString(stored.minimaxApiKey),
+    model: trimString(stored.model) || getProviderDefaultModel(stored.provider ?? DEFAULT_SETTINGS.provider),
     webSearchProvider: isWebSearchProvider(stored.webSearchProvider) ? stored.webSearchProvider : DEFAULT_SETTINGS.webSearchProvider,
+    searxngUrl: trimString(stored.searxngUrl) || DEFAULT_SETTINGS.searxngUrl,
+    braveSearchApiKey: trimString(stored.braveSearchApiKey),
+    googleSearchApiKey: trimString(stored.googleSearchApiKey),
+    googleSearchCx: trimString(stored.googleSearchCx),
+    tavilyApiKey: trimString(stored.tavilyApiKey),
   };
 };
 
