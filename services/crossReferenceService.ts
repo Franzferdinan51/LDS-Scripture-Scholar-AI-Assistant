@@ -34,7 +34,9 @@ Return only a valid JSON object with this schema:
 }`.trim();
 
 function getOpenAICompatibleSettings(settings: ApiProviderSettings): { baseUrl: string; apiKey: string; model: string } {
-  switch (settings.provider) {
+  const provider = normalizeApiProvider(settings.provider);
+
+  switch (provider) {
     case 'lmstudio':
       return {
         baseUrl: settings.lmStudioBaseUrl,

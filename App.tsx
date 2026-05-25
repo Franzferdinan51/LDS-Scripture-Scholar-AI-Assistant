@@ -597,7 +597,7 @@ const App: React.FC = () => {
           const msgCount = msgs.filter(m => !m.isSuggestion && m.id !== 'initial-message').length;
           const statusText = [
             `**System Status**`,
-            `Provider: ${settings.provider}`,
+            `Provider: ${provider}`,
             `Model: ${settings.model || 'default'}`,
             `Chat Mode: ${chatMode}`,
             `Active Skill: ${activeSkill?.name || 'none'}`,
@@ -613,10 +613,10 @@ const App: React.FC = () => {
       case '/usage':
         if (activeChatId) {
           const usage = await getUsageTracker();
-          const cost = estimateCost(settings.provider, usage.sessionTokens);
+          const cost = estimateCost(provider, usage.sessionTokens);
           const usageText = [
             `**Usage Statistics**`,
-            `Provider: ${settings.provider}`,
+            `Provider: ${provider}`,
             `Session tokens: ${usage.sessionTokens.toLocaleString()}`,
             `Session cost: ${cost}`,
             `Total tokens (all time): ${usage.totalTokens.toLocaleString()}`,

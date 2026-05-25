@@ -6,6 +6,7 @@ import {
   getProviderCapabilities,
   getProviderDefaultModel,
   getProviderKeyLabel,
+  normalizeApiProvider,
   providerSupportsModelDiscovery,
 } from '../services/providerCapabilities';
 
@@ -35,7 +36,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   useEffect(() => {
     setLocalSettings(settings);
-    providerModelMemory.current[settings.provider] = settings.model;
+    providerModelMemory.current[normalizeApiProvider(settings.provider)] = settings.model;
   }, [settings, isOpen]);
 
   useEffect(() => {
@@ -94,11 +95,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   };
 
   const handleProviderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const provider = e.target.value as ApiProvider;
-    providerModelMemory.current[localSettings.provider] = localSettings.model;
-    const rememberedModel = providerModelMemory.current[provider];
-    const newModel = rememberedModel ?? PROVIDER_DEFAULT_MODELS[provider] ?? '';
-    setLocalSettings(prev => ({ ...prev, provider, model: newModel }));
+    const nextProvider = normalizeApiProvider(e.target.value);
+    providerModelMemory.current[normalizeApiProvider(localSettings.provider)] = localSettings.model;
+    const rememberedModel = providerModelMemory.current[nextProvider];
+    const newModel = rememberedModel ?? PROVIDER_DEFAULT_MODELS[nextProvider] ?? '';
+    setLocalSettings(prev => ({ ...prev, provider: nextProvider, model: newModel }));
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
