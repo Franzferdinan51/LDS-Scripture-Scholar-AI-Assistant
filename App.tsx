@@ -1046,6 +1046,7 @@ const App: React.FC = () => {
 
     const botMessageId = `agent-bot-${Date.now()}`;
     const botPlaceholder: Message = { id: botMessageId, text: '', sender: 'bot' };
+    scriptureAgentHistoryRef.current = [...currentHistory, botPlaceholder];
     setScriptureAgentHistory([...currentHistory, botPlaceholder]);
     setIsScriptureAgentLoading(true);
     setActiveAgentName('Scripture Agent');
@@ -1089,6 +1090,7 @@ const App: React.FC = () => {
     setIsScriptureAgentOpen(true);
 
     const userMessage: Message = { id: `agent-user-${Date.now()}`, text: question, sender: 'user' };
+    scriptureAgentHistoryRef.current = [userMessage];
     setScriptureAgentHistory([userMessage]);
     runScriptureAgentQuery(question, [userMessage]);
   };
