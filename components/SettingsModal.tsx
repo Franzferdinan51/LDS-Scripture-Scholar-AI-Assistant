@@ -33,6 +33,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   const [mcpTestStatus, setMcpTestStatus] = useState<{ status: 'idle' | 'testing' | 'success' | 'error'; message: string | null }>(MCP_TEST_INITIAL);
   const providerModelMemory = useRef<Partial<Record<ApiProvider, string>>>({});
   const fetchModelsRequestIdRef = useRef(0);
+  const mcpTestRequestIdRef = useRef(0);
   const isMountedRef = useRef(true);
   const hasText = (value?: string) => Boolean(value?.trim());
 
@@ -68,6 +69,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     if (isOpen) return;
 
     fetchModelsRequestIdRef.current++;
+    mcpTestRequestIdRef.current++;
     setIsFetchingModels(false);
     setFetchError(null);
     setModels([]);
@@ -110,8 +112,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   };
 
   const handleTestMCPConnection = async () => {
+    const requestId = ++mcpTestRequestIdRef.current;
     setMcpTestStatus({ status: 'testing', message: 'Testing connection...' });
     const result = await testMCPConnection(localSettings.mcpBaseUrl);
+    if (!isMountedRef.current || requestId !== mcpTestRequestIdRef.current) return;
     if (result.success) {
         setMcpTestStatus({ status: 'success', message: result.message });
     } else {
