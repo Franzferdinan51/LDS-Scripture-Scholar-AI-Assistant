@@ -54,14 +54,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   }, [settings, isOpen]);
 
   useEffect(() => {
-      fetchModelsRequestIdRef.current++;
+      if (!isOpen) return;
       // Clear models if provider changes
+      fetchModelsRequestIdRef.current++;
       setModels([]);
       setFetchError(null);
       setModelSearch('');
       setShowFreeOnly(false);
       setMcpTestStatus(MCP_TEST_INITIAL);
   }, [localSettings.provider, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) return;
+
+    fetchModelsRequestIdRef.current++;
+    setIsFetchingModels(false);
+    setFetchError(null);
+    setModels([]);
+    setModelSearch('');
+    setShowFreeOnly(false);
+    setMcpTestStatus(MCP_TEST_INITIAL);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
