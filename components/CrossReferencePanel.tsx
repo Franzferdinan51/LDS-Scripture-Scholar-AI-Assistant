@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback, useEffect } from 'react';
+import React, { useReducer, useCallback, useEffect, useRef } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { getCrossReferencesForSettings } from '../services/crossReferenceService';
 import { getProviderKeyLabel, normalizeApiProvider, providerSupportsOpenAIChatCompletions } from '../services/providerCapabilities';
@@ -60,12 +60,21 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
   const [state, dispatch] = useReducer(reducer, initialState);
   const { scripture, result, isLoading, error } = state;
   const provider = normalizeApiProvider(settings.provider);
+  const fetchRequestIdRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     if (initialScripture?.trim()) {
       dispatch({ type: 'SET_SCRIPTURE', payload: initialScripture.trim() });
     }
   }, [initialScripture]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      fetchRequestIdRef.current++;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,12 +92,15 @@ const CrossReferencePanel: React.FC<CrossReferencePanelProps> = ({ onExplainVers
         return;
     }
 
+    const requestId = ++fetchRequestIdRef.current;
     dispatch({ type: 'FETCH_START' });
 
     try {
         const data = await getCrossReferencesForSettings(settings, scripture);
+        if (!isMountedRef.current || requestId !== fetchRequestIdRef.current) return;
         dispatch({ type: 'FETCH_SUCCESS', payload: data });
     } catch (err) {
+        if (!isMountedRef.current || requestId !== fetchRequestIdRef.current) return;
         console.error("Cross-reference error:", err);
         dispatch({ type: 'FETCH_ERROR', payload: err instanceof Error ? err.message : "Sorry, I couldn't find cross-references for that scripture. Please try again." });
     }
