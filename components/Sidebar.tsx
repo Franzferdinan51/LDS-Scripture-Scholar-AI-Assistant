@@ -115,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </button>
       <button
         onClick={() => onTogglePin(chatId)}
-        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-yellow-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-colors"
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-yellow-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-colors"
         title={pinnedChatIds.includes(chatId) ? "Unpin chat" : "Pin chat"}
       >
         <StarIcon isPinned={pinnedChatIds.includes(chatId)} className="w-4 h-4" />

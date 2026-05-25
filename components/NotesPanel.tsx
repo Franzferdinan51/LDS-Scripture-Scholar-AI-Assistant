@@ -77,7 +77,7 @@ const NotesPanel: React.FC<NotesPanelProps> = ({ notes, setNotes, onDeleteNote }
                 <p className="whitespace-pre-wrap">{note.content}</p>
                 <div className="text-xs text-gray-400 mt-2 flex justify-between items-center">
                 <span>{new Date(note.timestamp).toLocaleString()}</span>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity space-x-2">
+                <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity space-x-2">
                     <button onClick={() => handleEditNote(note)} className="hover:text-white">Edit</button>
                     <button onClick={() => handleDeleteNote(note.id)} className="hover:text-red-400">Delete</button>
                 </div>

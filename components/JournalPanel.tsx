@@ -181,7 +181,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
                      e.stopPropagation();
                      handleDelete(entry.id);
                    }}
-                   className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                   className="text-gray-500 hover:text-red-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-xs"
                  >
                    Delete
                  </button>
