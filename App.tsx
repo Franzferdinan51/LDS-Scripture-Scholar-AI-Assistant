@@ -28,6 +28,7 @@ import {
   getAllNotes, saveNote, deleteNote as deleteNoteDB,
   deleteMemory as deleteMemoryDB, updateSkillUsage,
   getAllJournalEntries, saveJournalEntry,
+  deleteJournalEntry as deleteJournalEntryDB,
   getSetting, setSetting, migrateFromLocalStorage,
   getAllSkills, saveSkill as saveSkillDB,
   getAllReminders, saveReminder as saveReminderDB, deleteReminder as deleteReminderDB,
@@ -1316,12 +1317,19 @@ const App: React.FC = () => {
           />
         );
       case 'notes':
-        return <NotesPanel notes={notes} setNotes={setNotes} />;
+        return <NotesPanel notes={notes} setNotes={setNotes} onDeleteNote={async (id: string) => {
+          await deleteNoteDB(id);
+          setNotes(prev => prev.filter(n => n.id !== id));
+        }} />;
       case 'journal':
         return (
           <JournalPanel
             entries={journalEntries}
             setEntries={setJournalEntries}
+            onDeleteEntry={async (id: string) => {
+              await deleteJournalEntryDB(id);
+              setJournalEntries(prev => prev.filter(entry => entry.id !== id));
+            }}
             isVoiceActive={isVoiceActive}
             setIsVoiceActive={setIsVoiceActive}
             isConnecting={isConnecting}

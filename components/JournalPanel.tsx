@@ -7,6 +7,7 @@ import { createBlob } from '../utils/audio';
 interface JournalPanelProps {
   entries: JournalEntry[];
   setEntries: React.Dispatch<React.SetStateAction<JournalEntry[]>>;
+  onDeleteEntry: (id: string) => Promise<void>;
   isVoiceActive: boolean;
   setIsVoiceActive: (active: boolean) => void;
   isConnecting: boolean;
@@ -19,7 +20,7 @@ interface JournalPanelProps {
 }
 
 const JournalPanel: React.FC<JournalPanelProps> = ({
-  entries, setEntries, isVoiceActive, setIsVoiceActive, isConnecting,
+  entries, setEntries, onDeleteEntry, isVoiceActive, setIsVoiceActive, isConnecting,
   setIsConnecting, isApiConfigured, googleApiKey, setError, stopVoiceSession, getJournalInsights
 }) => {
   const [currentTranscription, setCurrentTranscription] = useState('');
@@ -129,8 +130,8 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
     transcriptionRef.current = '';
   };
   
-  const handleDelete = (id: string) => {
-    setEntries(entries.filter(e => e.id !== id));
+  const handleDelete = async (id: string) => {
+    await onDeleteEntry(id);
   }
 
 

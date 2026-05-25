@@ -4,9 +4,10 @@ import type { Note } from '../types';
 interface NotesPanelProps {
   notes: Note[];
   setNotes: React.Dispatch<React.SetStateAction<Note[]>>;
+  onDeleteNote: (id: string) => Promise<void>;
 }
 
-const NotesPanel: React.FC<NotesPanelProps> = ({ notes, setNotes }) => {
+const NotesPanel: React.FC<NotesPanelProps> = ({ notes, setNotes, onDeleteNote }) => {
   const [currentNote, setCurrentNote] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
@@ -32,8 +33,8 @@ const NotesPanel: React.FC<NotesPanelProps> = ({ notes, setNotes }) => {
     setCurrentNote(note.content);
   };
 
-  const handleDeleteNote = (id: string) => {
-    setNotes(notes.filter(n => n.id !== id));
+  const handleDeleteNote = async (id: string) => {
+    await onDeleteNote(id);
     if (id === editingNoteId) {
       setCurrentNote('');
       setEditingNoteId(null);
