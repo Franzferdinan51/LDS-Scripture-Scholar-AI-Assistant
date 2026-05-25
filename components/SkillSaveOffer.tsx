@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Skill, Message, ToolCall } from '../types';
 
 interface SkillSaveOfferProps {
@@ -19,6 +19,8 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [customName, setCustomName] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   const messages = chatHistory[chatId] || [];
   const botMessage = messages.find(m => m.id === messageId);
@@ -39,14 +41,54 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
     `Be thorough, provide scripture references, and encourage deep reflection.`;
 
   useEffect(() => {
+    previouslyFocusedElementRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const focusFirstElement = () => {
+      const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      focusableElements?.[0]?.focus();
+    };
+
+    const timer = window.setTimeout(focusFirstElement, 0);
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onDismiss();
+        return;
+      }
+
+      if (e.key !== 'Tab') return;
+
+      const focusableElements = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (e.shiftKey) {
+        if (activeElement === firstElement || !modalRef.current?.contains(activeElement)) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else if (activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      previouslyFocusedElementRef.current?.focus();
+      previouslyFocusedElementRef.current = null;
+    };
   }, [onDismiss]);
 
   const handleSave = async () => {
@@ -57,7 +99,7 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
       id: `custom-${Date.now()}`,
       name: skillName,
       description: `Custom skill for studying: ${topic}`,
-      icon: '✨',
+      icon: '\u2728',
       category: 'research',
       systemPromptAddition,
       requiredTools: toolsUsed,
@@ -78,12 +120,19 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div className="bg-gray-800 border border-gray-600 rounded-xl shadow-xl p-4 max-w-sm">
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/30 p-4" onClick={onDismiss}>
+      <div
+        ref={modalRef}
+        className="bg-gray-800 border border-gray-600 rounded-xl shadow-xl p-4 max-w-sm"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="skill-save-title"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex items-start gap-3">
-          <span className="text-2xl">✨</span>
+          <span className="text-2xl" aria-hidden="true">{'\u2728'}</span>
           <div className="flex-1">
-            <h4 className="text-sm font-semibold text-white">Save as Skill?</h4>
+            <h4 id="skill-save-title" className="text-sm font-semibold text-white">Save as Skill?</h4>
             <p className="text-xs text-gray-300 mt-1">
               This was a complex study session. Would you like to save this pattern as a reusable skill?
             </p>
