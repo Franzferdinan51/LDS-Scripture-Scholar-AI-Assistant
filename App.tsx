@@ -1617,7 +1617,7 @@ const App: React.FC = () => {
                 onClick={() => { setActiveSkill(skill); setActiveView('chat'); }}
                 className={"p-4 rounded-lg border text-left transition-colors " + (activeSkill?.id === skill.id ? "border-blue-500 bg-blue-600/20" : "border-slate-700 bg-slate-800/50 hover:bg-slate-700/50")}
               >
-                <div className="text-2xl mb-2">{skill.icon || '📚'}</div>
+                <div className="text-2xl mb-2">{skill.icon || '\u{1F4DA}'}</div>
                 <h3 className="font-semibold text-white">{skill.name}</h3>
                 <p className="text-sm text-gray-400 mt-1">{skill.description}</p>
               </button>
