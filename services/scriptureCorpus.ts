@@ -313,12 +313,16 @@ async function loadDoctrineAndCovenants(): Promise<ScriptureData> {
     throw new Error('Unable to load The Doctrine and Covenants.');
   })();
 
+  dAndCChapterCache.catch(() => {
+    dAndCChapterCache = null;
+  });
+
   return dAndCChapterCache;
 }
 
 export async function loadScriptureVolume(volume: ScriptureVolume): Promise<ScriptureData> {
   if (!volumeCache.has(volume)) {
-    volumeCache.set(volume, (async () => {
+    const loadPromise = (async () => {
       switch (volume) {
         case 'old-testament':
         case 'new-testament':
@@ -329,7 +333,13 @@ export async function loadScriptureVolume(volume: ScriptureVolume): Promise<Scri
         case 'doctrine-and-covenants':
           return loadDoctrineAndCovenants();
       }
-    })());
+    })();
+
+    loadPromise.catch(() => {
+      volumeCache.delete(volume);
+    });
+
+    volumeCache.set(volume, loadPromise);
   }
 
   return volumeCache.get(volume)!;
