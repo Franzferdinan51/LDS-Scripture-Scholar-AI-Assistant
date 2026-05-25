@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { ApiProviderSettings } from '../types';
 import { parseJSON } from '../utils/jsonRepair';
+import { getProviderDefaultModel } from './providerCapabilities';
 
 export interface GenerateResponseOptions {
   systemInstruction: string;
@@ -15,7 +16,7 @@ function getProviderConnection(settings: ApiProviderSettings): { baseUrl: string
       return {
         baseUrl: '',
         apiKey: settings.googleApiKey,
-        model: settings.model || 'gemini-flash-lite-latest',
+        model: settings.model || getProviderDefaultModel('google'),
       };
     case 'lmstudio':
       return {
