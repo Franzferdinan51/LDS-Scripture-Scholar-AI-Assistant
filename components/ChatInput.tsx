@@ -9,6 +9,14 @@ const SLASH_COMMANDS = [
   { cmd: '/reset', desc: 'Reset current chat' },
   { cmd: '/compact', desc: 'Compress context' },
   { cmd: '/search', desc: 'Search conversations' },
+  { cmd: '/study', desc: 'Start a deep study session' },
+  { cmd: '/quiz', desc: 'Generate an interactive quiz' },
+  { cmd: '/explain', desc: 'Explain a verse or concept' },
+  { cmd: '/cross-ref', desc: 'Find related scriptures' },
+  { cmd: '/image', desc: 'Find historical images' },
+  { cmd: '/lesson', desc: 'Prepare a lesson outline' },
+  { cmd: '/fhe', desc: 'Plan a family home evening' },
+  { cmd: '/plan', desc: 'Create a study plan' },
   { cmd: '/skill', desc: 'Activate a skill' },
   { cmd: '/retry', desc: 'Re-send last message' },
   { cmd: '/undo', desc: 'Remove last exchange' },
@@ -21,6 +29,20 @@ const SLASH_COMMANDS = [
   { cmd: '/dashboard', desc: 'Open study dashboard' },
   { cmd: '/reminders', desc: 'Open reminders' },
 ];
+
+const COMMANDS_REQUIRING_ARGS = new Set([
+  '/study',
+  '/explain',
+  '/cross-ref',
+  '/image',
+  '/lesson',
+  '/fhe',
+  '/plan',
+  '/skill',
+  '/think',
+  '/persona',
+  '/verbose',
+]);
 
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
@@ -83,7 +105,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       const selected = filteredCommands[selectedIndex];
       // If the command needs an argument (like /skill, /think, /persona, /verbose),
       // just insert the command and let user type the rest
-      if (['/skill', '/think', '/persona', '/verbose'].includes(selected.cmd) && text === selected.cmd) {
+      if (COMMANDS_REQUIRING_ARGS.has(selected.cmd) && text === selected.cmd) {
         setText(selected.cmd + ' ');
         setShowCommands(false);
         inputRef.current?.focus();
@@ -112,7 +134,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
         setText(selected.cmd + ' ');
         setShowCommands(false);
         // Don't submit for commands that need args
-        if (['/skill', '/think', '/persona', '/verbose'].includes(selected.cmd)) {
+        if (COMMANDS_REQUIRING_ARGS.has(selected.cmd)) {
           return;
         }
         // For no-arg commands, submit immediately
@@ -127,7 +149,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   };
 
   const selectCommand = (cmd: string) => {
-    if (['/skill', '/think', '/persona', '/verbose'].includes(cmd)) {
+    if (COMMANDS_REQUIRING_ARGS.has(cmd)) {
       setText(cmd + ' ');
       setShowCommands(false);
       inputRef.current?.focus();
