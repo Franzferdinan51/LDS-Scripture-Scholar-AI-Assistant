@@ -465,7 +465,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                       value={localSettings.model}
                       onChange={handleInputChange}
                       className={inputBaseClasses}
-                      placeholder="e.g., MiniMax-M1, MiniMax-Text-01, abab6.5s-chat"
+                      placeholder="e.g., MiniMax-M2.7, MiniMax-M2.7-highspeed, MiniMax-Text-01"
                     />
                     <p className="mt-1 text-xs text-gray-400">
                       Type any model ID if it doesn't appear in the list above.

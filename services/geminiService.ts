@@ -981,7 +981,10 @@ export const getWikimediaImageUrl = async (filename: string): Promise<string> =>
 
 // Pre-populated model lists for providers that don't have a standard /models endpoint
 const MINIMAX_MODELS: Model[] = [
-  { id: 'MiniMax-M1', name: 'MiniMax M1 (Reasoning)' },
+  { id: 'MiniMax-M2.7', name: 'MiniMax M2.7' },
+  { id: 'MiniMax-M2.7-highspeed', name: 'MiniMax M2.7 Highspeed' },
+  { id: 'MiniMax-M2.5', name: 'MiniMax M2.5' },
+  { id: 'MiniMax-M2.5-highspeed', name: 'MiniMax M2.5 Highspeed' },
   { id: 'MiniMax-Text-01', name: 'MiniMax Text 01' },
   { id: 'abab6.5s-chat', name: 'Abab 6.5s Chat' },
 ];

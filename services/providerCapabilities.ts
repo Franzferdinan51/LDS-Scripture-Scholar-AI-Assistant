@@ -81,7 +81,7 @@ const PROVIDER_CAPABILITIES: Record<ApiProvider, ProviderCapabilityInfo> = {
     note: 'Refresh the model list after setting your API key and base URL.',
     keyLabel: 'MiniMax API key',
     baseUrlLabel: 'Base URL',
-    defaultModel: 'MiniMax-M1',
+    defaultModel: 'MiniMax-M2.7',
     environment: 'cloud',
     supportsLiveVoice: false,
     supportsTextToSpeech: false,
