@@ -36,6 +36,14 @@ const isWebSearchProvider = (value: unknown): value is WebSearchProvider => {
     value === 'churchofjesuschrist';
 };
 
+const isApiProvider = (value: unknown): value is ApiProviderSettings['provider'] => {
+  return value === 'google' ||
+    value === 'lmstudio' ||
+    value === 'openrouter' ||
+    value === 'mcp' ||
+    value === 'minimax';
+};
+
 const trimString = (value: string | undefined): string => value?.trim() || '';
 
 const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProviderSettings => {
@@ -46,6 +54,8 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
   return {
     ...DEFAULT_SETTINGS,
     ...stored,
+    provider: isApiProvider(stored.provider) ? stored.provider : DEFAULT_SETTINGS.provider,
+    fallbackProvider: isApiProvider(stored.fallbackProvider) ? stored.fallbackProvider : undefined,
     googleApiKey: trimString(stored.googleApiKey),
     openRouterApiKey: trimString(stored.openRouterApiKey),
     lmStudioBaseUrl: trimString(stored.lmStudioBaseUrl) || DEFAULT_SETTINGS.lmStudioBaseUrl,
@@ -55,13 +65,13 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
     mcpApiKey: trimString(stored.mcpApiKey),
     minimaxBaseUrl: trimString(stored.minimaxBaseUrl) || DEFAULT_SETTINGS.minimaxBaseUrl,
     minimaxApiKey: trimString(stored.minimaxApiKey),
-    model: trimString(stored.model) || getProviderDefaultModel(stored.provider ?? DEFAULT_SETTINGS.provider),
     webSearchProvider: isWebSearchProvider(stored.webSearchProvider) ? stored.webSearchProvider : DEFAULT_SETTINGS.webSearchProvider,
     searxngUrl: trimString(stored.searxngUrl) || DEFAULT_SETTINGS.searxngUrl,
     braveSearchApiKey: trimString(stored.braveSearchApiKey),
     googleSearchApiKey: trimString(stored.googleSearchApiKey),
     googleSearchCx: trimString(stored.googleSearchCx),
     tavilyApiKey: trimString(stored.tavilyApiKey),
+    model: trimString(stored.model) || getProviderDefaultModel(isApiProvider(stored.provider) ? stored.provider : DEFAULT_SETTINGS.provider),
   };
 };
 
