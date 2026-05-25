@@ -882,6 +882,15 @@ const App: React.FC = () => {
 
   const handleSendMessage = async (text: string, overrideMode?: ChatMode) => {
     if (isLoading || (isVoiceChatAvailable && isVoiceActive) || !activeChatId) return;
+    const sendContext = {
+      chatId: activeChatId,
+      view: activeView,
+      mode: chatMode,
+    };
+    const isCurrentSendContext = () =>
+      activeChatIdRef.current === sendContext.chatId &&
+      activeViewRef.current === sendContext.view &&
+      chatModeRef.current === sendContext.mode;
 
     // Handle slash commands locally
     const trimmed = text.trim();
@@ -1132,13 +1141,16 @@ const App: React.FC = () => {
         }
       }
       if (effectiveMode === 'chat' && !requestError && activeChatId) {
+          const shouldRunChatSideEffects = isCurrentSendContext();
           if (proactiveSuggestionTimerRef.current) {
             clearTimeout(proactiveSuggestionTimerRef.current);
           }
-          proactiveSuggestionTimerRef.current = setTimeout(() => {
-            proactiveSuggestionTimerRef.current = null;
-            void triggerProactiveSuggestion();
-          }, 2000);
+          if (shouldRunChatSideEffects) {
+            proactiveSuggestionTimerRef.current = setTimeout(() => {
+              proactiveSuggestionTimerRef.current = null;
+              void triggerProactiveSuggestion();
+            }, 2000);
+          }
           // Extract and store memories from the conversation (async, non-blocking)
           const currentMessages = chatHistoryRef.current[activeChatId] || [];
           if (currentMessages.length >= 4) {
@@ -1154,7 +1166,7 @@ const App: React.FC = () => {
             // Suggest reminders based on conversation context (async, non-blocking)
             suggestReminders(text, settings)
               .then(suggestions => {
-                if (suggestions.length > 0) {
+                if (suggestions.length > 0 && isCurrentSendContext()) {
                   setSuggestedReminders(suggestions);
                 }
               })
@@ -1204,7 +1216,7 @@ const App: React.FC = () => {
             if (botMessageId) {
               const toolCallCount = currentMessages.reduce((count: number, msg: Message) => count + (msg.toolCalls?.length || 0), 0);
               const isComplex = currentMessages.length >= 6 || toolCallCount > 3;
-              if (isComplex) {
+              if (isComplex && isCurrentSendContext()) {
                 setSkillSaveOffer({ chatId: activeChatId, messageId: botMessageId });
               }
             }
