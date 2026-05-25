@@ -211,14 +211,30 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   const [mode, setMode] = useState<'commands' | 'help'>('commands');
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Focus input when opened
   useEffect(() => {
+    if (focusTimerRef.current) {
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
+
     if (isOpen) {
       setQuery('');
       setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      focusTimerRef.current = setTimeout(() => {
+        focusTimerRef.current = null;
+        inputRef.current?.focus();
+      }, 50);
     }
+
+    return () => {
+      if (focusTimerRef.current) {
+        clearTimeout(focusTimerRef.current);
+        focusTimerRef.current = null;
+      }
+    };
   }, [isOpen, setQuery, setSelectedIndex]);
 
   // Filter commands based on query
