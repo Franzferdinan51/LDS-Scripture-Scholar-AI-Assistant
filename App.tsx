@@ -1383,7 +1383,13 @@ const App: React.FC = () => {
             }}
             onUpdate={async (r) => {
               const existing = reminders.find(x => x.id === r.id);
-              const nextReminder = r.enabled && existing && !existing.enabled
+              const scheduleChanged = existing
+                ? existing.schedule.time !== r.schedule.time ||
+                  existing.schedule.days.length !== r.schedule.days.length ||
+                  existing.schedule.days.some((day, index) => day !== r.schedule.days[index])
+                : false;
+              const shouldResetTrigger = scheduleChanged || (r.enabled && existing && !existing.enabled);
+              const nextReminder = shouldResetTrigger
                 ? { ...r, lastTriggered: undefined }
                 : r;
               await saveReminderDB(nextReminder);
