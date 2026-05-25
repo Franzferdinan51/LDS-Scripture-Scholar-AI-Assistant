@@ -55,7 +55,7 @@ function getOpenAICompatibleSettings(settings: ApiProviderSettings): { baseUrl: 
       };
     case 'minimax':
       return {
-        baseUrl: settings.minimaxBaseUrl || 'https://api.minimax.chat/v1',
+        baseUrl: settings.minimaxBaseUrl || 'https://api.minimax.io/v1',
         apiKey: settings.minimaxApiKey || '',
         model: settings.model,
       };
@@ -164,7 +164,7 @@ export async function getCrossReferences(
         lmStudioApiKey: '',
         openRouterBaseUrl: 'https://openrouter.ai/api/v1',
         mcpBaseUrl: 'http://localhost:8080/v1',
-        minimaxBaseUrl: 'https://api.minimax.chat/v1',
+        minimaxBaseUrl: 'https://api.minimax.io/v1',
         minimaxApiKey: '',
         model: getProviderDefaultModel('google'),
       },

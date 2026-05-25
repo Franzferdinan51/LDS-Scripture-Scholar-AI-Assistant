@@ -567,7 +567,7 @@ function createOpenAICompatibleChatService(
           break;
       case 'mcp': baseUrl = settings.mcpBaseUrl; break;
       case 'minimax':
-          baseUrl = settings.minimaxBaseUrl || 'https://api.minimax.chat/v1';
+          baseUrl = settings.minimaxBaseUrl || 'https://api.minimax.io/v1';
           apiKey = settings.minimaxApiKey || '';
           break;
   }

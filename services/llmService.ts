@@ -38,7 +38,7 @@ function getProviderConnection(settings: ApiProviderSettings): { baseUrl: string
       };
     case 'minimax':
       return {
-        baseUrl: settings.minimaxBaseUrl || 'https://api.minimax.chat/v1',
+        baseUrl: settings.minimaxBaseUrl || 'https://api.minimax.io/v1',
         apiKey: settings.minimaxApiKey || '',
         model: settings.model,
       };
