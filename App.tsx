@@ -242,6 +242,11 @@ const App: React.FC = () => {
   const handleSendMessageRef = useRef<((text: string, overrideMode?: ChatMode) => Promise<void>) | null>(null);
   const provider = normalizeApiProvider(settings.provider);
 
+  const navigateToView = useCallback((view: ViewMode) => {
+    setCrossReferenceScripture('');
+    setActiveView(view);
+  }, []);
+
   // Keep chatHistoryRef in sync so the finally block in handleSendMessage
   // always reads the latest state (avoids stale closure bug).
   useEffect(() => {
@@ -1533,7 +1538,7 @@ const App: React.FC = () => {
             memories={memories}
             profile={userProfile}
             studySessions={studySessions}
-            onNavigate={(view) => setActiveView(view as ViewMode)}
+            onNavigate={(view) => navigateToView(view as ViewMode)}
             onDeleteMemory={async (id: string) => {
               await deleteMemoryDB(id);
               setMemories(prev => prev.filter(m => m.id !== id));
@@ -1605,7 +1610,7 @@ const App: React.FC = () => {
         <Sidebar
           isOpen={true}
           activeView={activeView}
-          setActiveView={setActiveView}
+          setActiveView={navigateToView}
           onClose={() => {}}
           chatMode={chatMode}
           setChatMode={setChatMode}
@@ -1632,7 +1637,7 @@ const App: React.FC = () => {
         <Sidebar
           isOpen={isSidebarOpen}
           activeView={activeView}
-          setActiveView={setActiveView}
+          setActiveView={navigateToView}
           onClose={() => setIsSidebarOpen(false)}
           chatMode={chatMode}
           setChatMode={setChatMode}
