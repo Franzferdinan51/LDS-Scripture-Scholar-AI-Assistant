@@ -32,8 +32,10 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const transcriptionRef = useRef('');
+  const isStoppingRef = useRef(false);
 
   const startJournaling = async () => {
+    if (isConnecting || isVoiceActive || isStoppingRef.current) return;
     if (!isApiConfigured) {
       setError("Voice journaling is currently available only with the selected live-voice provider. Please set it in Settings.");
       return;
@@ -87,47 +89,54 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
   };
 
   const stopJournaling = async () => {
-    stopVoiceSession();
+    if (isStoppingRef.current) return;
+    isStoppingRef.current = true;
 
-    // Clean up audio resources
-    if (scriptProcessorRef.current) {
-      scriptProcessorRef.current.disconnect();
-      scriptProcessorRef.current = null;
-    }
-    if (inputAudioContextRef.current) {
-      await inputAudioContextRef.current.close().catch(() => {});
-      inputAudioContextRef.current = null;
-    }
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-      mediaStreamRef.current = null;
-    }
-    sessionRef.current = null;
+    try {
+      stopVoiceSession();
 
-    if (transcriptionRef.current.trim()) {
-        const newEntry: JournalEntry = {
-            id: `journal-${Date.now()}`,
-            originalText: transcriptionRef.current,
-            timestamp: Date.now()
-        };
-        setEntries(prev => [newEntry, ...prev]);
+      // Clean up audio resources
+      if (scriptProcessorRef.current) {
+        scriptProcessorRef.current.disconnect();
+        scriptProcessorRef.current = null;
+      }
+      if (inputAudioContextRef.current) {
+        await inputAudioContextRef.current.close().catch(() => {});
+        inputAudioContextRef.current = null;
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
+      sessionRef.current = null;
 
-        // Start summarization
-        setIsSummarizing(true);
-        setSummarizingEntryId(newEntry.id);
-        try {
-            const insights = await getJournalInsights(transcriptionRef.current);
-            setEntries(prev => prev.map(e => e.id === newEntry.id ? { ...e, ...insights } : e));
-        } catch (e) {
-            console.error("Failed to get journal insights:", e);
-            setError("Could not summarize the journal entry.");
-        } finally {
-            setIsSummarizing(false);
-            setSummarizingEntryId(null);
-        }
+      if (transcriptionRef.current.trim()) {
+          const newEntry: JournalEntry = {
+              id: `journal-${Date.now()}`,
+              originalText: transcriptionRef.current,
+              timestamp: Date.now()
+          };
+          setEntries(prev => [newEntry, ...prev]);
+
+          // Start summarization
+          setIsSummarizing(true);
+          setSummarizingEntryId(newEntry.id);
+          try {
+              const insights = await getJournalInsights(transcriptionRef.current);
+              setEntries(prev => prev.map(e => e.id === newEntry.id ? { ...e, ...insights } : e));
+          } catch (e) {
+              console.error("Failed to get journal insights:", e);
+              setError("Could not summarize the journal entry.");
+          } finally {
+              setIsSummarizing(false);
+              setSummarizingEntryId(null);
+          }
+      }
+      setCurrentTranscription('');
+      transcriptionRef.current = '';
+    } finally {
+      isStoppingRef.current = false;
     }
-    setCurrentTranscription('');
-    transcriptionRef.current = '';
   };
   
   const handleDelete = async (id: string) => {
