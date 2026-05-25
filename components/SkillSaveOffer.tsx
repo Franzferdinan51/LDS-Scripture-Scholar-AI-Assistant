@@ -24,15 +24,14 @@ const SkillSaveOffer: React.FC<SkillSaveOfferProps> = ({
   const botMessage = messages.find(m => m.id === messageId);
   const userMessages = messages.filter(m => m.sender === 'user');
 
-  // Extract topic from first user message
+  if (!botMessage) return null;
+
   const firstUserMsg = userMessages[0]?.text || 'Custom Study';
   const topic = firstUserMsg.length > 50 ? firstUserMsg.substring(0, 47) + '...' : firstUserMsg;
 
-  // Extract tools used from tool calls
   const allToolCalls: ToolCall[] = messages.flatMap(m => m.toolCalls ?? []);
   const toolsUsed: string[] = [...new Set(allToolCalls.map(tc => tc.name))];
 
-  // Build system prompt addition from the pattern
   const systemPromptAddition = `This skill was created from a complex study session on: ${topic}. ` +
     `The session involved ${messages.length} messages and ${allToolCalls.length} tool calls. ` +
     `Tools used: ${toolsUsed.join(', ') || 'none'}. ` +
