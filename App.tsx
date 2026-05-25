@@ -501,6 +501,7 @@ const App: React.FC = () => {
     setActiveAgentName(null);
     setAgentPhase('idle');
     setToolCallsInProgress(0);
+    setSkillSaveOffer(null);
     setChatHistory(prev => ({ ...prev, [newId]: [initialBotMessage] }));
     setActiveChatId(newId);
     setChatMode('chat');
