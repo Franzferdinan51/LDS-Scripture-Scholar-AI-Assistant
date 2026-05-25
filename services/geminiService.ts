@@ -557,8 +557,9 @@ function createOpenAICompatibleChatService(
 ) {
   let baseUrl = '';
   let apiKey = '';
+  const provider = normalizeApiProvider(settings.provider);
 
-  switch(settings.provider) {
+  switch(provider) {
       case 'lmstudio':
           baseUrl = settings.lmStudioBaseUrl;
           apiKey = settings.lmStudioApiKey || '';
@@ -621,7 +622,7 @@ function createOpenAICompatibleChatService(
       }
 
   // LM Studio 0.4.0+ MCP integration
-  if (settings.provider === 'lmstudio') {
+  if (provider === 'lmstudio') {
     const integrations: any[] = [];
 
     // Add MCP servers from settings
@@ -993,14 +994,16 @@ const MINIMAX_MODELS: Model[] = [
 
 export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {
     // MiniMax uses pre-populated models (no standard /models endpoint)
-    if (settings.provider === 'minimax') {
+    const provider = normalizeApiProvider(settings.provider);
+
+    if (provider === 'minimax') {
         return MINIMAX_MODELS;
     }
 
     let url: string;
     let headers: Record<string, string> = {};
 
-    switch (settings.provider) {
+    switch (provider) {
         case 'lmstudio':
             url = `${settings.lmStudioBaseUrl}/models`;
             if (settings.lmStudioApiKey) {
@@ -1026,7 +1029,7 @@ export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[
         }
         const data = await response.json();
 
-        if (settings.provider === 'openrouter') {
+        if (provider === 'openrouter') {
             return data.data.map((model: any) => ({
                 id: model.id,
                 name: model.name || model.id,
