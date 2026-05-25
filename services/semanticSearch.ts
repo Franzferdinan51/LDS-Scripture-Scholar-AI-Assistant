@@ -1,5 +1,23 @@
 let featureExtractorPromise: Promise<any> | null = null;
 const embeddingCache = new Map<string, number[]>();
+const MAX_EMBEDDING_CACHE_SIZE = 500;
+
+function normalizeEmbeddingKey(text: string): string {
+  return text.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function setEmbeddingCache(key: string, value: number[]): void {
+  if (embeddingCache.has(key)) {
+    embeddingCache.delete(key);
+  }
+  embeddingCache.set(key, value);
+
+  while (embeddingCache.size > MAX_EMBEDDING_CACHE_SIZE) {
+    const oldestKey = embeddingCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    embeddingCache.delete(oldestKey);
+  }
+}
 
 async function getFeatureExtractor(): Promise<any> {
   if (!featureExtractorPromise) {
@@ -15,7 +33,8 @@ export async function embedText(text: string): Promise<number[] | null> {
   const normalized = text.trim();
   if (!normalized) return null;
 
-  const cached = embeddingCache.get(normalized);
+  const cacheKey = normalizeEmbeddingKey(normalized);
+  const cached = embeddingCache.get(cacheKey);
   if (cached) return cached;
 
   try {
@@ -26,7 +45,7 @@ export async function embedText(text: string): Promise<number[] | null> {
     });
 
     const vector = Array.from(output.data as Float32Array | number[]);
-    embeddingCache.set(normalized, vector);
+    setEmbeddingCache(cacheKey, vector);
     return vector;
   } catch (error) {
     console.warn('Embedding generation failed, falling back to lexical search:', error);
