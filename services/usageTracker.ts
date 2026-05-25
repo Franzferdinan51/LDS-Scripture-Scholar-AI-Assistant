@@ -50,7 +50,10 @@ export async function getUsageTracker() {
     provider: '',
     date: today,
   };
-  return entry;
+  return {
+    ...entry,
+    provider: normalizeApiProvider(entry.provider),
+  };
 }
 
 export async function addUsage(provider: string, tokens: number, messages: number = 1) {
