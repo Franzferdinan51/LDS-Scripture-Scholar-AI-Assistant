@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import type { ApiProviderSettings } from '../types';
+import type { ApiProviderSettings, WebSearchProvider } from '../types';
 import { getApiSettings, saveApiSettings, migrateFromLocalStorage } from '../services/storage';
 import { getProviderDefaultModel } from '../services/providerCapabilities';
 
@@ -26,6 +26,16 @@ const DEFAULT_SETTINGS: ApiProviderSettings = {
   lmStudioMcpServers: [],
 };
 
+const isWebSearchProvider = (value: unknown): value is WebSearchProvider => {
+  return value === 'duckduckgo' ||
+    value === 'tavily' ||
+    value === 'brave' ||
+    value === 'searxng' ||
+    value === 'google' ||
+    value === 'wikipedia' ||
+    value === 'churchofjesuschrist';
+};
+
 const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProviderSettings => {
   if (!stored) {
     return DEFAULT_SETTINGS;
@@ -36,6 +46,7 @@ const normalizeLoadedSettings = (stored: ApiProviderSettings | null): ApiProvide
     ...stored,
     minimaxBaseUrl: stored.minimaxBaseUrl?.trim() || DEFAULT_SETTINGS.minimaxBaseUrl,
     searxngUrl: stored.searxngUrl?.trim() || DEFAULT_SETTINGS.searxngUrl,
+    webSearchProvider: isWebSearchProvider(stored.webSearchProvider) ? stored.webSearchProvider : DEFAULT_SETTINGS.webSearchProvider,
   };
 };
 

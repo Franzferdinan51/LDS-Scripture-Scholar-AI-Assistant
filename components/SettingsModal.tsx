@@ -491,7 +491,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
             <select
               id="webSearchProvider"
               name="webSearchProvider"
-              value={localSettings.webSearchProvider || 'duckduckgo'}
+              value={localSettings.webSearchProvider}
               onChange={handleInputChange}
               className={selectBaseClasses}
             >

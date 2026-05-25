@@ -926,7 +926,7 @@ async function searchWikipediaLDS(query: string, limit: number): Promise<LDSSear
 // --- Search Config Helper (migrated from ldsSearchService) ---
 export function getSearchConfig(settings: Record<string, any>): SearchProviderConfig {
   return {
-    provider: (settings.webSearchProvider as WebSearchProvider) || 'churchofjesuschrist',
+    provider: (settings.webSearchProvider as WebSearchProvider) || 'duckduckgo',
     searxngUrl: settings.searxngUrl || 'http://localhost:8080',
     tavilyApiKey: settings.tavilyApiKey || '',
     braveApiKey: settings.braveSearchApiKey || '',
