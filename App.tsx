@@ -633,6 +633,18 @@ const App: React.FC = () => {
         return true;
       case '/reset':
         if (activeChatId) {
+          setReadingContext(null);
+          setCrossReferenceScripture('');
+          setIsScriptureAgentOpen(false);
+          setScriptureAgentContext(null);
+          setScriptureAgentHistory([]);
+          setIsScriptureAgentLoading(false);
+          setActiveAgentName(null);
+          setAgentPhase('idle');
+          setToolCallsInProgress(0);
+          setSkillSaveOffer(null);
+          setActiveReminder(null);
+          setSuggestedReminders([]);
           setChatHistory(prev => ({ ...prev, [activeChatId]: [initialBotMessage] }));
         }
         return true;
