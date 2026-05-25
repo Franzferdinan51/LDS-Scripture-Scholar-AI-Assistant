@@ -259,6 +259,10 @@ const App: React.FC = () => {
   }, [activeChatId]);
 
   useEffect(() => {
+    setReadingContext(null);
+  }, [activeChatId]);
+
+  useEffect(() => {
     scriptureAgentHistoryRef.current = scriptureAgentHistory;
   }, [scriptureAgentHistory]);
 
@@ -478,6 +482,7 @@ const App: React.FC = () => {
 
   const handleNewChat = () => {
     const newId = `chat-${Date.now()}`;
+    setReadingContext(null);
     setChatHistory(prev => ({ ...prev, [newId]: [initialBotMessage] }));
     setActiveChatId(newId);
     setChatMode('chat');
