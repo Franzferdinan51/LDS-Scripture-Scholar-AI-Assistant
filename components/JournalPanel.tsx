@@ -174,7 +174,17 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
             <summary className="list-none flex justify-between items-center cursor-pointer">
               <span className="font-semibold">{new Date(entry.timestamp).toLocaleString()}</span>
               <div className="flex items-center gap-2">
-                 <button onClick={() => handleDelete(entry.id)} className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs">Delete</button>
+                 <button
+                   type="button"
+                   onClick={(e) => {
+                     e.preventDefault();
+                     e.stopPropagation();
+                     handleDelete(entry.id);
+                   }}
+                   className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                 >
+                   Delete
+                 </button>
                  <svg className="w-5 h-5 transition-transform transform details-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                  </svg>
