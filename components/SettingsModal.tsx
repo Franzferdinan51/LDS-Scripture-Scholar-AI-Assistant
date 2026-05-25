@@ -448,8 +448,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
                   {models.length > 0 && (
                     <div className="space-y-3">
+                      <label htmlFor="modelSearch" className="sr-only">Search models</label>
                       <input
                         type="text"
+                        id="modelSearch"
                         placeholder="Search models..."
                         value={modelSearch}
                         onChange={e => setModelSearch(e.target.value)}
