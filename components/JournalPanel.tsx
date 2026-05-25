@@ -33,6 +33,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
   const sessionRef = useRef<Session | null>(null);
   const transcriptionRef = useRef('');
   const isStoppingRef = useRef(false);
+  const sessionRequestIdRef = useRef(0);
   const summaryRequestIdRef = useRef(0);
   const isMountedRef = useRef(true);
 
@@ -53,6 +54,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
     setIsConnecting(true);
     setCurrentTranscription('');
     transcriptionRef.current = '';
+    const requestId = ++sessionRequestIdRef.current;
 
     try {
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -60,11 +62,16 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
 
       const sessionPromise = connectLive(googleApiKey, {
         onopen: () => {
+          if (!isMountedRef.current || requestId !== sessionRequestIdRef.current || isStoppingRef.current) return;
           const source = inputAudioContextRef.current!.createMediaStreamSource(mediaStreamRef.current!);
           scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
           scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-            sessionPromise.then(s => s.sendRealtimeInput({ media: createBlob(inputData) }));
+            if (requestId !== sessionRequestIdRef.current || isStoppingRef.current) return;
+            sessionPromise.then(s => {
+              if (requestId !== sessionRequestIdRef.current || isStoppingRef.current) return;
+              s.sendRealtimeInput({ media: createBlob(inputData) });
+            });
           };
           source.connect(scriptProcessorRef.current);
           scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
@@ -72,6 +79,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
           setIsVoiceActive(true);
         },
         onmessage: (message: LiveServerMessage) => {
+          if (!isMountedRef.current || requestId !== sessionRequestIdRef.current || isStoppingRef.current) return;
           if (message.serverContent?.inputTranscription) {
             const text = message.serverContent.inputTranscription.text;
             transcriptionRef.current += text;
@@ -79,6 +87,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
           }
         },
         onerror: (e) => {
+          if (requestId !== sessionRequestIdRef.current) return;
           console.error('Journal session error:', e);
           setError('An error occurred during journaling.');
           stopJournaling();
@@ -88,9 +97,15 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
         }
       }, "You are a silent voice transcription assistant. Do not speak, only transcribe.");
       
-      sessionRef.current = await sessionPromise;
+      const session = await sessionPromise;
+      if (!isMountedRef.current || requestId !== sessionRequestIdRef.current || isStoppingRef.current) {
+        session.close();
+        return;
+      }
+      sessionRef.current = session;
 
     } catch (err) {
+      if (requestId !== sessionRequestIdRef.current) return;
       console.error("Error starting journaling:", err);
       setError("Could not access microphone.");
       stopJournaling();
@@ -100,6 +115,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
   const stopJournaling = async () => {
     if (isStoppingRef.current) return;
     isStoppingRef.current = true;
+    sessionRequestIdRef.current++;
 
     try {
       stopVoiceSession();
