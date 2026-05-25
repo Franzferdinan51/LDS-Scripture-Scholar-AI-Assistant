@@ -74,10 +74,12 @@ export async function extractMemories(
 
 export async function storeMemories(newMemories: Memory[]): Promise<void> {
   const existing = await getAllMemories();
+  const acceptedContents = new Set(existing.map(e => e.content.toLowerCase().trim()));
 
   for (const mem of newMemories) {
     // Check for duplicates (similar content)
-    const isDuplicate = existing.some(e =>
+    const normalizedContent = mem.content.toLowerCase().trim();
+    const isDuplicate = acceptedContents.has(normalizedContent) || existing.some(e =>
       e.content.toLowerCase().trim() === mem.content.toLowerCase().trim() ||
       similarity(e.content, mem.content) > 0.85
     );
@@ -85,6 +87,8 @@ export async function storeMemories(newMemories: Memory[]): Promise<void> {
     if (!isDuplicate) {
       const embedding = await embedText(mem.content);
       await saveMemory({ ...mem, embedding: embedding ?? mem.embedding });
+      acceptedContents.add(normalizedContent);
+      existing.push(mem);
     }
   }
 }
@@ -277,8 +281,8 @@ export async function extractProactiveMemories(
   if (conversationText.length < 30) return [];
 
   try {
-    const existing = await getAllMemories();
-    const existingContents = new Set(existing.map(e => e.content.toLowerCase().trim()));
+  const existing = await getAllMemories();
+  const existingContents = new Set(existing.map(e => e.content.toLowerCase().trim()));
 
     const extracted = await generateJsonWithSettings<any[]>(settings, conversationText, {
       systemInstruction: PROACTIVE_EXTRACTION_PROMPT,
@@ -294,8 +298,10 @@ export async function extractProactiveMemories(
       if (!content) continue;
 
       // Skip if we already have something similar
-      if (existingContents.has(content.toLowerCase())) continue;
+      const normalizedContent = content.toLowerCase().trim();
+      if (existingContents.has(normalizedContent)) continue;
       if (existing.some(e => similarity(e.content, content) > 0.8)) continue;
+      if (newMemories.some(e => e.content.toLowerCase().trim() === normalizedContent)) continue;
 
       newMemories.push({
         id: `proactive-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -313,6 +319,7 @@ export async function extractProactiveMemories(
     if (newMemories.length > 0) {
       for (const mem of newMemories) {
         await saveMemory(mem);
+        existingContents.add(mem.content.toLowerCase().trim());
       }
       console.log(`[ProactiveMemory] Captured ${newMemories.length} new facts`);
     }
