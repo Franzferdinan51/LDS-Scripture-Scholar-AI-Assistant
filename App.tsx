@@ -3,6 +3,7 @@ import type { Message, ChatMode, ViewMode, GroundingChunk, StudyPlan, MultiQuiz,
 import type { Session, LiveServerMessage, GenerateContentResponse, Content } from '@google/genai';
 import { createChatService, createChatServiceWithFailover, connectLive, generateSpeech, getJournalInsights, getProactiveSuggestion, getWikimediaImageUrl } from './services/aiService';
 import type { ChatServiceOptions } from './services/aiService';
+import { getUsageTracker, estimateCost } from './services/usageTracker';
 import ChatWindow from './components/ChatWindow';
 import Sidebar from './components/Sidebar';
 import NotesPanel from './components/NotesPanel';
@@ -592,7 +593,6 @@ const App: React.FC = () => {
         return true;
       case '/usage':
         if (activeChatId) {
-          const { getUsageTracker, estimateCost } = await import('./services/usageTracker');
           const usage = await getUsageTracker();
           const cost = estimateCost(settings.provider, usage.sessionTokens);
           const usageText = [

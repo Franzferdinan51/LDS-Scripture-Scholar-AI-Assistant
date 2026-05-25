@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [react()],
       build: {
+        chunkSizeWarningLimit: 800,
         rollupOptions: {
           output: {
             manualChunks(id) {
