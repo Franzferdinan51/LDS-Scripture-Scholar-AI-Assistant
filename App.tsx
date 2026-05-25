@@ -22,6 +22,7 @@ import SettingsModal from './components/SettingsModal';
 import HamburgerIcon from './components/HamburgerIcon';
 import DisclaimerModal from './components/DisclaimerModal';
 import ScriptureAgentSidebar from './components/ScriptureAgentSidebar';
+import { normalizeApiProvider, providerSupportsLiveVoice, providerSupportsTextToSpeech } from './services/providerCapabilities';
 // IndexedDB storage
 import {
   getAllChats, saveChat, deleteChat as deleteChatDB, clearAllChats,
@@ -142,7 +143,6 @@ function estimateTokenCount(text: string): number {
 import type { AgentPhase } from './components/AgentIndicator';
 // Context compression
 import { needsCompression, compressContext } from './services/contextCompressor';
-import { providerSupportsLiveVoice, providerSupportsTextToSpeech } from './services/providerCapabilities';
 // Conversation search
 import ConversationSearch from './components/ConversationSearch';
 
@@ -236,6 +236,7 @@ const App: React.FC = () => {
   const chatHistoryRef = useRef<ChatHistory>(chatHistory);
   const activeChatIdRef = useRef<string | null>(activeChatId);
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
+  const provider = normalizeApiProvider(settings.provider);
 
   // Keep chatHistoryRef in sync so the finally block in handleSendMessage
   // always reads the latest state (avoids stale closure bug).
@@ -252,7 +253,7 @@ const App: React.FC = () => {
     scriptureAgentHistoryRef.current = scriptureAgentHistory;
   }, [scriptureAgentHistory]);
 
-  const isVoiceChatAvailable = providerSupportsLiveVoice(settings.provider);
+  const isVoiceChatAvailable = providerSupportsLiveVoice(provider);
   const messages = activeChatId ? chatHistory[activeChatId] || [] : [];
 
   // --- PWA Install Logic ---
@@ -407,11 +408,11 @@ const App: React.FC = () => {
   const initializeChat = useCallback(() => {
     setError(null);
     try {
-      const isConfigured = (providerSupportsLiveVoice(settings.provider) && settings.googleApiKey) ||
-                           (settings.provider === 'lmstudio' && settings.lmStudioBaseUrl && settings.model) ||
-                           (settings.provider === 'openrouter' && settings.openRouterApiKey && settings.model) ||
-                           (settings.provider === 'mcp' && settings.mcpBaseUrl && settings.model) ||
-                           (settings.provider === 'minimax' && settings.minimaxApiKey && settings.model);
+      const isConfigured = (providerSupportsLiveVoice(provider) && settings.googleApiKey) ||
+                           (provider === 'lmstudio' && settings.lmStudioBaseUrl && settings.model) ||
+                           (provider === 'openrouter' && settings.openRouterApiKey && settings.model) ||
+                           (provider === 'mcp' && settings.mcpBaseUrl && settings.model) ||
+                           (provider === 'minimax' && settings.minimaxApiKey && settings.model);
 
       if (isConfigured && activeChatId) {
         const currentHistory = chatHistory[activeChatId] || [];
@@ -437,7 +438,7 @@ const App: React.FC = () => {
       setError(`Could not initialize the chat: ${err.message}`);
       setChat(null);
     }
-  }, [settings, chatMode, activeChatId, chatHistory, activeView, userProfile, memories, activeSkill, readingContext, thinkingDepth, persona]);
+  }, [settings, provider, chatMode, activeChatId, chatHistory, activeView, userProfile, memories, activeSkill, readingContext, thinkingDepth, persona]);
   
   useEffect(() => {
     initializeChat();
@@ -769,7 +770,7 @@ const App: React.FC = () => {
         if (chunk.isToolCall) continue; // Skip tool call chunks
  accumulatedText += safeChunkText(chunk);
 
-        if (settings.provider === 'google') {
+        if (provider === 'google') {
           const fullResponse = chunk as GenerateContentResponse;
           lastGoogleResponse = fullResponse;
           const newGrounding = fullResponse.candidates?.[0]?.groundingMetadata?.groundingChunks;
@@ -901,7 +902,7 @@ const App: React.FC = () => {
       } else if (lowerText.includes('lesson') || lowerText.includes('teach')) {
         errorMessage = "I had trouble preparing that lesson. Try specifying a topic and audience (e.g., 'prepare a lesson on charity for youth').";
       } else if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        errorMessage = `I couldn't connect to the ${settings.provider} API. Please check that your server is running and your settings are correct.`;
+          errorMessage = `I couldn't connect to the ${provider} API. Please check that your server is running and your settings are correct.`;
       } else {
         errorMessage = "I encountered an unexpected issue. Please try again, or try rephrasing your question.";
       }
@@ -918,7 +919,7 @@ const App: React.FC = () => {
         const completionTokens = estimateTokenCount(finalVisibleText);
         const totalTokens = promptTokens + completionTokens;
         if (totalTokens > 0) {
-          addUsage(settings.provider, totalTokens, 1).catch(() => {});
+          addUsage(provider, totalTokens, 1).catch(() => {});
         }
       }
       if (effectiveMode === 'chat' && !requestError && activeChatId) {
@@ -1136,7 +1137,7 @@ const App: React.FC = () => {
   };
 
   const startVoiceChat = async () => {
-     if (!providerSupportsLiveVoice(settings.provider)) {
+    if (!providerSupportsLiveVoice(provider)) {
        setError('Voice chat is currently available only with the selected live-voice provider.');
        return;
      }
@@ -1237,7 +1238,7 @@ const App: React.FC = () => {
 
     setAudioPlayback({ messageId, status: 'loading', source: null, audioBuffer: null, startTime: 0, pauseTime: 0 });
     try {
-        if (!providerSupportsTextToSpeech(settings.provider) || !settings.googleApiKey) {
+        if (!providerSupportsTextToSpeech(provider) || !settings.googleApiKey) {
           throw new Error("Text-to-speech is currently available only with the selected live-voice provider.");
         }
         if (!outputAudioContextRef.current || outputAudioContextRef.current.state === 'closed') {
@@ -1342,7 +1343,7 @@ const App: React.FC = () => {
             setIsVoiceActive={setIsVoiceActive}
             isConnecting={isConnecting}
             setIsConnecting={setIsConnecting}
-            isApiConfigured={providerSupportsLiveVoice(settings.provider) && !!settings.googleApiKey}
+            isApiConfigured={providerSupportsLiveVoice(provider) && !!settings.googleApiKey}
             googleApiKey={settings.googleApiKey}
             setError={setError}
             stopVoiceSession={stopVoiceSession}
