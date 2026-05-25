@@ -565,6 +565,65 @@ const App: React.FC = () => {
       case '/search':
         setIsSearchOpen(true);
         return true;
+      case '/insights':
+        if (!activeChatId) return true;
+        {
+          const targetChatId = activeChatId;
+          const currentMessages = (chatHistoryRef.current[activeChatId] || [])
+            .filter(m => !m.isSuggestion && m.id !== 'initial-message');
+
+          if (currentMessages.length === 0) {
+            const msg: Message = {
+              id: `insights-${Date.now()}`,
+              text: 'I need a little more conversation before I can generate insights. Ask a few questions or share more context, then try `/insights` again.',
+              sender: 'bot',
+            };
+            setChatHistory(prev => ({ ...prev, [targetChatId]: [...(prev[targetChatId] || []), msg] }));
+            return true;
+          }
+
+          const placeholderId = `insights-${Date.now()}`;
+          const placeholder: Message = {
+            id: placeholderId,
+            text: 'Analyzing this conversation for key themes and scripture insights...',
+            sender: 'bot',
+          };
+          setChatHistory(prev => ({ ...prev, [targetChatId]: [...(prev[targetChatId] || []), placeholder] }));
+
+          const transcript = currentMessages
+            .map(msg => `${msg.sender === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
+            .join('\n');
+
+          void getJournalInsights(settings, transcript)
+            .then(insights => {
+              const summary = typeof insights?.summary === 'string' ? insights.summary.trim() : '';
+              const principles = Array.isArray(insights?.principles) ? insights.principles.filter((p: unknown) => typeof p === 'string' && p.trim()) : [];
+              const suggestedScripture = typeof insights?.suggestedScripture === 'string' ? insights.suggestedScripture.trim() : '';
+
+              const formatted = [
+                '**Conversation Insights**',
+                summary ? `**Summary:** ${summary}` : null,
+                principles.length > 0 ? `**Key Principles:**\n${principles.map((p: string) => `- ${p}`).join('\n')}` : null,
+                suggestedScripture ? `**Suggested Scripture:** ${suggestedScripture}` : null,
+              ].filter(Boolean).join('\n\n');
+
+              const finalText = formatted || 'I could not generate insights from that conversation yet. Try again after a little more context.';
+              setChatHistory(prev => ({
+                ...prev,
+                [targetChatId]: prev[targetChatId]?.map(msg => msg.id === placeholderId ? { ...msg, text: finalText } : msg),
+              }));
+            })
+            .catch(err => {
+              console.error('Insights generation failed:', err);
+              setChatHistory(prev => ({
+                ...prev,
+                [targetChatId]: prev[targetChatId]?.map(msg => msg.id === placeholderId
+                  ? { ...msg, text: 'I could not generate insights right now. Please try again in a moment.' }
+                  : msg),
+              }));
+            });
+        }
+        return true;
       case '/skill':
         if (args[0]) {
           const skill = getSkillById(args[0]);
