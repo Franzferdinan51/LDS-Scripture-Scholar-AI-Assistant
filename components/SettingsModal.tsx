@@ -137,6 +137,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    if (localSettings.provider !== 'mcp') return;
+
+    mcpTestRequestIdRef.current++;
+    setMcpTestStatus(MCP_TEST_INITIAL);
+  }, [isOpen, localSettings.provider, localSettings.mcpBaseUrl]);
+
   const handleFetchModels = async () => {
     const requestId = ++fetchModelsRequestIdRef.current;
     setIsFetchingModels(true);
@@ -159,9 +167,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
 
   const handleTestMCPConnection = async () => {
     const requestId = ++mcpTestRequestIdRef.current;
+    const testedUrl = localSettings.mcpBaseUrl.trim();
     setMcpTestStatus({ status: 'testing', message: 'Testing connection...' });
-    const result = await testMCPConnection(localSettings.mcpBaseUrl);
-    if (!isMountedRef.current || requestId !== mcpTestRequestIdRef.current) return;
+    const result = await testMCPConnection(testedUrl);
+    if (!isMountedRef.current || requestId !== mcpTestRequestIdRef.current || testedUrl !== localSettings.mcpBaseUrl.trim()) return;
     if (result.success) {
         setMcpTestStatus({ status: 'success', message: result.message });
     } else {
@@ -206,6 +215,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    if (name === 'mcpBaseUrl') {
+      mcpTestRequestIdRef.current++;
+      setMcpTestStatus(MCP_TEST_INITIAL);
+    }
     setLocalSettings(prev => ({ ...prev, [name]: value }));
   };
 
