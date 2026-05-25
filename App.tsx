@@ -240,6 +240,7 @@ const App: React.FC = () => {
   const chatModeRef = useRef<ChatMode>(chatMode);
   const scriptureAgentHistoryRef = useRef<Message[]>(scriptureAgentHistory);
   const previousActiveViewRef = useRef<ViewMode>(activeView);
+  const voiceSessionRequestIdRef = useRef(0);
   const proactiveSuggestionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retrySendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSendMessageRef = useRef<((text: string, overrideMode?: ChatMode) => Promise<void>) | null>(null);
@@ -1378,6 +1379,7 @@ const App: React.FC = () => {
   };
 
   const stopVoiceSession = () => {
+    voiceSessionRequestIdRef.current++;
     if (session) session.close();
     setSession(null);
     mediaStreamRef.current?.getTracks().forEach(track => track.stop());
@@ -1403,6 +1405,7 @@ const App: React.FC = () => {
      if (!settings.googleApiKey) { setError("A provider API key is not set."); return; }
     setError(null);
     setIsConnecting(true);
+    const requestId = ++voiceSessionRequestIdRef.current;
 
     try {
       mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1414,13 +1417,18 @@ const App: React.FC = () => {
 
       const sessionPromise = connectLive(settings.googleApiKey, {
         onopen: () => {
+          if (requestId !== voiceSessionRequestIdRef.current) return;
           console.debug('Voice session opened');
           const source = inputAudioContextRef.current!.createMediaStreamSource(mediaStreamRef.current!);
           scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
           scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
             const pcmBlob = createBlob(inputData);
-            sessionPromise.then((session) => session.sendRealtimeInput({ media: pcmBlob }));
+            if (requestId !== voiceSessionRequestIdRef.current) return;
+            sessionPromise.then((session) => {
+              if (requestId !== voiceSessionRequestIdRef.current) return;
+              session.sendRealtimeInput({ media: pcmBlob });
+            });
           };
           source.connect(scriptProcessorRef.current);
           scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
@@ -1428,6 +1436,7 @@ const App: React.FC = () => {
           setIsVoiceActive(true);
         },
         onmessage: async (message: LiveServerMessage) => {
+          if (requestId !== voiceSessionRequestIdRef.current) return;
           const currentActiveChatId = activeChatIdRef.current;
           if (!currentActiveChatId) return; // Should not happen but safety check
           // Handle Input Transcription
@@ -1471,11 +1480,36 @@ const App: React.FC = () => {
           if (message.serverContent?.turnComplete) { currentUserMessageIdRef.current = null; currentBotMessageIdRef.current = null; }
           if (message.serverContent?.interrupted) { audioSourcesRef.current.forEach(source => source.stop()); audioSourcesRef.current.clear(); nextStartTimeRef.current = 0; }
         },
-        onerror: (e: ErrorEvent) => { console.error('Voice error:', e); setError('Voice chat error.'); stopVoiceSession(); },
-        onclose: (e: CloseEvent) => { console.debug('Voice closed'); stopVoiceSession(); },
+        onerror: (e: ErrorEvent) => {
+          if (requestId !== voiceSessionRequestIdRef.current) return;
+          console.error('Voice error:', e);
+          setError('Voice chat error.');
+          stopVoiceSession();
+        },
+        onclose: (e: CloseEvent) => {
+          if (requestId !== voiceSessionRequestIdRef.current) return;
+          console.debug('Voice closed');
+          stopVoiceSession();
+        },
       });
-      sessionPromise.then(setSession).catch(err => { console.error("Live session failed:", err); setError("Could not start voice chat."); stopVoiceSession(); });
-    } catch (err) { console.error("Voice chat failed:", err); setError("Could not access microphone."); stopVoiceSession(); }
+      sessionPromise.then(session => {
+        if (requestId !== voiceSessionRequestIdRef.current) {
+          session.close();
+          return;
+        }
+        setSession(session);
+      }).catch(err => {
+        if (requestId !== voiceSessionRequestIdRef.current) return;
+        console.error("Live session failed:", err);
+        setError("Could not start voice chat.");
+        stopVoiceSession();
+      });
+    } catch (err) {
+      if (requestId !== voiceSessionRequestIdRef.current) return;
+      console.error("Voice chat failed:", err);
+      setError("Could not access microphone.");
+      stopVoiceSession();
+    }
   };
   
   const handleToggleVoiceChat = () => {
