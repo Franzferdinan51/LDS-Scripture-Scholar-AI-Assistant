@@ -62,27 +62,32 @@ export async function checkDueReminders(): Promise<Reminder[]> {
   const now = new Date();
   const currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const todayKey = formatLocalDateKey(now);
 
   const dueReminders: Reminder[] = [];
 
   for (const reminder of reminders) {
     if (!reminder.enabled) continue;
     if (!reminder.schedule.days.includes(currentDay)) continue;
+    if (reminder.lastTriggered && formatLocalDateKey(new Date(reminder.lastTriggered)) === todayKey) continue;
 
-    // Check if reminder time is within the current minute
-    if (reminder.schedule.time === currentTime) {
-      // Don't retrigger within the same hour
-      const lastTriggered = reminder.lastTriggered || 0;
-      const hoursSinceLastTrigger = (Date.now() - lastTriggered) / (1000 * 60 * 60);
-      if (hoursSinceLastTrigger >= 1) {
-        dueReminders.push(reminder);
-        reminder.lastTriggered = Date.now();
-        await saveReminder(reminder);
-      }
+    // Trigger once the scheduled time has passed so reminders are not missed
+    // if the tab is throttled, suspended, or checked a few minutes late.
+    if (currentTime >= reminder.schedule.time) {
+      dueReminders.push(reminder);
+      reminder.lastTriggered = Date.now();
+      await saveReminder(reminder);
     }
   }
 
   return dueReminders;
+}
+
+function formatLocalDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function formatReminderTime(schedule: { time: string; days: string[] }): string {
