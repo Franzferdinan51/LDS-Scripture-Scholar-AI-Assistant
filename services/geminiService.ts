@@ -6,6 +6,8 @@ import { executeTool } from "./toolExecutor";
 import { getCrossReferences as getCrossReferencesCompat } from './crossReferenceService';
 import { generateTextWithSettings, generateJsonWithSettings } from './llmService';
 import { parseJSON } from "../utils/jsonRepair";
+import { ToolCallManager } from './toolCallManager';
+import { convertGeminiParamsToOpenAI } from './tools';
 
 // ============================================================================
 // HERMES/OPENCLAW ENHANCED AGENT PATTERNS
@@ -317,68 +319,6 @@ function isRetryableError(error: Error): boolean {
   const msg = error.message.toLowerCase();
   return retryableCodes.some(code => msg.includes(code.toLowerCase())) ||
          retryableMessages.some(m => msg.includes(m));
-}
-
-// --- Tool Call Manager for tracking multi-turn conversations ---
-export class ToolCallManager {
-  private toolCalls: Map<string, ToolCall> = new Map();
-  private conversationToolCalls: ToolCall[] = [];
-
-  createToolCall(name: string, parameters: Record<string, unknown>): ToolCall {
-    const id = `tc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const toolCall: ToolCall = {
-      id,
-      name,
-      parameters,
-      status: 'pending'
-    };
-    this.toolCalls.set(id, toolCall);
-    return toolCall;
-  }
-
-  updateToolCall(id: string, update: Partial<ToolCall>): void {
-    const tc = this.toolCalls.get(id);
-    if (tc) {
-      this.toolCalls.set(id, { ...tc, ...update });
-    }
-  }
-
-  completeToolCall(id: string, result: any): void {
-    this.updateToolCall(id, { status: 'completed', result });
-  }
-
-  failToolCall(id: string, error: string): void {
-    this.updateToolCall(id, { status: 'error', result: { success: false, data: null, error } });
-  }
-
-  getToolCall(id: string): ToolCall | undefined {
-    return this.toolCalls.get(id);
-  }
-
-  getAllToolCalls(): ToolCall[] {
-    return [...this.toolCalls.values()];
-  }
-
-  getPendingToolCalls(): ToolCall[] {
-    return this.getAllToolCalls().filter(tc => tc.status === 'pending' || tc.status === 'running');
-  }
-
-  getCompletedToolCalls(): ToolCall[] {
-    return this.getAllToolCalls().filter(tc => tc.status === 'completed');
-  }
-
-  recordInConversation(toolCall: ToolCall): void {
-    this.conversationToolCalls.push(toolCall);
-  }
-
-  getConversationToolCalls(): ToolCall[] {
-    return [...this.conversationToolCalls];
-  }
-
-  clear(): void {
-    this.toolCalls.clear();
-    this.conversationToolCalls = [];
-  }
 }
 
 // ============================================================================
@@ -910,28 +850,6 @@ function createOpenAICompatibleChatService(
   };
 }
 
-// --- Convert Gemini params to OpenAI format ---
-function convertGeminiParamsToOpenAI(params: any): any {
-  if (!params) return {};
-  const result: any = { type: 'object', properties: {}, required: params.required || [] };
-  if (params.properties) {
-      for (const [key, prop] of Object.entries(params.properties) as [string, any][]) {
-          let type = 'string';
-          if (prop.type === Type.STRING) type = 'string';
-          else if (prop.type === Type.NUMBER) type = 'number';
-          else if (prop.type === Type.BOOLEAN) type = 'boolean';
-          else if (prop.type === Type.OBJECT) type = 'object';
-          else if (prop.type === Type.ARRAY) type = 'array';
-
-          result.properties[key] = {
-              type,
-              description: prop.description || '',
-          };
-      }
-  }
-  return result;
-}
-
 // --- Multi-Provider Failover ---
 
 export const createChatServiceWithFailover = (
@@ -1062,13 +980,9 @@ export const getWikimediaImageUrl = async (filename: string): Promise<string> =>
 
 // Pre-populated model lists for providers that don't have a standard /models endpoint
 const MINIMAX_MODELS: Model[] = [
-    { id: 'MiniMax-Text-01', name: 'MiniMax Text 01' },
-    { id: 'abab6.5s-chat', name: 'Abab 6.5s Chat' },
-    { id: 'abab6.5g-chat', name: 'Abab 6.5g Chat' },
-    { id: 'abab6.5t-chat', name: 'Abab 6.5t Chat' },
-    { id: 'abab6-chat', name: 'Abab 6 Chat' },
-    { id: 'abab5.5s-chat', name: 'Abab 5.5s Chat' },
-    { id: 'abab5.5-chat', name: 'Abab 5.5 Chat' },
+  { id: 'MiniMax-M1', name: 'MiniMax M1 (Reasoning)' },
+  { id: 'MiniMax-Text-01', name: 'MiniMax Text 01' },
+  { id: 'abab6.5s-chat', name: 'Abab 6.5s Chat' },
 ];
 
 export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[]> => {

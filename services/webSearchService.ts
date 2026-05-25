@@ -22,7 +22,6 @@ export interface WebSearchSettings {
   googleCx?: string;
   searxngUrl?: string;
 }
-
 export interface WebSearchResult {
   title: string;
   snippet: string;
@@ -62,7 +61,7 @@ function ldsSiteFilterQuery(query: string): string {
 async function searchGospelLibrary(
   query: string,
   limit: number = 5
-): Promise<{ results: WebSearchResult[]; source: string }> {
+): Promise<LDSSearchResult[]> {
   try {
     const url = `https://www.churchofjesuschrist.org/study/api/v3/svc/search?query=${encodeURIComponent(query)}&language=eng`;
     const resp = await fetch(url, {
@@ -112,7 +111,7 @@ export async function webSearch(
   query: string,
   settings?: WebSearchSettings,
   limit: number = 8
-): Promise<{ results: WebSearchResult[]; source: string }> {
+): Promise<LDSSearchResult[]> {
   // --- Primary: Church Gospel Library API v3 ---
   const gospelResult = await searchGospelLibrary(query, limit);
   if (gospelResult.results.length > 0) {
@@ -160,6 +159,9 @@ export async function webSearch(
     case 'wikipedia':
       providerResult = await searchWikipedia(query, limit);
       break;
+    case 'churchofjesuschrist':
+      providerResult = { results: (await searchChurchofJesusChrist(query, limit)).map(r => ({ title: r.title, url: r.url, snippet: r.snippet, source: r.source || 'churchofjesuschrist' })), source: 'churchofjesuschrist' };
+      break;
     default:
       providerResult = await searchDuckDuckGo(query, limit);
     }
@@ -193,7 +195,7 @@ export async function webSearch(
 async function searchDuckDuckGo(
   query: string,
   limit: number = 8
-): Promise<{ results: WebSearchResult[]; source: string }> {
+): Promise<LDSSearchResult[]> {
   const url = `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`;
   const response = await fetch(url, {
     headers: {
@@ -258,7 +260,7 @@ async function searchDuckDuckGo(
 /**
  * Brave Search API.
  */
-async function searchBrave(query: string, apiKey: string, limit: number): Promise<{ results: WebSearchResult[]; source: string }> {
+async function searchBrave(query: string, apiKey: string, limit: number): Promise<LDSSearchResult[]> {
   const params = new URLSearchParams({
     q: query,
     count: String(Math.min(limit, 20)),
@@ -290,7 +292,7 @@ async function searchBrave(query: string, apiKey: string, limit: number): Promis
 /**
  * SearXNG self-hosted instance.
  */
-async function searchSearXNG(query: string, baseUrl: string, limit: number): Promise<{ results: WebSearchResult[]; source: string }> {
+async function searchSearXNG(query: string, baseUrl: string, limit: number): Promise<LDSSearchResult[]> {
   const url = `${baseUrl.replace(/\/+$/, '')}/search?${new URLSearchParams({
     q: query,
     format: 'json',
@@ -316,7 +318,7 @@ async function searchSearXNG(query: string, baseUrl: string, limit: number): Pro
 /**
  * Google Custom Search Engine.
  */
-async function searchGoogle(query: string, apiKey: string, cx: string, limit: number): Promise<{ results: WebSearchResult[]; source: string }> {
+async function searchGoogle(query: string, apiKey: string, cx: string, limit: number): Promise<LDSSearchResult[]> {
   const params = new URLSearchParams({
     key: apiKey,
     cx,
@@ -344,7 +346,7 @@ async function searchGoogle(query: string, apiKey: string, cx: string, limit: nu
 /**
  * Tavily AI-optimized search API.
  */
-async function searchTavily(query: string, apiKey: string, limit: number): Promise<{ results: WebSearchResult[]; source: string }> {
+async function searchTavily(query: string, apiKey: string, limit: number): Promise<LDSSearchResult[]> {
   const response = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: {
@@ -374,7 +376,7 @@ async function searchTavily(query: string, apiKey: string, limit: number): Promi
 /**
  * Wikipedia search (fallback for historical context only).
  */
-async function searchWikipedia(query: string, limit: number): Promise<{ results: WebSearchResult[]; source: string }> {
+async function searchWikipedia(query: string, limit: number): Promise<LDSSearchResult[]> {
   const params = new URLSearchParams({
     action: 'query',
     list: 'search',
@@ -408,7 +410,7 @@ export async function searchLDSContent(
   query: string,
   settings?: WebSearchSettings,
   limit: number = 8
-): Promise<{ results: WebSearchResult[]; source: string }> {
+): Promise<LDSSearchResult[]> {
   // Primary: Gospel Library API
   const gospelResult = await searchGospelLibrary(query, limit);
   if (gospelResult.results.length >= 3) {
@@ -440,7 +442,7 @@ export async function searchLDSContent(
 export async function searchLdsWeb(
   query: string,
   limit: number = 8
-): Promise<{ results: WebSearchResult[]; source: string }> {
+): Promise<LDSSearchResult[]> {
   const allResults: WebSearchResult[] = [];
 
   // --- Attempt 1: Church Gospel Library API v3 ---
@@ -491,7 +493,7 @@ export async function searchLdsWeb(
 export async function searchLDSSources(
   query: string,
   limit: number = 8
-): Promise<{ results: WebSearchResult[]; source: string }> {
+): Promise<LDSSearchResult[]> {
   const results: WebSearchResult[] = [];
 
   // Search ChurchofJesusChrist.org study search (General Conference, scriptures, manuals, etc.)
@@ -647,4 +649,353 @@ function decodeHTMLEntities(text: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ');
+}
+
+
+// --- LDS Search Types (migrated from ldsSearchService) ---
+export interface LDSSearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  source: string; // e.g., 'churchofjesuschrist.org', 'byu.edu'
+}
+
+export interface SearchProviderConfig {
+  provider: WebSearchProvider;
+  searxngUrl?: string;
+  tavilyApiKey?: string;
+  braveApiKey?: string;
+  googleSearchApiKey?: string;
+  googleSearchEngineId?: string;
+}
+
+// LDS domains for Tavily domain-filtered search
+const TAVILY_LDS_DOMAINS = [
+  'churchofjesuschrist.org',
+  'byu.edu',
+  'rsc.byu.edu',
+  'bookofmormoncentral.org',
+  'fairlatterdaysaints.org',
+  'deseret.com',
+  'meridianmagazine.com',
+  'ldsliving.com',
+  'churchnews.com',
+  'scholarsarchive.byu.edu',
+  'eom.byu.edu',
+];
+
+function extractDomain(url: string): string {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+// --- Church of Jesus Christ Direct Search (migrated from ldsSearchService) ---
+async function searchChurchofJesusChrist(query: string, limit: number): Promise<LDSSearchResult[]> {
+  // Try the Church's public search page first
+  try {
+    const searchUrl = `https://www.churchofjesuschrist.org/search?lang=eng&query=${encodeURIComponent(query)}`;
+    const response = await fetch(searchUrl, {
+      headers: {
+        'Accept': 'text/html',
+        'User-Agent': 'LDS-Scripture-Scholar/1.0 (Study Assistant)',
+      },
+    });
+
+    if (response.ok) {
+      const html = await response.text();
+      const results = parseChurchSearchHTML(html, limit);
+      if (results.length > 0) {
+        return results;
+      }
+    }
+  } catch (err) {
+    console.warn('ChurchofJesusChrist.org HTML search failed:', err);
+  }
+
+  // Try the Gospel Library content API (public study content)
+  try {
+    const { results: glResults } = await searchGospelLibrary(query, limit);
+    if (glResults.length > 0) {
+      return glResults.map(r => ({ title: r.title, url: r.url, snippet: r.snippet, source: r.source || 'gospel-library' }));
+    }
+  } catch (err) {
+    console.warn('Gospel Library API search failed:', err);
+  }
+
+  // Fallback: construct likely Church content URLs based on the query
+  return constructChurchResults(query, limit);
+}
+
+function parseChurchSearchHTML(html: string, limit: number): LDSSearchResult[] {
+  const results: LDSSearchResult[] = [];
+
+  // Try to find search result items in the HTML
+  // The Church site uses various patterns; try multiple selectors
+  const patterns = [
+    // Pattern 1: data-testid="search-result" or similar structured results
+    /<a[^>]*href="\/study\/([^"]*)"[^>]*>(.*?)<\/a>/gi,
+    // Pattern 2: General link pattern within search result containers
+    /<a[^>]*href="(https?:\/\/(?:www\.)?churchofjesuschrist\.org\/[^"]*)"[^>]*>(.*?)<\/a>/gi,
+  ];
+
+  const seen = new Set<string>();
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(html)) !== null && results.length < limit) {
+      const urlPath = match[1];
+      const titleRaw = match[2].replace(/<[^>]+>/g, '').trim();
+      const fullUrl = urlPath.startsWith('http') ? urlPath : `https://www.churchofjesuschrist.org${urlPath}`;
+
+      if (seen.has(fullUrl) || !titleRaw || titleRaw.length < 3) continue;
+      seen.add(fullUrl);
+
+      // Extract snippet from nearby content
+      const snippetStart = html.indexOf(match[0]) + match[0].length;
+      const snippetText = html.substring(snippetStart, snippetStart + 300)
+        .replace(/<[^>]+>/g, '')
+        .trim()
+        .substring(0, 200);
+
+      const source = extractDomain(fullUrl);
+
+      results.push({
+        title: decodeHTMLEntities(titleRaw),
+        url: fullUrl,
+        snippet: decodeHTMLEntities(snippetText),
+        source,
+      });
+    }
+
+    if (results.length >= limit) break;
+  }
+
+  return results;
+}
+
+function constructChurchResults(query: string, limit: number): LDSSearchResult[] {
+  const results: LDSSearchResult[] = [];
+  const q = query.toLowerCase().trim();
+
+  // Check for General Conference talk patterns
+  const gcMatch = q.match(/(?:general\s+conference|conference|gc)\s+(?:talk|session|address)?\s*(.+)/);
+  if (gcMatch) {
+    results.push({
+      title: `General Conference - Search: ${query}`,
+      url: `https://www.churchofjesuschrist.org/study/general-conference?lang=eng`,
+      snippet: `Search General Conference talks for "${query}" on ChurchofJesusChrist.org. Includes talks from all semiannual conferences since 1971.`,
+      source: 'churchofjesuschrist.org',
+    });
+  }
+
+  // Check for scripture reference patterns
+  const scriptureMatch = q.match(/(\d?\s?\w+)\s+(\d+):?(\d+)?/);
+  if (scriptureMatch) {
+    const book = scriptureMatch[1].toLowerCase().replace(/\s+/g, '-');
+    const chapter = scriptureMatch[2];
+    const verse = scriptureMatch[3];
+    const path = verse
+      ? `/study/scriptures/${guessScriptureCollection(book)}/${book}/${chapter}.${verse}`
+      : `/study/scriptures/${guessScriptureCollection(book)}/${book}/${chapter}`;
+    results.push({
+      title: `${scriptureMatch[1]} ${chapter}${verse ? ':' + verse : ''} - Church Scripture Study`,
+      url: `https://www.churchofjesuschrist.org${path}?lang=eng`,
+      snippet: `Read ${scriptureMatch[1]} ${chapter}${verse ? ':' + verse : ''} in the official Church scripture study tools with footnotes, cross-references, and study helps.`,
+      source: 'churchofjesuschrist.org',
+    });
+  }
+
+  // Add a general Church search link
+  results.push({
+    title: `Search Church content: "${query}"`,
+    url: `https://www.churchofjesuschrist.org/search?lang=eng&query=${encodeURIComponent(query)}`,
+    snippet: `Search all official Church of Jesus Christ of Latter-day Saints content, including scriptures, General Conference talks, manuals, and magazines.`,
+    source: 'churchofjesuschrist.org',
+  });
+
+  // Add Book of Mormon Central
+  results.push({
+    title: `Book of Mormon Central: "${query}"`,
+    url: `https://bookofmormoncentral.org/?s=${encodeURIComponent(query)}`,
+    snippet: `Search Book of Mormon Central for scholarly articles, KnoWhys, and evidence-based research on "${query}".`,
+    source: 'bookofmormoncentral.org',
+  });
+
+  // Add Fair Latter-day Saints if the query sounds apologetic
+  if (q.match(/eviden|proof|answer|critic|question|controvers|histor|polygam|temple|translate/)) {
+    results.push({
+      title: `Fair Latter-day Saints: "${query}"`,
+      url: `https://www.fairlatterdaysaints.org/?s=${encodeURIComponent(query)}`,
+      snippet: `Search FairLatterDaySaints.org for faithful answers to critical questions about "${query}".`,
+      source: 'fairlatterdaysaints.org',
+    });
+  }
+
+  // BYU Scholarly archive
+  results.push({
+    title: `BYU Scholars: "${query}"`,
+    url: `https://scholarsarchive.byu.edu/search?query=${encodeURIComponent(query)}`,
+    snippet: `Search BYU Scholars Archive for academic papers and research on "${query}" from a Latter-day Saint perspective.`,
+    source: 'scholarsarchive.byu.edu',
+  });
+
+  return results.slice(0, limit);
+}
+
+function guessScriptureCollection(book: string): string {
+  const bomBooks = [
+    '1-nephi', '2-nephi', 'jacob', 'enos', 'jarom', 'omni',
+    'words-of-mormon', 'mosiah', 'alma', 'helaman',
+    '3-nephi', '4-nephi', 'mormon', 'ether', 'moroni',
+  ];
+  const otBooks = [
+    'genesis', 'exodus', 'leviticus', 'numbers', 'deuteronomy',
+    'joshua', 'judges', 'ruth', '1-samuel', '2-samuel',
+    '1-kings', '2-kings', '1-chronicles', '2-chronicles',
+    'ezra', 'nehemiah', 'esther', 'job', 'psalms', 'proverbs',
+    'ecclesiastes', 'isaiah', 'jeremiah', 'lamentations',
+    'ezekiel', 'daniel', 'hosea', 'joel', 'amos', 'obadiah',
+    'jonah', 'micah', 'nahum', 'habakkuk', 'zephaniah',
+    'haggai', 'zechariah', 'malachi',
+  ];
+  const ntBooks = [
+    'matthew', 'mark', 'luke', 'john', 'acts',
+    'romans', '1-corinthians', '2-corinthians', 'galatians',
+    'ephesians', 'philippians', 'colossians',
+    '1-thessalonians', '2-thessalonians',
+    '1-timothy', '2-timothy', 'titus', 'philemon',
+    'hebrews', 'james', '1-peter', '2-peter',
+    '1-john', '2-john', '3-john', 'jude', 'revelation',
+  ];
+  const dcBooks = ['dc', 'd&c', 'doctrine-and-covenants', 'doctrine-covenants'];
+  const pgpBooks = ['moses', 'abraham', 'joseph-smith-matthew', 'joseph-smith-history', 'articles-of-faith'];
+
+  const normalized = book.toLowerCase().replace(/\s+/g, '-');
+
+  if (bomBooks.includes(normalized)) return 'bofm';
+  if (otBooks.includes(normalized)) return 'ot';
+  if (ntBooks.includes(normalized)) return 'nt';
+  if (dcBooks.some(d => normalized.includes(d))) return 'dc-testament';
+  if (pgpBooks.includes(normalized)) return 'pgp';
+
+  return 'bofm'; // default to Book of Mormon
+}
+
+async function searchWikipediaLDS(query: string, limit: number): Promise<LDSSearchResult[]> {
+  // Add LDS context to the query
+  const ldsQuery = `${query} Latter Day Saints Mormon LDS`;
+
+  const params = new URLSearchParams({
+    action: 'query',
+    list: 'search',
+    srsearch: ldsQuery,
+    srlimit: String(Math.min(limit, 5)),
+    format: 'json',
+    origin: '*',
+  });
+
+  const response = await fetch(`https://en.wikipedia.org/w/api.php?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`Wikipedia search failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const results: LDSSearchResult[] = (data?.query?.search || []).map((item: any) => ({
+    title: item.title,
+    url: `https://en.wikipedia.org/wiki/${encodeURIComponent(item.title.replace(/\s/g, '_'))}`,
+    snippet: String(item.snippet || '').replace(/<[^>]+>/g, ''),
+    source: 'wikipedia.org',
+  }));
+
+  return results;
+}
+
+// --- Search Config Helper (migrated from ldsSearchService) ---
+export function getSearchConfig(settings: Record<string, any>): SearchProviderConfig {
+  return {
+    provider: (settings.webSearchProvider as WebSearchProvider) || 'churchofjesuschrist',
+    searxngUrl: settings.searxngUrl || 'http://localhost:8080',
+    tavilyApiKey: settings.tavilyApiKey || '',
+    braveApiKey: settings.braveSearchApiKey || '',
+    googleSearchApiKey: settings.googleSearchApiKey || '',
+    googleSearchEngineId: settings.googleSearchCx || '',
+  };
+}
+
+
+/** Convert WebSearchResult[] to LDSSearchResult[] */
+function webToLdsResults(results: WebSearchResult[]): LDSSearchResult[] {
+  return results.map(r => ({
+    title: r.title,
+    url: r.url,
+    snippet: r.snippet,
+    source: r.source || '',
+  }));
+}
+
+// --- Main LDS Search Entry Point (migrated from ldsSearchService) ---
+export async function searchLDS(
+  query: string,
+  config: SearchProviderConfig,
+  limit: number = 8
+): Promise<LDSSearchResult[]> {
+  if (!config.provider) {
+    return [];
+  }
+
+  // Try the configured provider first
+  try {
+    switch (config.provider) {
+      case 'churchofjesuschrist':
+        return await searchChurchofJesusChrist(query, limit);
+      case 'tavily':
+        if (config.tavilyApiKey) {
+          return webToLdsResults((await searchTavily(query, config.tavilyApiKey, limit)).results);
+        }
+        break;
+      case 'brave':
+        if (config.braveApiKey) {
+          return webToLdsResults((await searchBrave(query, config.braveApiKey, limit)).results);
+        }
+        break;
+      case 'searxng':
+        if (config.searxngUrl) {
+          return webToLdsResults((await searchSearXNG(query, config.searxngUrl, limit)).results);
+        }
+        break;
+      case 'google':
+        if (config.googleSearchApiKey && config.googleSearchEngineId) {
+          return webToLdsResults((await searchGoogle(query, config.googleSearchApiKey, config.googleSearchEngineId, limit)).results);
+        }
+        break;
+    }
+  } catch (err) {
+    console.warn(`LDS search provider '${config.provider}' failed:`, err);
+  }
+
+  // Fallback chain: ChurchofJesusChrist.org -> Wikipedia LDS
+  if (config.provider !== 'churchofjesuschrist') {
+    try {
+      return await searchChurchofJesusChrist(query, limit);
+    } catch {
+      // ignore, fall through
+    }
+  }
+
+  // Final fallback: Wikipedia with LDS query
+  try {
+    return await searchWikipediaLDS(query, limit);
+  } catch {
+    return [{
+      title: 'Search Unavailable',
+      url: '',
+      snippet: 'Could not connect to any search provider. Consider configuring a search provider (SearXNG, Tavily, Brave, or Google Custom Search) in Settings for reliable LDS web search.',
+      source: 'system',
+    }];
+  }
 }

@@ -2,6 +2,8 @@ import type { Message, ChatMode, ApiProviderSettings } from '../types';
 import type { ToolCall } from '../types';
 import type { GenerateContentResponse } from '@google/genai';
 import { executeToolWithRetry } from './aiService';
+import { buildSystemPrompt } from './promptBuilder';
+import { ToolCallManager } from './toolCallManager';
 
 export type AgentPhase = 'thinking' | 'planning' | 'acting' | 'reflecting' | 'responding' | 'done';
 
@@ -61,8 +63,15 @@ export class AgentLoop {
 
     yield { type: 'phase', phase: 'thinking', content: 'Analyzing your question...' };
 
-    // Build system prompt with persona and context
-    const systemPrompt = this.buildSystemPrompt();
+    // Build system prompt using canonical promptBuilder
+    const systemPrompt = buildSystemPrompt(
+      this.mode,
+      null,
+      undefined,
+      null,
+      undefined,
+      { verbose: this.verbose, persona: this.persona }
+    );
 
     // Generate initial response with potential tool calls
     const responseStream = await this.generateResponse(systemPrompt);
@@ -140,42 +149,6 @@ export class AgentLoop {
 
     yield { type: 'phase', phase: 'done', content: 'Complete' };
     yield { type: 'final_response', text: accumulatedText };
-  }
-
-  private buildSystemPrompt(): string {
-    const personaSection = this.persona
-      ? `\n\n## User Persona\n${this.persona}\n`
-      : '';
-
-    const verboseSection = this.verbose
-      ? '\n\n## Response Style\nProvide detailed, comprehensive responses with thorough explanations.'
-      : '\n\n## Response Style\nBe concise but thorough.';
-
-    const modeInstructions = this.getModeInstructions();
-
-    return `You are a knowledgeable LDS scripture scholar assistant.${personaSection}${verboseSection}
-
-${modeInstructions}
-
-## Guidelines
-- Cite specific scripture references (book, chapter, verse)
-- Provide context and historical background when relevant
-- Be faithful to the original text
-- Use the available tools to search scriptures and find cross-references
-${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show your reasoning process.' : ''}`;
-  }
-
-  private getModeInstructions(): string {
-    switch (this.mode) {
-      case 'study-plan':
-        return 'Create structured study plans in JSON format with daily sessions.';
-      case 'multi-quiz':
-        return 'Generate interactive quizzes in JSON format with multiple-choice questions.';
-      case 'lesson-prep':
-        return 'Prepare lesson outlines with discussion questions and points.';
-      default:
-        return 'Provide helpful, accurate responses about LDS scriptures and doctrines.';
-    }
   }
 
   private detectPhase(text: string): AgentPhase {
@@ -270,23 +243,6 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
         parameters: args,
         status: 'running',
       };
-
-      this.toolCallManager.addToolCall(toolCall);
-
-      try {
-        const result = await executeToolWithRetry(name, args, this.settings);
-        toolCall.status = 'completed';
-        toolCall.result = result;
-        this.toolCallManager.completeToolCall(toolCall.id, result);
-        results.push({ toolName: name, result });
-      } catch (e: any) {
-        toolCall.status = 'error';
-        toolCall.result = { success: false, data: null, error: String(e) };
-        this.toolCallManager.failToolCall(toolCall.id, String(e));
-        results.push({ toolName: name, result: { success: false, data: null, error: String(e) } });
-        // Include error context in tool results so the LLM can explain the failure
-        results.push({ toolName: name, result: { success: false, data: null, error: `Tool "${name}" failed: ${String(e).substring(0, 200)}` } });
-      }
     }
 
     return results;
@@ -315,18 +271,6 @@ export type AgentLoopEvent =
   | { type: 'tool_call_failed'; toolCall: ToolCall; error: string }
   | { type: 'final_response'; text: string };
 
-/**
- * Manages tool calls within a conversation context
- */
-export class ToolCallManager {
-  private toolCalls: Map<string, ToolCall> = new Map();
-  private conversationToolCalls: ToolCall[] = [];
-
-  reset(): void {
-    this.toolCalls.clear();
-    this.conversationToolCalls = [];
-  }
-
   addToolCall(toolCall: ToolCall): void {
     this.toolCalls.set(toolCall.id, toolCall);
     this.conversationToolCalls.push(toolCall);
@@ -344,14 +288,3 @@ export class ToolCallManager {
   }
 
   failToolCall(id: string, err: string): void {
-    this.updateToolCall(id, { status: 'error', result: { success: false, data: null, error: err } });
-  }
-
-  getConversationToolCalls(): ToolCall[] {
-    return [...this.conversationToolCalls];
-  }
-
-  getToolCall(id: string): ToolCall | undefined {
-    return this.toolCalls.get(id);
-  }
-}

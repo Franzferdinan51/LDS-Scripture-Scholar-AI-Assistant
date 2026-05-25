@@ -33,6 +33,8 @@ function convertGeminiParamsToOpenAI(params: any): any {
   return result;
 }
 
+export { convertGeminiParamsToOpenAI };
+
 // --- OpenAI Function Format ---
 
 export interface OpenAITool {
@@ -110,7 +112,7 @@ export const SCRIPTURE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'searchWeb',
-    description: 'Search official Church of Jesus Christ of Latter-day Saints sources for current information. Searches ChurchofJesusChrist.org Gospel Library, General Conference talks, Church magazines, and authoritative LDS sources. Use this for recent Church information, talks, news, and official statements.',
+    description: 'Search authoritative LDS sources including ChurchofJesusChrist.org Gospel Library, General Conference talks, Church magazines, Book of Mormon Central, FAIR LDS, and other official Church sources. Also searches LDS-domain-filtered web results. Use this for any current Church information, recent talks, official statements, doctrine, or LDS news. This is the primary search tool — it combines multiple sources for maximum coverage.',
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -121,42 +123,6 @@ export const SCRIPTURE_TOOLS: ToolDefinition[] = [
         limit: {
           type: Type.NUMBER,
           description: 'Maximum number of results to return (default 5)',
-        },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'searchLDSSources',
-    description: 'Search directly on ChurchofJesusChrist.org for official LDS Church content including General Conference talks, scripture study helps, Church manuals, and official publications. Use this when you need the most authoritative, current, and doctrinally accurate information from the Church of Jesus Christ of Latter-day Saints.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        query: {
-          type: Type.STRING,
-          description: 'Search query for official LDS Church sources',
-        },
-        limit: {
-          type: Type.NUMBER,
-          description: 'Maximum number of results to return (default 8)',
-        },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'searchLdsWeb',
-    description: 'Search multiple authoritative LDS sources including ChurchofJesusChrist.org, Book of Mormon Central, and FAIR LDS for scholarly and official information. Combines Gospel Library API results with LDS-domain-filtered web search for maximum coverage of authoritative Latter-day Saints content.',
-    parameters: {
-      type: Type.OBJECT,
-      properties: {
-        query: {
-          type: Type.STRING,
-          description: 'Search query for LDS information across multiple authoritative sources',
-        },
-        limit: {
-          type: Type.NUMBER,
-          description: 'Maximum number of results to return (default 8)',
         },
       },
       required: ['query'],

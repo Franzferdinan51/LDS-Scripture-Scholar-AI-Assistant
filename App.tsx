@@ -767,17 +767,19 @@ const App: React.FC = () => {
 
         if (startIdx !== -1) {
             const endIdx = accumulatedText.indexOf(thinkingEndTag);
-            visibleText = accumulatedText.substring(0, startIdx);
+      let rawVisible = accumulatedText.substring(0, startIdx);
             
             if (endIdx !== -1 && endIdx > startIdx) {
                 // Tag is complete
                 thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length, endIdx);
-                visibleText += accumulatedText.substring(endIdx + thinkingEndTag.length);
+        rawVisible += accumulatedText.substring(endIdx + thinkingEndTag.length);
             } else {
                 // Tag is not yet closed, so everything after it is thinking
                 thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length);
+      }
+      // Apply tool-call stripping to visible portion
+      visibleText = cleanStreamText(rawVisible);
             }
-        }
 
         setChatHistory(prev => ({
             ...prev,

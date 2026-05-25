@@ -3,8 +3,8 @@ import {
   getScriptureText as lookupScriptureText,
   searchScriptureCorpus,
 } from './scriptureCorpus';
-import { searchLDSContent, searchLDSSources, searchLdsWeb, webSearch, type WebSearchSettings } from './webSearchService';
-import { searchLDS as searchLDSFromService, getSearchConfig } from './ldsSearchService';
+import { searchLDSContent, searchLDSSources, webSearch, type WebSearchSettings } from './webSearchService';
+import { searchLDS as searchLDSFromService, getSearchConfig } from './webSearchService';
 import { getCrossReferencesForSettings } from './crossReferenceService';
 
 // --- Wikimedia helper (inlined to avoid circular dependency) ---
@@ -252,79 +252,9 @@ async function searchWeb(params: { query: string; limit?: number }, settings?: A
   }
 }
 
-// --- Dedicated LDS Web Search (multi-source) ---
 
-async function handleSearchLdsWeb(params: { query: string; limit?: number }, settings?: ApiProviderSettings): Promise<ToolResult> {
-  const query = params?.query?.trim();
-  if (!query) {
-    return {
-      success: false,
-      data: null,
-      error: 'A search query is required.',
-    };
-  }
 
-  try {
-    const limit = params.limit || 8;
-    const { results, source } = await searchLdsWeb(query, limit);
 
-    return {
-      success: true,
-      data: {
-        query,
-        results,
-        message: results.length > 0
-          ? `Found ${results.length} results across authoritative LDS sources (${source}). These come from ChurchofJesusChrist.org Gospel Library, General Conference, Book of Mormon Central, FAIR LDS, and other official LDS sites.`
-          : 'No LDS-specific results found. Try a different query or use searchWeb for broader results.',
-      },
-      source,
-    };
-  } catch (err: any) {
-    console.error('LDS web search error:', err);
-    return {
-      success: false,
-      data: null,
-      error: `LDS web search failed: ${err.message || 'Unknown error'}`,
-    };
-  }
-}
-
-// --- LDS Sources Search (direct ChurchofJesusChrist.org) ---
-
-async function handleSearchLDSSources(params: { query: string; limit?: number }): Promise<ToolResult> {
-  const query = params?.query?.trim();
-  if (!query) {
-    return {
-      success: false,
-      data: null,
-      error: 'A search query is required.',
-    };
-  }
-
-  try {
-    const limit = params.limit || 8;
-    const { results, source } = await searchLDSSources(query, limit);
-
-    return {
-      success: true,
-      data: {
-        query,
-        results,
-        message: results.length > 0
-          ? `Found ${results.length} results from official LDS Church sources (${source}). These are from ChurchofJesusChrist.org, including General Conference talks, scriptures, and Church manuals.`
-          : 'No results found on ChurchofJesusChrist.org. Try a different query or use searchWeb for broader results.',
-      },
-      source,
-    };
-  } catch (err: any) {
-    console.error('LDS sources search error:', err);
-    return {
-      success: false,
-      data: null,
-      error: `LDS sources search failed: ${err.message || 'Unknown error'}`,
-    };
-  }
-}
 
 // --- Tool Execution Router ---
 
@@ -343,11 +273,9 @@ export async function executeTool(
     case 'searchWikimediaImage':
       return searchWikimediaImage(parameters as any);
     case 'searchWeb':
-      return searchWeb(parameters as any, settings);
     case 'searchLdsWeb':
-      return handleSearchLdsWeb(parameters as any, settings);
     case 'searchLDSSources':
-      return handleSearchLDSSources(parameters as any);
+      return searchWeb(parameters as any, settings);
     default:
       return { success: false, data: null, error: `Unknown tool: ${name}` };
   }

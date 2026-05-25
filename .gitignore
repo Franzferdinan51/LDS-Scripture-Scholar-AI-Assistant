@@ -23,3 +23,9 @@ dist-ssr
 *.sln
 *.sw?
 .claude/
+
+# Temp fix scripts and backups
+_fix_*.py
+_merge_*.py
+*.bak
+scripts/fix_*.py

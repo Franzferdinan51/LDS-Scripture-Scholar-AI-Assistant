@@ -18,7 +18,7 @@ interface SettingsModalProps {
 const MCP_TEST_INITIAL = { status: 'idle' as const, message: null };
 const PROVIDER_DEFAULT_MODELS: Partial<Record<ApiProvider, string>> = {
   google: getProviderDefaultModel('google'),
-  minimax: 'MiniMax-Text-01',
+  minimax: 'MiniMax-M1',
 };
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearHistory }) => {
@@ -366,11 +366,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                     onChange={handleInputChange}
                     className={selectBaseClasses}
                   >
-                    <option value="gemini-flash-lite-latest">Flash Lite (Low-Latency)</option>
-                    <option value="gemini-2.5-flash">2.5 Flash</option>
-                    <option value="gemini-flash-latest">Flash Latest</option>
-                    <option value="gemini-2.5-pro">2.5 Pro</option>
-                  </select>
+                                       <option value="gemini-2.5-pro">2.5 Pro</option>
+                   <option value="gemini-2.5-flash">2.5 Flash</option>
+                   <option value="gemini-2.0-flash">2.0 Flash</option>
+                   <option value="gemini-2.0-flash-lite">2.0 Flash Lite</option>
+                   <option value="gemini-1.5-pro">1.5 Pro</option>
+                   <option value="gemini-1.5-flash">1.5 Flash</option>
+                   </select>
                   <p className="text-xs text-gray-400">Specialized modes automatically promote to the higher-capability Google model.</p>
                 </div>
               )}
@@ -435,7 +437,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
                       value={localSettings.model}
                       onChange={handleInputChange}
                       className={inputBaseClasses}
-                      placeholder="e.g., llama-3.2-3b-instruct, MiniMax-Text-01"
+                      placeholder="e.g., MiniMax-M1, MiniMax-Text-01, abab6.5s-chat"
                     />
                     <p className="mt-1 text-xs text-gray-400">
                       Type any model ID if it doesn't appear in the list above.
@@ -469,6 +471,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, onClearH
               <option value="brave">Brave Search API</option>
               <option value="google">Google Custom Search</option>
               <option value="wikipedia">Wikipedia Only (Fallback)</option>
+<option value="churchofjesuschrist">ChurchofJesusChrist.org (No API key needed)</option>
             </select>
           </div>
 

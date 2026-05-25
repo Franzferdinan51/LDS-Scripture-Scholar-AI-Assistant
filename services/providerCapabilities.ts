@@ -24,7 +24,7 @@ const PROVIDER_CAPABILITIES: Record<ApiProvider, ProviderCapabilityInfo> = {
     description: 'Best for the built-in live voice, grounding, and the fastest end-to-end experience.',
     note: 'Use a Google API key for Google-only live voice and TTS features.',
     keyLabel: 'Google API key',
-    defaultModel: 'gemini-flash-lite-latest',
+    defaultModel: 'gemini-2.5-flash',
     environment: 'cloud',
     supportsLiveVoice: true,
     supportsTextToSpeech: true,
