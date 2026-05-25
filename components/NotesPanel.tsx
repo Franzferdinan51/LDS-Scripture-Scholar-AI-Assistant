@@ -15,14 +15,14 @@ const NotesPanel: React.FC<NotesPanelProps> = ({ notes, setNotes, onDeleteNote }
     if (!currentNote.trim()) return;
 
     if (editingNoteId) {
-      setNotes(notes.map(n => n.id === editingNoteId ? { ...n, content: currentNote, timestamp: Date.now() } : n));
+      setNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, content: currentNote, timestamp: Date.now() } : n));
     } else {
       const newNote: Note = {
         id: `note-${Date.now()}`,
         content: currentNote,
         timestamp: Date.now(),
       };
-      setNotes([newNote, ...notes]);
+      setNotes(prev => [newNote, ...prev]);
     }
     setCurrentNote('');
     setEditingNoteId(null);
@@ -35,6 +35,7 @@ const NotesPanel: React.FC<NotesPanelProps> = ({ notes, setNotes, onDeleteNote }
 
   const handleDeleteNote = async (id: string) => {
     await onDeleteNote(id);
+    setNotes(prev => prev.filter(n => n.id !== id));
     if (id === editingNoteId) {
       setCurrentNote('');
       setEditingNoteId(null);
