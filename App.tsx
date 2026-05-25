@@ -40,7 +40,7 @@ import { extractMemories, storeMemories, retrieveRelevantMemories, updateProfile
 // Skills
 import { BUILTIN_SKILLS, initializeSkills, getSkillById } from './services/skills';
 // Reminders
-import { checkDueReminders, suggestReminders, createReminderFromSuggestion } from './services/reminders';
+import { startReminderCheck, stopReminderCheck, suggestReminders, createReminderFromSuggestion } from './services/reminders';
 import type { SuggestedReminder } from './services/reminders';
 // Study progress tracking
 import { recordConversation } from './services/studyProgress';
@@ -372,17 +372,22 @@ const App: React.FC = () => {
     }
   }, [journalEntries]);
 
-  // Check reminders on mount and periodically
+  // Start reminder polling once and listen for reminder events from the service layer.
   useEffect(() => {
-    const checkReminders = async () => {
-      const due = await checkDueReminders();
-      if (due.length > 0) {
-        setActiveReminder(due[0]);
+    const handleReminder = (event: Event) => {
+      const detail = (event as CustomEvent<Reminder>).detail;
+      if (detail) {
+        setActiveReminder(detail);
       }
     };
-    checkReminders();
-    const interval = setInterval(checkReminders, 60000); // Check every minute
-    return () => clearInterval(interval);
+
+    window.addEventListener('study-reminder', handleReminder as EventListener);
+    startReminderCheck();
+
+    return () => {
+      window.removeEventListener('study-reminder', handleReminder as EventListener);
+      stopReminderCheck();
+    };
   }, []);
 
   // Run memory consolidation periodically
