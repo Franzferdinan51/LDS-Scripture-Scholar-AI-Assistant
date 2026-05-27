@@ -63,8 +63,14 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
       const sessionPromise = connectLive(googleApiKey, {
         onopen: () => {
           if (!isMountedRef.current || requestId !== sessionRequestIdRef.current || isStoppingRef.current) return;
-          const source = inputAudioContextRef.current!.createMediaStreamSource(mediaStreamRef.current!);
-          scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+          const inputCtx = inputAudioContextRef.current;
+          const mediaStream = mediaStreamRef.current;
+          if (!inputCtx || !mediaStream) {
+            console.error('Audio context or media stream not available');
+            return;
+          }
+          const source = inputCtx.createMediaStreamSource(mediaStream);
+          scriptProcessorRef.current = inputCtx.createScriptProcessor(4096, 1, 1);
           scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
             if (requestId !== sessionRequestIdRef.current || isStoppingRef.current) return;
@@ -74,7 +80,7 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
             });
           };
           source.connect(scriptProcessorRef.current);
-          scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
+          scriptProcessorRef.current.connect(inputCtx.destination);
           setIsConnecting(false);
           setIsVoiceActive(true);
         },
