@@ -102,7 +102,9 @@ function queueWrite<T>(queueKey: string, operation: () => Promise<T>): Promise<T
   const previous = writeQueues.get(queueKey) ?? Promise.resolve();
   const next = previous.then(operation);
 
-  writeQueues.set(queueKey, next.then(() => undefined).catch(() => undefined));
+  writeQueues.set(queueKey, next.then(() => undefined).catch(err => {
+    console.error('Queue write tracking failed:', err);
+  }));
 
   return next;
 }

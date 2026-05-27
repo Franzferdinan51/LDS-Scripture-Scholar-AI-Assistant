@@ -1001,26 +1001,27 @@ const App: React.FC = () => {
         let visibleText = cleanStreamText(accumulatedText);
         let thinkingText: string | undefined = undefined;
 
-        // Live-parse the thinking tags during the stream
+        // Live-parse the thinking tags during the stream (case-insensitive for MiniMax compatibility)
+        const lowerAccumulated = accumulatedText.toLowerCase();
         const thinkingStartTag = '<thinking>';
         const thinkingEndTag = '</thinking>';
-        const startIdx = accumulatedText.indexOf(thinkingStartTag);
+        const startIdx = lowerAccumulated.indexOf(thinkingStartTag);
 
         if (startIdx !== -1) {
-            const endIdx = accumulatedText.indexOf(thinkingEndTag);
-      let rawVisible = accumulatedText.substring(0, startIdx);
-            
+            const endIdx = lowerAccumulated.indexOf(thinkingEndTag);
+            let rawVisible = accumulatedText.substring(0, startIdx);
+
             if (endIdx !== -1 && endIdx > startIdx) {
                 // Tag is complete
                 thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length, endIdx);
-        rawVisible += accumulatedText.substring(endIdx + thinkingEndTag.length);
+                rawVisible += accumulatedText.substring(endIdx + thinkingEndTag.length);
             } else {
                 // Tag is not yet closed, so everything after it is thinking
                 thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length);
-      }
-      // Apply tool-call stripping to visible portion
-      visibleText = cleanStreamText(rawVisible);
             }
+            // Apply tool-call stripping to visible portion
+            visibleText = cleanStreamText(rawVisible);
+        }
 
         setChatHistory(prev => ({
             ...prev,
@@ -1033,7 +1034,7 @@ const App: React.FC = () => {
       finalVisibleText = cleanStreamText(accumulatedText);
       let finalThinkingText: string | undefined = undefined;
 
-      const thinkingRegex = /<thinking>([\s\S]*)<\/thinking>/;
+      const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/i;
       const matchFinal = accumulatedText.match(thinkingRegex);
       if (matchFinal) {
           finalThinkingText = matchFinal[1].trim();
