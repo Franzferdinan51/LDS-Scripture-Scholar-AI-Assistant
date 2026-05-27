@@ -197,8 +197,8 @@ export async function webSearch(
       LDS_DOMAINS.some(domain => r.url.includes(domain))
     );
     return ddgResult;
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('LDS domain filter failed:', err);
   }
 
   // --- Last resort: Wikipedia for historical context ---

@@ -129,7 +129,8 @@ async function loadJson(url: string): Promise<any | null> {
     const response = await fetch(url);
     if (!response.ok) return null;
     return await response.json();
-  } catch {
+  } catch (err) {
+    console.error(`Failed to load JSON from ${url}:`, err);
     return null;
   }
 }
@@ -476,8 +477,8 @@ export async function getScriptureText(reference: string): Promise<{
           };
         }
       }
-    } catch {
-      // Fall through to null.
+    } catch (err) {
+      console.error('Failed to parse scripture response:', err);
     }
   }
 

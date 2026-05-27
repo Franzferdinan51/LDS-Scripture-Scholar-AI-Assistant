@@ -1425,8 +1425,14 @@ const App: React.FC = () => {
         onopen: () => {
           if (requestId !== voiceSessionRequestIdRef.current) return;
           console.debug('Voice session opened');
-          const source = inputAudioContextRef.current!.createMediaStreamSource(mediaStreamRef.current!);
-          scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+          const inputCtx = inputAudioContextRef.current;
+          const mediaStream = mediaStreamRef.current;
+          if (!inputCtx || !mediaStream) {
+            console.error('Audio context or media stream not available');
+            return;
+          }
+          const source = inputCtx.createMediaStreamSource(mediaStream);
+          scriptProcessorRef.current = inputCtx.createScriptProcessor(4096, 1, 1);
           scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
             const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
             const pcmBlob = createBlob(inputData);
