@@ -1443,7 +1443,7 @@ const App: React.FC = () => {
             });
           };
           source.connect(scriptProcessorRef.current);
-          scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
+          scriptProcessorRef.current.connect(inputCtx.destination);
           setIsConnecting(false);
           setIsVoiceActive(true);
         },
