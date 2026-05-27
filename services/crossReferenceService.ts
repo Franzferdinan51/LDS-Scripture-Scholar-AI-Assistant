@@ -108,7 +108,10 @@ async function generateWithOpenAICompatibleProvider(
   });
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '');
+    const detail = await response.text().catch((err) => {
+    console.error('Failed to read cross-reference response text:', err);
+    return '';
+  });
     throw new Error(`Cross-reference request failed with status ${response.status}${detail ? `: ${detail}` : ''}`);
   }
 

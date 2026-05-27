@@ -106,7 +106,7 @@ export const SettingsProvider: React.FC<{ children: ReactNode }> = ({ children }
   const handleSetSettings = useCallback((newSettings: ApiProviderSettings) => {
     const normalizedProvider = normalizeApiProvider(newSettings.provider);
     if (normalizedProvider !== settings.provider) {
-      newSettings.model = getProviderDefaultModel(normalizedProvider);
+      newSettings = { ...newSettings, model: getProviderDefaultModel(normalizedProvider) };
     }
     setSettingsState({ ...newSettings, provider: normalizedProvider });
   }, [settings.provider]);

@@ -244,12 +244,13 @@ async function searchWeb(params: { query: string; limit?: number }, settings?: A
       },
       source,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error('Web search error:', err);
     return {
       success: false,
       data: null,
-      error: `Web search failed: ${err.message || 'Unknown error'}`,
+      error: `Web search failed: ${errorMessage || 'Unknown error'}`,
     };
   }
 }

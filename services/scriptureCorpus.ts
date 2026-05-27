@@ -313,7 +313,8 @@ async function loadDoctrineAndCovenants(): Promise<ScriptureData> {
     throw new Error('Unable to load The Doctrine and Covenants.');
   })();
 
-  dAndCChapterCache.catch(() => {
+  dAndCChapterCache.catch((err) => {
+    console.error('D&C chapter cache failed:', err);
     dAndCChapterCache = null;
   });
 
@@ -335,7 +336,8 @@ export async function loadScriptureVolume(volume: ScriptureVolume): Promise<Scri
       }
     })();
 
-    loadPromise.catch(() => {
+    loadPromise.catch((err) => {
+      console.error(`Scripture volume ${volume} load failed:`, err);
       volumeCache.delete(volume);
     });
 

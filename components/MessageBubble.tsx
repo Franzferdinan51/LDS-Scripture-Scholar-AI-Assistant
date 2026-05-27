@@ -18,6 +18,10 @@ import ToolCallIndicator from './ToolCallIndicator';
 interface AudioPlaybackState {
   messageId: string | null;
   status: 'playing' | 'paused' | 'stopped' | 'loading';
+  source?: AudioBufferSourceNode | null;
+  audioBuffer?: AudioBuffer | null;
+  startTime?: number;
+  pauseTime?: number;
 }
 
 interface MessageBubbleProps {
@@ -106,11 +110,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
   const renderTextWithFeatures = (text: string) => {
     const parts = text.split(scriptureRegex);
     const matches = text.match(scriptureRegex) || [];
-    
+
     return parts.map((part, index) => (
       <Fragment key={index}>
         {part}
-        {matches[index] && (
+        {index < matches.length && matches[index] && (
           <span className="inline-flex items-center">
             <a 
               href="#"
@@ -215,10 +219,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isStreaming = fa
             <div className="mt-2 p-2 bg-slate-900/50 rounded border border-slate-700">
               <pre className="whitespace-pre-wrap font-mono text-gray-300 break-words">{message.thinking}</pre>
             </div>
-            <style>{`
-                details > summary::-webkit-details-marker { display: none; }
-                details[open] > summary .details-arrow { transform: rotate(180deg); }
-            `}</style>
           </details>
         )}
         {message.groundingChunks && message.groundingChunks.length > 0 && (

@@ -126,7 +126,10 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
         scriptProcessorRef.current = null;
       }
       if (inputAudioContextRef.current) {
-        await inputAudioContextRef.current.close().catch(() => {});
+        await inputAudioContextRef.current.close().catch(err => {
+          // Ignore errors from already-closed contexts
+          if (!err.message.includes('closed')) console.error('Failed to close input audio context:', err);
+        });
         inputAudioContextRef.current = null;
       }
       if (mediaStreamRef.current) {
@@ -151,7 +154,9 @@ const JournalPanel: React.FC<JournalPanelProps> = ({
           }
           try {
               const insights = await getJournalInsights(transcriptionRef.current);
-              setEntries(prev => prev.map(e => e.id === newEntry.id ? { ...e, ...insights } : e));
+              if (insights && typeof insights === 'object') {
+                setEntries(prev => prev.map(e => e.id === newEntry.id ? { ...e, ...insights } : e));
+              }
           } catch (e) {
               console.error("Failed to get journal insights:", e);
               if (isMountedRef.current && summaryRequestId === summaryRequestIdRef.current) {

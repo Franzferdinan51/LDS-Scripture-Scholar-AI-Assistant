@@ -85,8 +85,13 @@ export async function storeMemories(newMemories: Memory[]): Promise<void> {
     );
 
     if (!isDuplicate) {
-      const embedding = await embedText(mem.content);
-      await saveMemory({ ...mem, embedding: embedding ?? mem.embedding });
+      try {
+        const embedding = await embedText(mem.content);
+        await saveMemory({ ...mem, embedding: embedding ?? mem.embedding });
+      } catch (embedErr) {
+        console.error('Failed to embed memory, saving without embedding:', embedErr);
+        await saveMemory(mem);
+      }
       acceptedContents.add(normalizedContent);
       existing.push(mem);
     }
@@ -133,7 +138,7 @@ export async function retrieveRelevantMemories(
     const totalScore = (keywordScore * 0.35) + (semanticScore * 2.75) + (recencyScore * 0.2) + (mem.relevance * 0.1) + (accessScore * 0.1);
 
     if (!mem.embedding && memoryEmbedding) {
-      saveMemory({ ...mem, embedding: memoryEmbedding }).catch(() => {});
+      saveMemory({ ...mem, embedding: memoryEmbedding }).catch(err => console.error('Failed to save memory embedding:', err));
     }
 
     return { ...mem, score: totalScore };
@@ -146,7 +151,9 @@ export async function retrieveRelevantMemories(
     .slice(0, limit)
     .map(({ score, ...mem }) => {
       // Update access tracking
-      saveMemory({ ...mem, lastAccessed: Date.now(), accessCount: mem.accessCount + 1 });
+      saveMemory({ ...mem, lastAccessed: Date.now(), accessCount: mem.accessCount + 1 }).catch(err =>
+        console.error('Failed to update memory access:', err)
+      );
       return mem;
     });
 }

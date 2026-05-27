@@ -81,7 +81,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   useEffect(() => {
     setSelectedIndex(0);
     setShowCommands(text.startsWith('/') && filteredCommands.length > 0);
-  }, [text, filteredCommands.length, filteredCommands]);
+  }, [text, filteredCommands.length]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

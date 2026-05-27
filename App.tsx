@@ -428,20 +428,20 @@ const App: React.FC = () => {
       }
     }
     if (activeChatId) {
-      setSetting('activeChatId', activeChatId).catch(() => {});
+      setSetting('activeChatId', activeChatId).catch(err => console.error('Failed to save active chat ID:', err));
     }
-    setSetting('pinnedChatIds', pinnedChatIds).catch(() => {});
+    setSetting('pinnedChatIds', pinnedChatIds).catch(err => console.error('Failed to save pinned chats:', err));
   }, [chatHistory, activeChatId, pinnedChatIds]);
 
   // Persist notes/journals
   useEffect(() => {
     for (const note of notes) {
-      saveNote(note).catch(() => {});
+      saveNote(note).catch(err => console.error('Failed to save note:', err));
     }
   }, [notes]);
   useEffect(() => {
     for (const entry of journalEntries) {
-      saveJournalEntry(entry).catch(() => {});
+      saveJournalEntry(entry).catch(err => console.error('Failed to save journal entry:', err));
     }
   }, [journalEntries]);
 
@@ -466,7 +466,7 @@ const App: React.FC = () => {
   // Run memory consolidation periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      consolidateMemories().catch(() => {});
+      consolidateMemories().catch(err => console.error('Memory consolidation failed:', err));
     }, 3600000); // Every hour
     return () => clearInterval(interval);
   }, []);
@@ -499,9 +499,10 @@ const App: React.FC = () => {
           setError("Please configure your API provider in the settings.");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       console.error("Initialization error:", err);
-      setError(`Could not initialize the chat: ${err.message}`);
+      setError(`Could not initialize the chat: ${errorMessage}`);
       setChat(null);
     }
   }, [settings, provider, chatMode, activeChatId, chatHistory, activeView, userProfile, memories, activeSkill, readingContext, thinkingDepth, persona]);
@@ -588,7 +589,7 @@ const App: React.FC = () => {
     } finally {
       setIsSuggesting(false);
     }
-  }, [chatHistory, settings, isSuggesting, chatMode, activeChatId]);
+  }, [settings, isSuggesting]);
 
 
   // Handle slash commands
@@ -757,7 +758,7 @@ const App: React.FC = () => {
               const next = prev?.id === skill.id ? null : skill;
               if (next) {
                 // Track skill usage when activated
-                updateSkillUsage(skill.id).catch(() => {});
+                updateSkillUsage(skill.id).catch(err => console.error('Failed to update skill usage:', err));
               }
               return next;
             });
@@ -948,10 +949,11 @@ const App: React.FC = () => {
         persona,
         agentSystemPrompt,
       });
-        } catch (err: any) {
-            console.error("Temporary chat service initialization error:", err);
-            setError(`Could not initialize the chat for this request: ${err.message}`);
-            return;
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          console.error("Temporary chat service initialization error:", err);
+          setError(`Could not initialize the chat for this request: ${errorMessage}`);
+          return;
         }
     }
 
@@ -1138,7 +1140,7 @@ const App: React.FC = () => {
         const completionTokens = estimateTokenCount(finalVisibleText);
         const totalTokens = promptTokens + completionTokens;
         if (totalTokens > 0) {
-          addUsage(provider, totalTokens, 1).catch(() => {});
+          addUsage(provider, totalTokens, 1).catch(err => console.error('Failed to record usage:', err));
         }
       }
       if (effectiveMode === 'chat' && !requestError && activeChatId) {
@@ -1159,11 +1161,12 @@ const App: React.FC = () => {
               .then(extracted => {
                 if (extracted.length > 0) {
                   storeMemories(extracted);
-                  // Update memories state
-                  retrieveRelevantMemories('', 5).then(setMemories);
+                  retrieveRelevantMemories('', 5)
+                    .then(setMemories)
+                    .catch(err => console.error('Failed to retrieve memories:', err));
                 }
               })
-              .catch(() => {});
+              .catch(err => console.error('Failed to extract memories:', err));
             // Suggest reminders based on conversation context (async, non-blocking)
             suggestReminders(text, settings)
               .then(suggestions => {
@@ -1171,7 +1174,7 @@ const App: React.FC = () => {
                   setSuggestedReminders(suggestions);
                 }
               })
-              .catch(() => {});
+              .catch(err => console.error('Failed to suggest reminders:', err));
             // Update user profile from conversation
             updateProfileFromConversation(currentMessages, settings)
               .then(async () => {
@@ -1193,7 +1196,7 @@ const App: React.FC = () => {
                   setUserProfile(updated);
                 }
               })
-              .catch(() => {});
+              .catch(err => console.error('Failed to update user profile:', err));
 
             // Record study session
             const topics = text.toLowerCase().match(/\b(faith|repentance|baptism|prayer|scripture|prophet|atonement|temple|covenant|priesthood|testimony|missionary|charity|hope|grace|revelation|restoration|plan of salvation|word of wisdom|tithing|fasting)\b/g);
@@ -1206,12 +1209,12 @@ const App: React.FC = () => {
               toolsUsed: [],
               skillsUsed: activeSkill ? [activeSkill.id] : [],
             };
-            saveStudySession(session).catch(() => {});
+            saveStudySession(session).catch(err => console.error('Failed to save study session:', err));
             setStudySessions(prev => [...prev, session]);
             // Record progress for achievements
-            recordConversation().catch(() => {});
+            recordConversation().catch(err => console.error('Failed to record conversation:', err));
             // Proactive memory capture - silently save important user facts
-            extractProactiveMemories(currentMessages, settings).catch(() => {});
+            extractProactiveMemories(currentMessages, settings).catch(err => console.error('Failed to extract proactive memories:', err));
 
             // Self-improving skill creation: detect complex conversations
             if (botMessageId) {
@@ -1262,7 +1265,9 @@ const App: React.FC = () => {
         }
         retrySendTimerRef.current = setTimeout(() => {
             retrySendTimerRef.current = null;
-            void handleSendMessageRef.current?.(userMessageToRetry!.text);
+            if (userMessageToRetry) {
+              void handleSendMessageRef.current?.(userMessageToRetry.text);
+            }
         }, 50);
     } else {
         setError("Could not find the original prompt to retry.");
@@ -1464,21 +1469,32 @@ const App: React.FC = () => {
           }
 
           const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-          if (audioData) {
-            const outputCtx = outputAudioContextRef.current!;
-            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
-            const audioBuffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
-            const source = outputCtx.createBufferSource();
-            source.buffer = audioBuffer;
-            source.connect(outputCtx.destination);
-            source.addEventListener('ended', () => { audioSourcesRef.current.delete(source); });
-            source.start(nextStartTimeRef.current);
-            nextStartTimeRef.current += audioBuffer.duration;
-            audioSourcesRef.current.add(source);
+          if (audioData && typeof audioData === 'string' && audioData.length > 0) {
+            try {
+              const outputCtx = outputAudioContextRef.current!;
+              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+              const audioBuffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
+              const source = outputCtx.createBufferSource();
+              source.buffer = audioBuffer;
+              source.connect(outputCtx.destination);
+              source.addEventListener('ended', () => { audioSourcesRef.current.delete(source); });
+              source.start(nextStartTimeRef.current);
+              nextStartTimeRef.current += audioBuffer.duration;
+              audioSourcesRef.current.add(source);
+            } catch (audioErr) {
+              console.error('Failed to decode audio data:', audioErr);
+            }
           }
 
           if (message.serverContent?.turnComplete) { currentUserMessageIdRef.current = null; currentBotMessageIdRef.current = null; }
-          if (message.serverContent?.interrupted) { audioSourcesRef.current.forEach(source => source.stop()); audioSourcesRef.current.clear(); nextStartTimeRef.current = 0; }
+          if (message.serverContent?.interrupted) {
+            audioSourcesRef.current.forEach(source => {
+              source.stop();
+              source.removeEventListener('ended', () => { audioSourcesRef.current.delete(source); });
+            });
+            audioSourcesRef.current.clear();
+            nextStartTimeRef.current = 0;
+          }
         },
         onerror: (e: ErrorEvent) => {
           if (requestId !== voiceSessionRequestIdRef.current) return;
@@ -1513,7 +1529,8 @@ const App: React.FC = () => {
   };
   
   const handleToggleVoiceChat = () => {
-    (isVoiceActive || isConnecting) ? stopVoiceSession() : startVoiceChat();
+    if (isVoiceActive || isConnecting) stopVoiceSession();
+    else startVoiceChat();
   };
 
   const handleToggleAudio = async (messageId: string, text: string) => {
@@ -1821,7 +1838,7 @@ const App: React.FC = () => {
                 const next = prev?.id === skill.id ? null : skill;
                 if (next) {
                   // Track skill usage when selected from UI
-                  updateSkillUsage(skill.id).catch(() => {});
+                  updateSkillUsage(skill.id).catch(err => console.error('Failed to update skill usage:', err));
                 }
                 return next;
               });

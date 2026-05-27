@@ -272,14 +272,14 @@ ${this.mode === 'thinking' ? '\n\n## Thinking Mode\nUse <thinking> tags to show 
         toolCall.result = result;
         this.toolCallManager.completeToolCall(toolCall.id, result);
         results.push({ toolName: name, result });
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
         toolCall.status = 'error';
-        toolCall.result = { success: false, data: null, error: String(e) };
-        this.toolCallManager.failToolCall(toolCall.id, String(e));
-        results.push({ toolName: name, result: { success: false, data: null, error: String(e) } });
+        toolCall.result = { success: false, data: null, error: errorMessage };
+        this.toolCallManager.failToolCall(toolCall.id, errorMessage);
         results.push({
           toolName: name,
-          result: { success: false, data: null, error: `Tool "${name}" failed: ${String(e).substring(0, 200)}` },
+          result: { success: false, data: null, error: `Tool "${name}" failed: ${errorMessage.substring(0, 200)}` },
         });
       }
     }

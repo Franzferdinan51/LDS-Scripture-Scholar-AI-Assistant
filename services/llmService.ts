@@ -57,7 +57,7 @@ export async function generateTextWithSettings(
   options: GenerateResponseOptions
 ): Promise<string> {
   const model = options.model || getProviderConnection(settings).model;
-  if (!model) {
+  if (!model || (typeof model === 'string' && model.trim() === '')) {
     throw new Error('Please select a model in Settings before using this feature.');
   }
 

@@ -100,12 +100,9 @@ function getDB(): Promise<IDBPDatabase<ScriptureScholarDB>> {
 
 function queueWrite<T>(queueKey: string, operation: () => Promise<T>): Promise<T> {
   const previous = writeQueues.get(queueKey) ?? Promise.resolve();
-  const next = previous.catch(() => {}).then(operation);
+  const next = previous.then(operation);
 
-  writeQueues.set(
-    queueKey,
-    next.then(() => undefined, () => undefined)
-  );
+  writeQueues.set(queueKey, next.then(() => undefined).catch(() => undefined));
 
   return next;
 }

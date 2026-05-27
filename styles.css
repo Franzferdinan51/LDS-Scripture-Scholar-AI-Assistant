@@ -42,3 +42,6 @@ body {
     opacity: 0;
   }
 }
+
+details > summary::-webkit-details-marker { display: none; }
+details[open] > summary .details-arrow { transform: rotate(180deg); }

@@ -1042,8 +1042,9 @@ export const fetchModels = async (settings: ApiProviderSettings): Promise<Model[
                 isFree: true
             })).sort((a: Model, b: Model) => (a.name || '').localeCompare(b.name || ''));
         }
-    } catch (e: any) {
-        if (e.message?.includes('Failed to fetch') || e.name === 'TypeError') {
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        if (errorMessage.includes('Failed to fetch') || (e instanceof TypeError)) {
             throw new Error(`Cannot reach ${url}. Make sure the server is running and CORS is configured.`);
         }
         throw e;

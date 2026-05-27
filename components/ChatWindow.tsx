@@ -7,6 +7,10 @@ import AgentIndicator, { type AgentPhase } from './AgentIndicator';
 interface AudioPlaybackState {
   messageId: string | null;
   status: 'playing' | 'paused' | 'stopped' | 'loading';
+  source?: AudioBufferSourceNode | null;
+  audioBuffer?: AudioBuffer | null;
+  startTime?: number;
+  pauseTime?: number;
 }
 
 interface ChatWindowProps {
@@ -136,8 +140,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           />
         ))}
         {isLoading && messages[messages.length - 1]?.sender === 'user' && (
-             <MessageBubble 
-                message={{id: 'loading', text: '', sender: 'bot'}} 
+             <MessageBubble
+                message={{id: `loading-${Date.now()}`, text: '', sender: 'bot'}} 
                 onToggleAudio={() => Promise.resolve()} 
                 audioPlaybackState={{messageId: null, status: 'stopped'}}
                 onAnswerQuiz={() => {}}
