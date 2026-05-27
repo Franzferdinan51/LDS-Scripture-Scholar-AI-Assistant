@@ -63,6 +63,7 @@ function stripRawToolCalls(text: string): string {
     .replace(/<scratchpad[^>]*>[\s\S]*?<\/scratchpad>/gi, '')
     .replace(/<thought[^>]*>[\s\S]*?<\/thought>/gi, '')
     .replace(/<react[^>]*>[\s\S]*?<\/react>/gi, '')
+    .replace(/<thinking[^>]*>[\s\S]*?<\/thinking>/gi, '')
     // === Partial/unclosed XML tags (during streaming) ===
     .replace(/<function=[^>]*>[\s\S]*$/gi, '')
     .replace(/<function_call[^>]*>[\s\S]*$/gi, '')
@@ -73,6 +74,7 @@ function stripRawToolCalls(text: string): string {
     .replace(/<tool>[\s\S]*$/gi, '')
     .replace(/<scratchpad[^>]*>[\s\S]*$/gi, '')
     .replace(/<thought[^>]*>[\s\S]*$/gi, '')
+    .replace(/<thinking[^>]*>[\s\S]*$/gi, '')
     // Stray closing tags
     .replace(/<\/function>?\s*$/gi, '')
     .replace(/<\/function_call>?\s*$/gi, '')
@@ -83,6 +85,7 @@ function stripRawToolCalls(text: string): string {
     .replace(/<\/tool>?\s*$/gi, '')
     .replace(/<\/scratchpad>?\s*$/gi, '')
     .replace(/<\/thought>?\s*$/gi, '')
+    .replace(/<\/thinking>?\s*$/gi, '')
     // === Special tokens from local LLMs ===
     .replace(/<\|im_start\|>[\s\S]*?<\|im_end\|>/gi, '')
     .replace(/<\|im_start\|>[\s\S]*$/gi, '')
