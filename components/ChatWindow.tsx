@@ -7,10 +7,10 @@ import AgentIndicator, { type AgentPhase } from './AgentIndicator';
 interface AudioPlaybackState {
   messageId: string | null;
   status: 'playing' | 'paused' | 'stopped' | 'loading';
-  source?: AudioBufferSourceNode | null;
-  audioBuffer?: AudioBuffer | null;
-  startTime?: number;
-  pauseTime?: number;
+  source: AudioBufferSourceNode | null;
+  audioBuffer: AudioBuffer | null; // Keep buffer for resume
+  startTime: number; // For calculating elapsed time
+  pauseTime: number; // Where to resume from
 }
 
 interface ChatWindowProps {
