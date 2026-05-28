@@ -1034,14 +1034,22 @@ const App: React.FC = () => {
         }));
       }
       
-      finalVisibleText = cleanStreamText(accumulatedText);
-      let finalThinkingText: string | undefined = undefined;
+      // Use the live-parsed visibleText if available, otherwise clean accumulatedText
+      finalVisibleText = visibleText || cleanStreamText(accumulatedText);
+      let finalThinkingText: string | undefined = thinkingText;
 
-      const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/i;
+      const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/gi;
       const matchFinal = accumulatedText.match(thinkingRegex);
-      if (matchFinal) {
-          finalThinkingText = matchFinal[1].trim();
+      if (matchFinal && matchFinal.length > 0) {
+          // Take the last complete thinking block
+          const lastMatch = matchFinal[matchFinal.length - 1];
+          const innerMatch = lastMatch.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+          if (innerMatch && innerMatch[1]) {
+            finalThinkingText = innerMatch[1].trim();
+          }
+          // Remove all thinking blocks from visible text
           finalVisibleText = accumulatedText.replace(thinkingRegex, '').trim();
+          finalVisibleText = cleanStreamText(finalVisibleText);
       }
 
       const wikimediaRegex = /WIKIMEDIA_SEARCH\[(.*?)\]/;
