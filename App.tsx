@@ -984,6 +984,8 @@ const App: React.FC = () => {
     let requestError = null;
     let accumulatedText = "";
     let finalVisibleText = "";
+    let visibleText = "";
+    let thinkingText: string | undefined = undefined;
     try {
       setAgentPhase('responding');
       const responseStream = await chatService.sendMessageStream({ message: messageToSend });
@@ -1012,7 +1014,7 @@ const App: React.FC = () => {
 
         if (startIdx !== -1) {
             const endIdx = lowerAccumulated.indexOf(thinkingEndTag);
-            let rawVisible = accumulatedText.substring(0, startIdx);
+            const rawVisible = accumulatedText.substring(0, startIdx);
 
             if (endIdx !== -1 && endIdx > startIdx) {
                 // Tag is complete
