@@ -1024,6 +1024,8 @@ const App: React.FC = () => {
             }
             // Apply tool-call stripping to visible portion
             visibleText = cleanStreamText(rawVisible);
+        } else {
+            visibleText = cleanStreamText(accumulatedText);
         }
 
         setChatHistory(prev => ({
