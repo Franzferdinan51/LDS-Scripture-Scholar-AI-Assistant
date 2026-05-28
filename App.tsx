@@ -1006,23 +1006,29 @@ const App: React.FC = () => {
         let visibleText = cleanStreamText(accumulatedText);
         let thinkingText: string | undefined = undefined;
 
-        // Live-parse the thinking tags during the stream (case-insensitive for MiniMax compatibility)
+        // Live-parse the thinking/thought tags during the stream (case-insensitive for MiniMax compatibility)
         const lowerAccumulated = accumulatedText.toLowerCase();
         const thinkingStartTag = '<thinking>';
         const thinkingEndTag = '</thinking>';
-        const startIdx = lowerAccumulated.indexOf(thinkingStartTag);
+        const thoughtStartTag = '<thought>';
+        const thoughtEndTag = '</thought>';
+        const thinkStartIdx = lowerAccumulated.indexOf(thinkingStartTag);
+        const thoughtStartIdx = lowerAccumulated.indexOf(thoughtStartTag);
+        const startIdx = thinkStartIdx !== -1 ? thinkStartIdx : thoughtStartIdx;
+        const activeStartTag = startIdx === thinkStartIdx ? thinkingStartTag : thoughtStartTag;
+        const activeEndTag = startIdx === thinkStartIdx ? thinkingEndTag : thoughtEndTag;
 
         if (startIdx !== -1) {
-            const endIdx = lowerAccumulated.indexOf(thinkingEndTag);
+            const endIdx = lowerAccumulated.indexOf(activeEndTag, startIdx);
             const rawVisible = accumulatedText.substring(0, startIdx);
 
-            if (endIdx !== -1 && endIdx > startIdx) {
+            if (endIdx !== -1) {
                 // Tag is complete
-                thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length, endIdx);
-                rawVisible += accumulatedText.substring(endIdx + thinkingEndTag.length);
+                thinkingText = accumulatedText.substring(startIdx + activeStartTag.length, endIdx);
+                rawVisible += accumulatedText.substring(endIdx + activeEndTag.length);
             } else {
                 // Tag is not yet closed, so everything after it is thinking
-                thinkingText = accumulatedText.substring(startIdx + thinkingStartTag.length);
+                thinkingText = accumulatedText.substring(startIdx + activeStartTag.length);
             }
             // Apply tool-call stripping to visible portion
             visibleText = cleanStreamText(rawVisible);
@@ -1042,12 +1048,12 @@ const App: React.FC = () => {
       finalVisibleText = visibleText || cleanStreamText(accumulatedText);
       let finalThinkingText: string | undefined = thinkingText;
 
-      const thinkingRegex = /<thinking>([\s\S]*?)<\/thinking>/gi;
+      const thinkingRegex = /<(?:thinking|thought)>([\s\S]*?)<\/(?:thinking|thought)>/gi;
       const matchFinal = accumulatedText.match(thinkingRegex);
       if (matchFinal && matchFinal.length > 0) {
           // Take the last complete thinking block
           const lastMatch = matchFinal[matchFinal.length - 1];
-          const innerMatch = lastMatch.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+          const innerMatch = lastMatch.match(/<(?:thinking|thought)>([\s\S]*?)<\/(?:thinking|thought)>/i);
           if (innerMatch && innerMatch[1]) {
             finalThinkingText = innerMatch[1].trim();
           }
@@ -1328,7 +1334,10 @@ const App: React.FC = () => {
         for await (const chunk of responseStream) {
             if (chunk.isToolCall) continue; // Skip tool call chunks
  accumulatedText += safeChunkText(chunk);
-            const visibleText = cleanStreamText(accumulatedText).replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+            const visibleText = cleanStreamText(accumulatedText)
+              .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+              .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+              .trim();
             setScriptureAgentHistory(prev => prev.map(msg => msg.id === botMessageId ? { ...msg, text: visibleText } : msg));
         }
  } catch (err) {
@@ -1510,9 +1519,10 @@ const App: React.FC = () => {
 
           if (message.serverContent?.turnComplete) { currentUserMessageIdRef.current = null; currentBotMessageIdRef.current = null; }
           if (message.serverContent?.interrupted) {
+            // Stop all sources and clear the set. The ended handlers will fire
+            // later, but delete() on the empty set is a no-op.
             audioSourcesRef.current.forEach(source => {
-              source.stop();
-              source.removeEventListener('ended', () => { audioSourcesRef.current.delete(source); });
+              try { source.stop(); } catch { /* ignore */ }
             });
             audioSourcesRef.current.clear();
             nextStartTimeRef.current = 0;
